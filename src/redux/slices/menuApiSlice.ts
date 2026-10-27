@@ -1,0 +1,214 @@
+import { baseApi } from "../store/baseApi";
+
+export interface ModifierItem {
+  id?: string;
+  groupId?: string;
+  name: string;
+  price: number;
+  pricePaise?: number;
+  isVeg?: boolean;
+  dietaryType?: "VEG" | "NON_VEG" | "VEGAN";
+  isActive?: boolean;
+  sortOrder?: number;
+}
+
+export interface ModifierGroup {
+  id: string;
+  name: string;
+  description?: string;
+  minSelection: number;
+  maxSelection?: number | null;
+  isActive: boolean;
+  outletId?: string | null;
+  modifiers: ModifierItem[];
+  itemCount?: number;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface MenuItem {
+  id: string;
+  name: string;
+  description?: string;
+  price: number;
+  imageUrl?: string;
+  isVeg?: boolean;
+  dietaryType?: "VEG" | "NON_VEG" | "VEGAN";
+  isAvailable: boolean;
+  categoryId: string;
+  outletId?: string;
+  outletIds?: string[];
+  outlets?: { outletId: string; isActive: boolean }[];
+  modifierGroups?: ModifierGroup[];
+  modifierGroupIds?: string[];
+  category?: {
+    id: string;
+    name: string;
+  };
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface MenuCategory {
+  id: string;
+  name: string;
+  description?: string;
+  outletId?: string;
+  items?: MenuItem[];
+}
+
+export const menuApi = baseApi.injectEndpoints({
+  endpoints: (builder) => ({
+    getMenuItems: builder.query<MenuItem[], { categoryId?: string; search?: string; isAvailable?: boolean | string; isVeg?: boolean | string; dietaryType?: string } | void>({
+      query: (params) => ({
+        url: "/menu/items",
+        method: "GET",
+        params: params || undefined,
+      }),
+      transformResponse: (response: any) => (response?.data ?? response ?? []) as MenuItem[],
+      providesTags: ["MenuItems"],
+    }),
+
+    getCategories: builder.query<MenuCategory[], void>({
+      query: () => ({
+        url: "/menu/categories",
+        method: "GET",
+      }),
+      transformResponse: (response: any) => (response?.data ?? response ?? []) as MenuCategory[],
+      providesTags: ["MenuCategories"],
+    }),
+
+    createCategory: builder.mutation<MenuCategory, { name: string; description?: string; outletId?: string }>({
+      query: ({ outletId, ...body }) => ({
+        url: "/menu/categories",
+        method: "POST",
+        body,
+        headers: outletId ? { "x-outlet-id": outletId } : undefined,
+      }),
+      transformResponse: (response: any) => response?.data ?? response,
+      invalidatesTags: ["MenuCategories"],
+    }),
+
+    updateCategory: builder.mutation<MenuCategory, { id: string; name: string }>({
+      query: ({ id, ...body }) => ({
+        url: `/menu/categories/${id}`,
+        method: "PATCH",
+        body,
+      }),
+      transformResponse: (response: any) => response?.data ?? response,
+      invalidatesTags: ["MenuCategories", "MenuItems"],
+    }),
+
+    deleteCategory: builder.mutation<{ success: boolean; message?: string }, { id: string }>({
+      query: ({ id }) => ({
+        url: `/menu/categories/${id}`,
+        method: "DELETE",
+      }),
+      transformResponse: (response: any) => response?.data ?? response,
+      invalidatesTags: ["MenuCategories", "MenuItems"],
+    }),
+
+    createMenuItem: builder.mutation<MenuItem, Partial<MenuItem> & { outletId?: string }>({
+      query: ({ outletId, ...body }) => ({
+        url: "/menu/items",
+        method: "POST",
+        body,
+        headers: outletId ? { "x-outlet-id": outletId } : undefined,
+      }),
+      transformResponse: (response: any) => response?.data ?? response,
+      invalidatesTags: ["MenuItems"],
+    }),
+
+    updateMenuItem: builder.mutation<MenuItem, { id: string; data: Partial<MenuItem> }>({
+      query: ({ id, data }) => ({
+        url: `/menu/items/${id}`,
+        method: "PATCH",
+        body: data,
+      }),
+      transformResponse: (response: any) => response?.data ?? response,
+      invalidatesTags: ["MenuItems"],
+    }),
+
+    toggleMenuItemStatus: builder.mutation<MenuItem, { id: string; isAvailable: boolean; outletId?: string }>({
+      query: ({ id, isAvailable, outletId }) => ({
+        url: `/menu/items/${id}/status`,
+        method: "PATCH",
+        body: { isAvailable },
+        headers: outletId ? { "x-outlet-id": outletId } : undefined,
+      }),
+      transformResponse: (response: any) => response?.data ?? response,
+      invalidatesTags: ["MenuItems"],
+    }),
+
+    deleteMenuItem: builder.mutation<{ success: boolean; message?: string }, { id: string; outletId?: string }>({
+      query: ({ id, outletId }) => ({
+        url: `/menu/items/${id}`,
+        method: "DELETE",
+        headers: outletId ? { "x-outlet-id": outletId } : undefined,
+      }),
+      transformResponse: (response: any) => response?.data ?? response,
+      invalidatesTags: ["MenuItems"],
+    }),
+
+    // ── Modifier Groups ──
+    getModifierGroups: builder.query<ModifierGroup[], { outletId?: string } | void>({
+      query: (params) => ({
+        url: "/menu/modifier-groups",
+        method: "GET",
+        headers: params?.outletId ? { "x-outlet-id": params.outletId } : undefined,
+      }),
+      transformResponse: (response: any) => (response?.data ?? response ?? []) as ModifierGroup[],
+      providesTags: ["ModifierGroups"],
+    }),
+
+    createModifierGroup: builder.mutation<ModifierGroup, Partial<ModifierGroup> & { outletId?: string }>({
+      query: ({ outletId, ...body }) => ({
+        url: "/menu/modifier-groups",
+        method: "POST",
+        body,
+        headers: outletId ? { "x-outlet-id": outletId } : undefined,
+      }),
+      transformResponse: (response: any) => response?.data ?? response,
+      invalidatesTags: ["ModifierGroups", "MenuItems"],
+    }),
+
+    updateModifierGroup: builder.mutation<ModifierGroup, { id: string; data: Partial<ModifierGroup>; outletId?: string }>({
+      query: ({ id, data, outletId }) => ({
+        url: `/menu/modifier-groups/${id}`,
+        method: "PATCH",
+        body: data,
+        headers: outletId ? { "x-outlet-id": outletId } : undefined,
+      }),
+      transformResponse: (response: any) => response?.data ?? response,
+      invalidatesTags: ["ModifierGroups", "MenuItems"],
+    }),
+
+    deleteModifierGroup: builder.mutation<{ success: boolean; message?: string }, { id: string; outletId?: string }>({
+      query: ({ id, outletId }) => ({
+        url: `/menu/modifier-groups/${id}`,
+        method: "DELETE",
+        headers: outletId ? { "x-outlet-id": outletId } : undefined,
+      }),
+      transformResponse: (response: any) => response?.data ?? response,
+      invalidatesTags: ["ModifierGroups", "MenuItems"],
+    }),
+  }),
+});
+
+
+export const {
+  useGetMenuItemsQuery,
+  useGetCategoriesQuery,
+  useCreateCategoryMutation,
+  useUpdateCategoryMutation,
+  useDeleteCategoryMutation,
+  useCreateMenuItemMutation,
+  useUpdateMenuItemMutation,
+  useToggleMenuItemStatusMutation,
+  useDeleteMenuItemMutation,
+  useGetModifierGroupsQuery,
+  useCreateModifierGroupMutation,
+  useUpdateModifierGroupMutation,
+  useDeleteModifierGroupMutation,
+} = menuApi;
+

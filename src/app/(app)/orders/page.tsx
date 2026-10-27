@@ -1,0 +1,2927 @@
+"use client";
+
+import { TModal } from "@/components/ui/TModal";
+import React, { useState, useEffect, useMemo, useRef } from "react";
+import Link from "next/link";
+import DashboardLayout from "@/components/layout/DashboardLayout";
+import {
+  useGetOrdersQuery,
+  useUpdateOrderStatusMutation,
+  useSetServiceChargeWaiverMutation,
+  useCancelOrderItemMutation,
+  Order,
+  SplitPaymentPart,
+} from "@/redux/slices/orderApiSlice";
+import { useAppSelector } from "@/redux/store/hooks";
+import { useBranch } from "@/lib/BranchContext";
+import { fetchTables } from "@/lib/api";
+import { useGetEmployeesQuery } from "@/redux/slices/employeeApiSlice";
+import {
+  Utensils,
+  Clock,
+  CheckCircle,
+  Search,
+  RefreshCw,
+  ChefHat,
+  QrCode,
+  IndianRupee,
+  ChevronRight,
+  UserCheck,
+  CreditCard,
+  Banknote,
+  Check,
+  X,
+  Layers,
+  ArrowRight,
+  Timer,
+  CheckCircle2,
+  XCircle,
+  Package,
+  Printer,
+  Receipt,
+  Lock,
+  AlertCircle,
+  Tag,
+  ChevronDown,
+  Plus,
+  Trash2,
+} from "lucide-react";
+import { AnimatePresence, MotionConfig, motion } from "framer-motion";
+import {
+  useValidateRestaurantCouponMutation,
+  ValidateCouponResponse,
+} from "@/redux/slices/restaurantCouponApiSlice";
+import ThermalReceipt from "@/components/pos/ThermalReceipt";
+import ThermalKOT from "@/components/pos/ThermalKOT";
+import { getKitchenModeCapabilities } from "@/lib/kitchenMode";
+import { autoPrintReceipt } from "@/lib/bluetoothAutoPrinter";
+import SplitPaymentEditor, { initialSplitLines } from "@/components/pos/SplitPaymentEditor";
+import UpiPayQr from "@/components/pos/UpiPayQr";
+import { estimateBill } from "@/lib/billing";
+import {
+  SplitLine,
+  describePaymentLines,
+  formatPaise,
+  getCustomerPaymentClaims,
+  getPaymentLines,
+  isOnlineMethod,
+  isPlatformMethod,
+  summarizeSplit,
+  toPaymentPayload,
+  type SettleMethodCode,
+} from "@/lib/splitPayment";
+
+// Dine-in partner platforms: brand colour for the method buttons
+const PLATFORM_META = {
+  SWIGGY: { label: "Swiggy", dot: "bg-[#FC8019]" },
+  ZOMATO: { label: "Zomato", dot: "bg-[#E23744]" },
+  EAZYDINER: { label: "EazyDiner", dot: "bg-[#FF6F00]" },
+} as const;
+
+/**
+ * The bill the settle modal shows and collects, in paise — same formula as the server's final
+ * recalculation (lib/billing.ts), with a coupon applied at the counter taken into account.
+ */
+function settlementBill(order: Order, appliedCoupon: ValidateCouponResponse | null) {
+  const subtotalPaise =
+    (order as any).subtotalPaise !== undefined ? (order as any).subtotalPaise : Math.round((order.subtotal || 0) * 100);
+  const subtotalVal = subtotalPaise / 100;
+  const discountVal = appliedCoupon ? appliedCoupon.discountAmount : (order.discountAmount || 0);
+  const isDineIn = order.isDineIn ?? (order.orderSource === "TABLE" || order.orderSource === "QR");
+  const scRate = order.serviceChargeRate !== undefined && order.serviceChargeRate !== null
+    ? Number(order.serviceChargeRate)
+    : (subtotalVal > 0 && order.serviceChargeAmount ? Number(((order.serviceChargeAmount / subtotalVal) * 100).toFixed(1)) : 0);
+
+  const bill = estimateBill([{ price: subtotalVal, quantity: 1 }], {
+    cgstRate: order.cgstRate != null ? Number(order.cgstRate) : 2.5,
+    sgstRate: order.sgstRate != null ? Number(order.sgstRate) : 2.5,
+    serviceChargeRate: scRate,
+  }, {
+    dineIn: isDineIn,
+    serviceChargeWaived: !!order.serviceChargeWaived,
+    discount: discountVal,
+    gstRegistrationType: order.gstRegistrationType || "REGULAR",
+  });
+
+  const totalPaise = Math.round(bill.total * 100);
+  // Already confirmed on the bill — only the rest is collected now. A QR diner's "I paid by UPI" is PENDING
+  // until the cashier checks it, so it is still part of the amount due here
+  const paidPaise = (order.payments || [])
+    .filter((p) => p.status === "CONFIRMED")
+    .reduce((sum, p) => sum + p.amountPaise, 0);
+
+  return {
+    isDineIn,
+    scRate,
+    subtotalVal,
+    discountVal,
+    serviceChargeVal: bill.serviceCharge,
+    taxableVal: bill.taxableValue,
+    cgstVal: bill.cgst,
+    sgstVal: bill.sgst,
+    roundOffVal: bill.roundOff,
+    totalVal: bill.total,
+    totalPaise,
+    paidPaise,
+    balanceDuePaise: Math.max(0, totalPaise - paidPaise),
+  };
+}
+
+// Smooth open / close for the settle modal's optional sections
+const COLLAPSE_MOTION = {
+  initial: { height: 0, opacity: 0 },
+  animate: { height: "auto", opacity: 1 },
+  exit: { height: 0, opacity: 0 },
+  transition: { duration: 0.22, ease: [0.32, 0.72, 0, 1] as const },
+};
+
+const newSettlementKey = () =>
+  typeof crypto !== "undefined" && "randomUUID" in crypto
+    ? crypto.randomUUID()
+    : `settle-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+
+// ── Status helpers ─────────────────────────────────────────────────────────────
+
+import { useSocket } from "@/lib/useSocket";
+
+type StatusKey =
+  | "SENT_TO_KITCHEN"
+  | "RECEIVED"
+  | "PREPARING"
+  | "READY"
+  | "SERVED"
+  | "DISPATCHED"
+  | "COMPLETED"
+  | "CANCELLED";
+
+const STATUS_META: Record<
+  string,
+  { label: string; bg: string; text: string; border: string; dot: string }
+> = {
+  SENT_TO_KITCHEN: {
+    label: "Sent to Kitchen",
+    bg: "bg-blue-50",
+    text: "text-blue-700",
+    border: "border-blue-200",
+    dot: "bg-blue-500",
+  },
+  RECEIVED: {
+    label: "Sent to Kitchen",
+    bg: "bg-blue-50",
+    text: "text-blue-700",
+    border: "border-blue-200",
+    dot: "bg-blue-500",
+  },
+  PREPARING: {
+    label: "Preparing",
+    bg: "bg-amber-50",
+    text: "text-amber-700",
+    border: "border-amber-200",
+    dot: "bg-amber-400",
+  },
+  READY: {
+    label: "Ready",
+    bg: "bg-emerald-50",
+    text: "text-emerald-700",
+    border: "border-emerald-200",
+    dot: "bg-emerald-500",
+  },
+  SERVED: {
+    label: "Served",
+    bg: "bg-purple-50",
+    text: "text-purple-700",
+    border: "border-purple-200",
+    dot: "bg-purple-500",
+  },
+  DISPATCHED: {
+    label: "Dispatched",
+    bg: "bg-indigo-50",
+    text: "text-indigo-700",
+    border: "border-indigo-200",
+    dot: "bg-indigo-500",
+  },
+  COMPLETED: {
+    label: "Completed",
+    bg: "bg-gray-100",
+    text: "text-gray-600",
+    border: "border-gray-300",
+    dot: "bg-gray-400",
+  },
+  CANCELLED: {
+    label: "Cancelled",
+    bg: "bg-rose-50",
+    text: "text-rose-700",
+    border: "border-rose-200",
+    dot: "bg-rose-400",
+  },
+};
+
+const getStatusMeta = (status: string) =>
+  STATUS_META[status] || STATUS_META["SENT_TO_KITCHEN"];
+
+// ── Main Component ─────────────────────────────────────────────────────────────
+
+export default function LiveOrdersPage() {
+  const user = useAppSelector((state) => state.auth.user);
+  const { activeBranch, branches = [] } = useBranch();
+  const kitchenCaps = getKitchenModeCapabilities(activeBranch?.kitchenMode);
+  const currentOutletId =
+    activeBranch?.id && activeBranch.id !== "all" ? activeBranch.id : null;
+  const isStaffRole = user?.role === "STAFF";
+  const isManagerOrOwner =
+    user?.role === "MANAGER" ||
+    user?.role === "BUSINESS_OWNER" ||
+    user?.role === "SUPER_ADMIN";
+  // Removing a wrongly punched item is open to floor staff too (who/why is kept in the audit trail);
+  // cancelling a whole order stays Manager/Owner only
+  const canRemoveBillItems = isManagerOrOwner || isStaffRole;
+
+  // Workforce employee record (staff only)
+  const { data: employeesRaw } = useGetEmployeesQuery(
+    currentOutletId
+      ? { outletId: currentOutletId, limit: 200, offset: 0 }
+      : undefined,
+    { skip: !currentOutletId || !isStaffRole }
+  );
+  const allEmployees: any[] = Array.isArray(employeesRaw)
+    ? employeesRaw
+    : (employeesRaw as any)?.data || [];
+  const myEmployee = allEmployees.find((e: any) => e.userId === user?.id);
+
+  const [assignedTableNumbers, setAssignedTableNumbers] = useState<number[]>(
+    []
+  );
+
+  useEffect(() => {
+    async function loadTables() {
+      if (!currentOutletId || !isStaffRole) return;
+      const res = await fetchTables(currentOutletId);
+      if (res.ok && res.tables) {
+        const userId = user?.id;
+        const empId = myEmployee?.id;
+        if (userId || empId) {
+          const assigned = res.tables.filter(
+            (t) =>
+              (t.assignedStaffId &&
+                (t.assignedStaffId === userId ||
+                  t.assignedStaffId === empId)) ||
+              ((t as any).staffId &&
+                ((t as any).staffId === userId ||
+                  (t as any).staffId === empId))
+          );
+          setAssignedTableNumbers(assigned.map((t) => t.tableNumber));
+        } else {
+          setAssignedTableNumbers([]);
+        }
+      }
+    }
+    loadTables();
+  }, [currentOutletId, myEmployee?.id, user?.id, isStaffRole]);
+
+  const [selectedSourceFilter, setSelectedSourceFilter] =
+    useState<string>("ALL");
+  const [selectedStatusFilter, setSelectedStatusFilter] =
+    useState<string>("ALL");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+  const [settlingOrder, setSettlingOrder] = useState<Order | null>(null);
+  const [cancellingOrder, setCancellingOrder] = useState<Order | null>(null);
+  const [printingOrder, setPrintingOrder] = useState<any>(null);
+  const [printingKOT, setPrintingKOT] = useState<{ order: any; isCancellation: boolean } | null>(null);
+  const [printCancelKOTOnConfirm, setPrintCancelKOTOnConfirm] = useState<boolean>(true);
+  const CANCELLATION_PRESETS = [
+    "Customer changed mind",
+    "Punch / Billing error (Duplicate)",
+    "Item unavailable / Out of stock",
+    "Long preparation delay",
+    "Customer walked out",
+    "Other (Specify reason)",
+  ];
+  const [selectedCancelPreset, setSelectedCancelPreset] = useState<string>("Customer changed mind");
+  const [customCancelReason, setCustomCancelReason] = useState<string>("");
+  const [paymentMethod, setPaymentMethod] = useState<SettleMethodCode>("UPI");
+  const [customerName, setCustomerName] = useState<string>("");
+  const [customerPhone, setCustomerPhone] = useState<string>("");
+  // Split payment at settlement
+  const [paymentMode, setPaymentMode] = useState<"SINGLE" | "SPLIT">("SINGLE");
+  const [splitLines, setSplitLines] = useState<SplitLine[]>([]);
+  const [settleError, setSettleError] = useState<string | null>(null);
+  // The server found the UTR / approval code on another bill: the cashier can check it or settle anyway
+  const [duplicateReference, setDuplicateReference] = useState(false);
+  // Single UPI / card payment the cashier confirmed arrived. It only counts for the same bill, method and
+  // amount, so switching method or a coupon / service-charge change afterwards needs a fresh confirmation
+  const [receivedConfirmation, setReceivedConfirmation] = useState<{ orderId: string; method: string; paise: number } | null>(null);
+  // UTR / approval code the cashier typed for that bill and method (otherwise the diner's own UTR is shown)
+  const [referenceDraft, setReferenceDraft] = useState<{ orderId: string; method: string; text: string } | null>(null);
+  // The coupon and bill breakdown stay folded until the cashier needs them
+  const [settleExtra, setSettleExtra] = useState<"COUPON" | null>(null);
+  const [showBillDetails, setShowBillDetails] = useState(false);
+  // One key per settle attempt: a retry after a lost response can't record the payments twice
+  const settlementKeyRef = useRef<string>("");
+  const settleInFlightRef = useRef(false);
+
+  const {
+    data: orders = [],
+    isLoading,
+    isFetching,
+    refetch,
+  } = useGetOrdersQuery(
+    selectedStatusFilter !== "ALL"
+      ? { status: selectedStatusFilter }
+      : { excludeCompleted: true }
+  );
+
+  // Real-time WebSocket connection for live orders
+  useSocket(currentOutletId, {
+    onKDSUpdate: (data: any) => {
+      try {
+        refetch();
+      } catch (e) {
+        // Query might not have completed initial fetch yet
+      }
+      if (data && data.orderId && data.status) {
+        setSelectedOrder((prev) =>
+          prev && prev.id === data.orderId ? { ...prev, status: data.status } : prev
+        );
+      }
+    },
+  });
+
+  const [updateOrderStatus, { isLoading: isUpdating }] =
+    useUpdateOrderStatusMutation();
+  const [setServiceChargeWaiver, { isLoading: isUpdatingServiceCharge }] =
+    useSetServiceChargeWaiverMutation();
+  const [waivingServiceChargeOrder, setWaivingServiceChargeOrder] = useState<Order | null>(null);
+  const [waiveReason, setWaiveReason] = useState<string>("Customer requested removal");
+
+  const handleToggleServiceCharge = async (order: Order, waive: boolean, reason?: string) => {
+    try {
+      const updated = await setServiceChargeWaiver({
+        id: order.id,
+        waive,
+        reason: waive ? (reason || "Customer requested removal") : undefined,
+      }).unwrap();
+
+      if (selectedOrder && selectedOrder.id === order.id) {
+        setSelectedOrder(updated);
+      }
+      if (settlingOrder && settlingOrder.id === order.id) {
+        setSettlingOrder(updated);
+      }
+      setWaivingServiceChargeOrder(null);
+    } catch (err: any) {
+      alert(err?.data?.message || err?.message || "Failed to update service charge");
+    }
+  };
+
+  const [cancelOrderItem, { isLoading: isCancellingItem }] = useCancelOrderItemMutation();
+  const [cancellingItemTarget, setCancellingItemTarget] = useState<{
+    order: Order;
+    item: any;
+  } | null>(null);
+  const [cancelItemQty, setCancelItemQty] = useState<number>(1);
+  const ITEM_CANCEL_PRESETS = [
+    "Customer didn't order (wrongly punched)",
+    "Customer changed mind before preparation",
+    "Item unavailable / Out of stock",
+    "Duplicate punch on bill",
+    "Food quality / returned",
+    "Other reason",
+  ];
+  const [cancelItemReasonPreset, setCancelItemReasonPreset] = useState<string>(ITEM_CANCEL_PRESETS[0]);
+  const [cancelItemCustomReason, setCancelItemCustomReason] = useState<string>("");
+  const [cancelItemError, setCancelItemError] = useState<string | null>(null);
+  const [showSettleItems, setShowSettleItems] = useState<boolean>(false);
+  const [printItemVoidKOT, setPrintItemVoidKOT] = useState<boolean>(true);
+
+  // Item has reached the kitchen and isn't served yet, so the cooks must be told to stop
+  const isItemInKitchen = (item: any) =>
+    ["SENT_TO_KITCHEN", "RECEIVED", "PREPARING", "READY"].includes(item?.status);
+
+  const handleOpenCancelItem = (order: Order, item: any) => {
+    setCancellingItemTarget({ order, item });
+    setCancelItemQty(item.quantity || 1);
+    setCancelItemReasonPreset(ITEM_CANCEL_PRESETS[0]);
+    setCancelItemCustomReason("");
+    setCancelItemError(null);
+  };
+
+  const handleConfirmCancelItem = async () => {
+    if (!cancellingItemTarget) return;
+    const { order, item } = cancellingItemTarget;
+    const finalReason =
+      cancelItemReasonPreset === "Other reason"
+        ? cancelItemCustomReason.trim()
+        : cancelItemCustomReason.trim()
+          ? `${cancelItemReasonPreset}: ${cancelItemCustomReason.trim()}`
+          : cancelItemReasonPreset;
+
+    if (!finalReason) {
+      setCancelItemError("Please specify a reason for removing this item.");
+      return;
+    }
+
+    try {
+      setCancelItemError(null);
+      const updated = await cancelOrderItem({
+        orderId: order.id,
+        itemId: item.id,
+        cancelQuantity: cancelItemQty,
+        reason: finalReason,
+      }).unwrap();
+
+      if (settlingOrder && settlingOrder.id === order.id) {
+        setSettlingOrder(updated);
+      }
+      if (selectedOrder && selectedOrder.id === order.id) {
+        setSelectedOrder(updated);
+      }
+      refetch();
+      setCancellingItemTarget(null);
+
+      if (kitchenCaps.supportsKotPrint && printItemVoidKOT && isItemInKitchen(item)) {
+        // Void slip lists only the removed quantity, not the rest of the order
+        const voidedItem = { ...item, quantity: cancelItemQty, status: "CANCELLED" };
+        setPrintingKOT({
+          order: {
+            ...order,
+            items: [voidedItem],
+            orderItems: [voidedItem],
+            comment: finalReason,
+            cancelledAt: new Date().toISOString(),
+            isItemVoid: true,
+          },
+          isCancellation: true,
+        });
+      }
+    } catch (err: any) {
+      setCancelItemError(err?.data?.message || err?.message || "Failed to remove item from bill.");
+    }
+  };
+
+  const [validateCoupon, { isLoading: isValidatingCoupon }] =
+    useValidateRestaurantCouponMutation();
+  const [couponInput, setCouponInput] = useState<string>("");
+  const [couponError, setCouponError] = useState<string | null>(null);
+  const [appliedCoupon, setAppliedCoupon] = useState<ValidateCouponResponse | null>(null);
+
+  // Fresh payment state each time a bill is opened for settlement (not when the open bill refreshes)
+  useEffect(() => {
+    if (!settlingOrder) return;
+    settlementKeyRef.current = newSettlementKey();
+    setSettleError(null);
+    setDuplicateReference(false);
+    setPaymentMode("SINGLE");
+    setSplitLines([]);
+    setSettleExtra(null);
+    setShowBillDetails(false);
+    setShowSettleItems(false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [settlingOrder?.id]);
+
+  // The restaurant's own UPI ID and name, for the payment QR shown at the counter
+  const upiPayeeFor = (order: Order) => ({
+    upiId: order.outlet?.upiId,
+    payeeName: order.outlet?.name || branches.find((b) => b.id === order.outletId)?.name || activeBranch?.name || "Restaurant",
+    note: `Bill ${order.orderNumber || order.orderNo || ""}`.trim(),
+  });
+
+  const isReceivedConfirmed = (order: Order, balanceDuePaise: number) =>
+    receivedConfirmation?.orderId === order.id &&
+    receivedConfirmation.method === paymentMethod &&
+    receivedConfirmation.paise === balanceDuePaise;
+
+  const paymentReferenceFor = (order: Order) =>
+    referenceDraft?.orderId === order.id && referenceDraft.method === paymentMethod
+      ? referenceDraft.text
+      : paymentMethod === "UPI"
+        ? getCustomerPaymentClaims(order).upiReferences.join(", ").slice(0, 64)
+        : "";
+
+  useEffect(() => {
+    if (settlingOrder) {
+      setCustomerName(settlingOrder.customerName || "");
+      setCustomerPhone(settlingOrder.customerPhone || "");
+      setCouponInput("");
+      setCouponError(null);
+      setAppliedCoupon(null);
+    }
+  }, [settlingOrder]);
+
+  const handleApplyCoupon = async () => {
+    if (!settlingOrder || !couponInput.trim()) return;
+    setCouponError(null);
+    try {
+      const res = await validateCoupon({
+        code: couponInput.trim().toUpperCase(),
+        subtotalAmount: settlingOrder.subtotal,
+        outletId: settlingOrder.outletId,
+      }).unwrap();
+
+      setAppliedCoupon(res);
+      setCouponError(null);
+    } catch (err: any) {
+      setCouponError(err?.data?.message || err?.message || "Coupon code does not exist");
+      setAppliedCoupon(null);
+    }
+  };
+
+  const handleRemoveCoupon = () => {
+    setAppliedCoupon(null);
+    setCouponInput("");
+    setCouponError(null);
+  };
+
+  const handleStatusChange = async (
+    orderId: string,
+    nextStatus: Order["status"],
+    methodOrComment?: SettleMethodCode | string,
+    custName?: string,
+    custPhone?: string,
+    couponPayload?: {
+      couponCode?: string;
+      couponId?: string;
+      discountAmount?: number;
+      discountPaise?: number;
+    },
+    settlement?: {
+      payments?: SplitPaymentPart[];
+      idempotencyKey?: string;
+      allowDuplicateReference?: boolean;
+    }
+  ) => {
+    try {
+      const isPaymentMethod =
+        methodOrComment === "CASH" ||
+        methodOrComment === "CARD" ||
+        methodOrComment === "UPI" ||
+        methodOrComment === "SWIGGY" ||
+        methodOrComment === "ZOMATO" ||
+        methodOrComment === "EAZYDINER";
+      const updatedResult = await updateOrderStatus({
+        id: orderId,
+        status: nextStatus,
+        comment: methodOrComment,
+        paymentMethod: isPaymentMethod ? (methodOrComment as any) : undefined,
+        customerName: custName,
+        customerPhone: custPhone,
+        couponCode: couponPayload?.couponCode,
+        couponId: couponPayload?.couponId,
+        discountAmount: couponPayload?.discountAmount,
+        discountPaise: couponPayload?.discountPaise,
+        payments: settlement?.payments,
+        idempotencyKey: settlement?.idempotencyKey,
+        allowDuplicateReference: settlement?.allowDuplicateReference,
+      }).unwrap();
+      if (selectedOrder && selectedOrder.id === orderId) {
+        setSelectedOrder((prev) =>
+          prev ? { ...prev, status: nextStatus } : null
+        );
+      }
+      refetch();
+      return updatedResult;
+    } catch (err: any) {
+      console.error("Failed to update status", err);
+      if (nextStatus === "COMPLETED") {
+        // The server re-checks the split (amounts, verification) — show the cashier why it was refused
+        setSettleError(err?.data?.error?.message || err?.data?.message || "Could not settle the bill. Please try again.");
+        setDuplicateReference(err?.data?.error?.code === "DUPLICATE_PAYMENT_REFERENCE");
+      }
+    }
+  };
+
+  // Settle the bill; allowDuplicateReference is set when the cashier chose "settle anyway" after a reused UTR warning
+  const settleBill = async (settlingOrder: Order, allowDuplicateReference = false) => {
+    // Ignore a second tap while the first settle request is still in flight
+    if (settleInFlightRef.current) return;
+    const { balanceDuePaise } = settlementBill(settlingOrder, appliedCoupon);
+    const isSplit = paymentMode === "SPLIT" && balanceDuePaise > 0;
+    if (isSplit && !summarizeSplit(splitLines, balanceDuePaise).canSettle) return;
+    const isOnlineSingle = !isSplit && balanceDuePaise > 0 && isOnlineMethod(paymentMethod);
+    if (isOnlineSingle && !isReceivedConfirmed(settlingOrder, balanceDuePaise)) return;
+    settleInFlightRef.current = true;
+    setSettleError(null);
+    setDuplicateReference(false);
+    const orderId = settlingOrder.id;
+    const cName = customerName.trim() || undefined;
+    const cPhone = customerPhone.trim() || undefined;
+    const targetOrder = settlingOrder;
+
+    const updatedResult = await handleStatusChange(
+      orderId,
+      "COMPLETED",
+      // A split sends its parts below instead of a single method
+      isSplit ? "Split payment" : paymentMethod,
+      cName,
+      cPhone,
+      appliedCoupon
+        ? {
+            couponCode: appliedCoupon.code,
+            couponId: appliedCoupon.couponId,
+            discountAmount: appliedCoupon.discountAmount,
+            discountPaise: appliedCoupon.discountPaise,
+          }
+        : undefined,
+      {
+        payments: isSplit
+          ? toPaymentPayload(splitLines)
+          : isOnlineSingle
+            ? [{ method: paymentMethod, amountPaise: balanceDuePaise, reference: paymentReferenceFor(settlingOrder).trim() || undefined, verified: true }]
+            : undefined,
+        idempotencyKey: settlementKeyRef.current,
+        allowDuplicateReference,
+      }
+    ).finally(() => {
+      settleInFlightRef.current = false;
+    });
+
+    if (updatedResult) {
+      setSettlingOrder(null);
+      // Print the same lines the pre-bill showed: fall back to the order on screen
+      // for any line the settle response returned without its menu item details
+      const shownItems: any[] = (targetOrder as any).items || (targetOrder as any).orderItems || [];
+      const settledItems: any[] = (updatedResult as any).items || (updatedResult as any).orderItems || [];
+      const printItems = settledItems.length > 0
+        ? settledItems.map((it: any) => {
+            const shown = shownItems.find((s: any) => s.id === it.id);
+            return { ...shown, ...it, menuItem: it.menuItem || shown?.menuItem };
+          })
+        : shownItems;
+      const orderToPrint = {
+        ...updatedResult,
+        items: printItems,
+        orderItems: printItems,
+        status: "COMPLETED",
+        // Split bills print each part; the server's response carries them
+        paymentMethod: getPaymentLines(updatedResult).length > 0 ? updatedResult.paymentMethod : paymentMethod,
+        customerName: cName || targetOrder.customerName,
+        customerPhone: cPhone || targetOrder.customerPhone,
+        outlet: branches.find((b) => b.id === targetOrder.outletId) || activeBranch,
+      };
+      // Shoot print directly to printer — zero extra preview popup!
+      autoPrintReceipt(orderToPrint, "80mm").catch((err) => {
+        console.error("[Alayn] Direct receipt auto-print error:", err);
+      });
+    }
+  };
+
+  const rawList = Array.isArray(orders)
+    ? orders
+    : (orders as any)?.data && Array.isArray((orders as any).data)
+      ? (orders as any).data
+      : [];
+
+  // Real-time ticker for 5-minute cancellation retention in "ALL" tab
+  const [now, setNow] = useState<number>(Date.now());
+  useEffect(() => {
+    const timer = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  // Cancelled order IDs manually dismissed from "ALL" view by user
+  const [dismissedCancelledIds, setDismissedCancelledIds] = useState<Set<string>>(new Set());
+
+  // 5 minutes (300 seconds) retention window for recently cancelled orders in "ALL" view
+  const CANCELLED_RETENTION_SECONDS = 300;
+
+  const getIsRecentlyCancelled = (order: Order) => {
+    if (order.status !== "CANCELLED") return false;
+    if (dismissedCancelledIds.has(order.id)) return false;
+    const cancelTime = new Date((order as any).cancelledAt || order.updatedAt || order.createdAt).getTime();
+    const elapsedSeconds = Math.floor((now - cancelTime) / 1000);
+    return elapsedSeconds >= 0 && elapsedSeconds < CANCELLED_RETENTION_SECONDS;
+  };
+
+  const getRemainingCancelSeconds = (order: Order) => {
+    const cancelTime = new Date((order as any).cancelledAt || order.updatedAt || order.createdAt).getTime();
+    const elapsedSeconds = Math.floor((now - cancelTime) / 1000);
+    return Math.max(0, CANCELLED_RETENTION_SECONDS - elapsedSeconds);
+  };
+
+  const getOrderSource = (order: Order) => {
+    const tableNum =
+      order.tableNo !== undefined && order.tableNo !== null
+        ? Number(order.tableNo)
+        : (order as any).tableNumber !== undefined &&
+          (order as any).tableNumber !== null
+          ? Number((order as any).tableNumber)
+          : null;
+    const rawSource = order.orderSource || (order as any).source;
+    if (rawSource) return String(rawSource).toUpperCase();
+    return tableNum !== null ? "TABLE" : "COUNTER";
+  };
+
+  // Base live orders matching role & table assignments (COMPLETED always excluded from live board)
+  const baseLiveOrders = useMemo(() => {
+    return rawList.filter((order: Order) => {
+      if (order.status === "COMPLETED") return false;
+      const tableNum =
+        order.tableNo !== undefined && order.tableNo !== null
+          ? Number(order.tableNo)
+          : (order as any).tableNumber !== undefined &&
+            (order as any).tableNumber !== null
+            ? Number((order as any).tableNumber)
+            : null;
+
+      if (isStaffRole) {
+        if (tableNum === null) return false;
+        if (!assignedTableNumbers.includes(tableNum)) return false;
+      }
+      return true;
+    });
+  }, [rawList, isStaffRole, assignedTableNumbers]);
+
+  const channelFilteredOrders = useMemo(() => {
+    return baseLiveOrders.filter((order: Order) => {
+      if (selectedSourceFilter !== "ALL") {
+        if (getOrderSource(order) !== selectedSourceFilter) return false;
+      }
+      return true;
+    });
+  }, [baseLiveOrders, selectedSourceFilter]);
+
+  const counterOrdersCount = baseLiveOrders.filter(
+    (o: Order) => getOrderSource(o) === "COUNTER"
+  ).length;
+  const tableOrdersCount = baseLiveOrders.filter(
+    (o: Order) => getOrderSource(o) === "TABLE"
+  ).length;
+
+  const filteredOrders = useMemo(() => {
+    return channelFilteredOrders.filter((order: Order) => {
+      // If viewing "ALL" tab: hide cancelled orders older than 5 minutes or dismissed
+      if (selectedStatusFilter === "ALL") {
+        if (order.status === "CANCELLED" && !getIsRecentlyCancelled(order)) {
+          return false;
+        }
+      } else if (selectedStatusFilter === "SENT_TO_KITCHEN") {
+        if (order.status !== "SENT_TO_KITCHEN" && (order.status as string) !== "RECEIVED") return false;
+      } else if (order.status !== selectedStatusFilter) {
+        return false;
+      }
+
+      const tableNum =
+        order.tableNo !== undefined && order.tableNo !== null
+          ? Number(order.tableNo)
+          : (order as any).tableNumber !== undefined &&
+            (order as any).tableNumber !== null
+            ? Number((order as any).tableNumber)
+            : null;
+
+      const matchesSearch =
+        order.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (order.orderNo &&
+          order.orderNo.toLowerCase().includes(searchQuery.toLowerCase())) ||
+        ((order as any).orderNumber &&
+          (order as any).orderNumber
+            .toLowerCase()
+            .includes(searchQuery.toLowerCase())) ||
+        (tableNum !== null && String(tableNum).includes(searchQuery));
+      return matchesSearch;
+    });
+  }, [channelFilteredOrders, selectedStatusFilter, searchQuery, now, dismissedCancelledIds]);
+
+  const getTabBadgeCount = (tabId: string) => {
+    return channelFilteredOrders.filter((o: Order) => {
+      if (tabId === "SENT_TO_KITCHEN") return o.status === "SENT_TO_KITCHEN" || (o.status as string) === "RECEIVED";
+      return o.status === tabId;
+    }).length;
+  };
+
+  const getItemPrice = (item: any) =>
+    ((item.unitPricePaise !== undefined
+      ? item.unitPricePaise
+      : item.menuItem?.price
+        ? item.menuItem.price * 100
+        : 0) /
+      100) *
+    item.quantity;
+
+  // ── Channel card config (scalable) ──────────────────────────────────────────
+  const channelTabs = [
+    {
+      id: "ALL",
+      label: "All Channels",
+      sublabel: "Every order, unified",
+      count: baseLiveOrders.length,
+      icon: Layers,
+      activeGradient: "from-[#1B2A4A] to-[#2d4272]",
+      activeDot: "bg-white",
+    },
+    {
+      id: "COUNTER",
+      label: "Counter Direct",
+      sublabel: "Quick billing at the counter",
+      count: counterOrdersCount,
+      icon: CreditCard,
+      activeGradient: "from-indigo-600 to-indigo-700",
+      activeDot: "bg-indigo-200",
+    },
+    {
+      id: "TABLE",
+      label: "Table Orders",
+      sublabel: "Dine-in floor service",
+      count: tableOrdersCount,
+      icon: Utensils,
+      activeGradient: "from-[#D3232A] to-[#b91c23]",
+      activeDot: "bg-rose-200",
+    },
+    // QR and DELIVERY can be added here when enum values are ready
+  ];
+
+  const statusFilterTabs = [
+    { id: "ALL", label: "All" },
+    { id: "SENT_TO_KITCHEN", label: "Sent" },
+    { id: "PREPARING", label: "Preparing" },
+    { id: "READY", label: "Ready" },
+    { id: "SERVED", label: "Served" },
+    { id: "CANCELLED", label: "Cancelled" },
+  ];
+
+  // ── Render ───────────────────────────────────────────────────────────────────
+  return (
+    <DashboardLayout>
+      <div className="max-w-[1400px] mx-auto flex flex-col gap-5">
+
+        {/* ── Page Header ── */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <div className="flex items-center gap-3">
+              <div className="p-2.5 rounded-xl bg-[#D3232A]/10 border border-[#D3232A]/20">
+                <ChefHat className="w-5 h-5 text-[#D3232A]" />
+              </div>
+              <div>
+                <h1 className="text-xl font-bold text-[#1B2A4A] leading-tight">
+                  Live Orders
+                </h1>
+                <p className="text-xs text-gray-500 font-medium mt-0.5">
+                  {isStaffRole
+                    ? "Your assigned table orders"
+                    : "Real-time order tracking across all channels"}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2.5">
+            <Link
+              href="/orders/completed"
+              className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition shadow-xs hover:shadow"
+            >
+              <CheckCircle2 className="w-4 h-4" />
+              <span>Completed Orders</span>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </Link>
+            {isFetching && (
+              <span className="flex items-center gap-1.5 text-[11px] text-[#D3232A] font-bold">
+                <span className="w-1.5 h-1.5 rounded-full bg-[#D3232A] animate-pulse" />
+                Live
+              </span>
+            )}
+            {isStaffRole && (
+              <span className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-amber-50 text-amber-800 border border-amber-200 text-[11px] font-bold">
+                <UserCheck className="w-3.5 h-3.5 text-amber-600" />
+                {assignedTableNumbers.length > 0
+                  ? assignedTableNumbers.map((n) => `T${n}`).join(", ")
+                  : "No Tables Assigned"}
+              </span>
+            )}
+          </div>
+        </div>
+
+        {/* ── Unified Sticky Filter Header Wrapper ── */}
+        <div className="sticky -top-4 sm:-top-6 lg:-top-8 z-10 -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8 pt-4 sm:pt-6 lg:pt-8 pb-2 sm:pb-3 bg-[#F4F7F9]">
+          <div className="bg-white/95 backdrop-blur-md border border-gray-200/60 rounded-2xl p-3 sm:p-4 shadow-[0_8px_30px_rgb(0,0,0,0.04)] flex flex-col gap-3 sm:gap-4">
+          
+          {/* Top Row: Channels & Search */}
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-4">
+            {/* Channel Tabs */}
+            {!isStaffRole && (
+              <div className="flex bg-gray-100/80 p-1 rounded-xl w-full sm:w-fit border border-gray-200/50 overflow-x-auto min-w-0">
+                {channelTabs.map((tab) => {
+                  const Icon = tab.icon;
+                  const isActive = selectedSourceFilter === tab.id;
+                  return (
+                    <button
+                      key={tab.id}
+                      type="button"
+                      onClick={() => {
+                        setSelectedSourceFilter(tab.id);
+                        setSelectedStatusFilter("ALL");
+                      }}
+                      className={`flex items-center justify-center gap-2 px-3 sm:px-4 py-1.5 text-[11px] sm:text-xs font-bold transition-all whitespace-nowrap ${
+                        isActive
+                          ? "bg-white text-[#1B2A4A] shadow-sm rounded-lg border border-gray-200"
+                          : "text-gray-500 hover:text-gray-800 hover:bg-white/50 rounded-lg border border-transparent"
+                      }`}
+                    >
+                      <Icon className="w-3.5 h-3.5" />
+                      <span className="uppercase tracking-wider">{tab.label}</span>
+                      <span
+                        className={`ml-1 px-1.5 py-0.5 rounded text-[10px] font-bold ${
+                          isActive ? "bg-gray-100 text-[#1B2A4A]" : "bg-gray-200/60 text-gray-400"
+                        }`}
+                      >
+                        {tab.count}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+
+            {/* Search */}
+            <div className="relative w-full sm:w-64 shrink-0">
+              <Search className="absolute left-3 top-2.5 w-4 h-4 text-gray-400" />
+              <input
+                type="text"
+                placeholder="Search ID or Table..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full pl-9 pr-3 py-2 bg-gray-50 border border-gray-200 text-xs font-medium text-gray-900 focus:outline-none focus:border-[#1B2A4A] focus:ring-1 focus:ring-[#1B2A4A] transition shadow-xs rounded-xl"
+              />
+            </div>
+          </div>
+
+          {/* Bottom Row: Status Tabs */}
+          <div className="flex items-center gap-1.5 overflow-x-auto w-full pb-1 sm:pb-0">
+            {statusFilterTabs.map((tab) => {
+              const active = selectedStatusFilter === tab.id;
+              const meta = tab.id !== "ALL" ? getStatusMeta(tab.id) : null;
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => setSelectedStatusFilter(tab.id)}
+                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all ${
+                    active
+                      ? "bg-[#1B2A4A] text-white shadow-xs"
+                      : "bg-transparent text-gray-500 hover:text-gray-800 hover:bg-gray-100"
+                  }`}
+                >
+                  {meta && (
+                    <span
+                      className={`w-1.5 h-1.5 rounded-full ${active ? "bg-white/70" : meta.dot}`}
+                    />
+                  )}
+                  {tab.label}
+                  {tab.id !== "ALL" && (
+                    <span
+                      className={`ml-1 px-1.5 py-0.5 rounded text-[10px] font-mono font-bold ${
+                        active ? "bg-white/20 text-white" : "bg-gray-100 text-gray-400"
+                      }`}
+                    >
+                      {getTabBadgeCount(tab.id)}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+        </div>
+
+        {/* ── Orders Bento Grid ── */}
+        {isLoading ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+            {[1, 2, 3, 4, 5, 6, 7, 8].map((n) => (
+              <div
+                key={n}
+                className="h-64 bg-white animate-pulse rounded-2xl border border-gray-200 shadow-sm"
+              />
+            ))}
+          </div>
+        ) : filteredOrders.length === 0 ? (
+          <div className="bg-white rounded-2xl border border-gray-200 p-16 text-center space-y-3 shadow-xs">
+            <div className="w-14 h-14 rounded-full bg-gray-100 flex items-center justify-center mx-auto">
+              <ChefHat className="w-7 h-7 text-gray-400" />
+            </div>
+            <p className="text-sm font-bold text-[#1B2A4A] uppercase tracking-widest">No active orders</p>
+            <p className="text-xs text-gray-500 max-w-xs mx-auto">
+              {selectedSourceFilter !== "ALL"
+                ? `No active ${channelTabs.find((c) => c.id === selectedSourceFilter)?.label.toLowerCase()} match your filters.`
+                : "Active orders will appear here in real time."}
+            </p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+            {filteredOrders.map((order: any) => {
+              const meta = getStatusMeta(order.status);
+              const formattedTime = new Date(order.createdAt).toLocaleTimeString(
+                [],
+                { hour: "2-digit", minute: "2-digit" }
+              );
+              const orderNumDisplay = order.orderNo || order.orderNumber || order.id;
+              
+              const tableNumDisplay =
+                order.tableNo !== undefined && order.tableNo !== null
+                  ? order.tableNo
+                  : order.tableNumber !== undefined &&
+                    order.tableNumber !== null
+                    ? order.tableNumber
+                    : null;
+              const isCounter = tableNumDisplay === null;
+              const items = order.orderItems || order.items || [];
+              const totalAmt =
+                order.totalAmount !== undefined
+                  ? order.totalAmount
+                  : (order as any).totalPaise !== undefined
+                    ? (order as any).totalPaise / 100
+                    : 0;
+
+              return (
+                <div
+                  key={order.id}
+                  className="bg-white rounded-2xl border border-gray-200 shadow-[0_2px_10px_rgba(0,0,0,0.03)] hover:shadow-[0_8px_30px_rgba(0,0,0,0.08)] hover:-translate-y-0.5 transition-all duration-300 flex flex-col overflow-hidden group"
+                >
+                  {/* Card Header */}
+                  <div className="p-4 border-b border-gray-100 bg-gray-50/50 flex flex-col gap-2 relative overflow-hidden">
+                    {/* Status Top Line indicator */}
+                    <div className={`absolute top-0 left-0 w-full h-1 ${meta.bg}`} />
+                    
+                    <div className="flex flex-col gap-2 relative pt-1">
+                      {/* Top Line: Status Badge & Time */}
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <span className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-full text-[9px] font-bold uppercase tracking-wider border bg-white ${meta.text} ${meta.border}`}>
+                            <span className={`w-1 h-1 rounded-full ${meta.dot}`} />
+                            {meta.label}
+                          </span>
+                          {order.status === "CANCELLED" && selectedStatusFilter === "ALL" && (
+                            <span className="text-[9px] font-bold text-rose-700 bg-rose-50 px-1.5 py-0.5 rounded border border-rose-200">
+                              Dismisses in {Math.floor(getRemainingCancelSeconds(order) / 60)}m {getRemainingCancelSeconds(order) % 60}s
+                            </span>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-1.5">
+                          {order.status === "CANCELLED" && selectedStatusFilter === "ALL" && (
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setDismissedCancelledIds((prev) => new Set(prev).add(order.id));
+                              }}
+                              className="text-[9px] font-bold text-gray-500 hover:text-rose-700 hover:bg-rose-50 px-1.5 py-0.5 rounded border border-gray-200 hover:border-rose-200 transition cursor-pointer"
+                              title="Dismiss from All tab (still visible in Cancelled tab)"
+                            >
+                              Dismiss
+                            </button>
+                          )}
+                          <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wide whitespace-nowrap text-right">
+                            {formattedTime}
+                          </span>
+                        </div>
+                      </div>
+                      
+                      {/* Bottom Area: ID & Table */}
+                      <div className="mt-1 flex flex-col gap-1">
+                        <span className="text-[15px] font-bold text-[#1B2A4A] font-mono tracking-tight break-all">
+                          {orderNumDisplay}
+                        </span>
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <span className="text-[11px] font-bold text-gray-500 uppercase tracking-wide">
+                            {isCounter ? "COUNTER ORDER" : `TABLE ${tableNumDisplay}`}
+                          </span>
+                          {(order.orderSource === "QR" || order.source === "QR" || order.placedByName?.includes("QR")) && (
+                            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-extrabold bg-violet-100 text-violet-800 border border-violet-200">
+                              <QrCode className="w-3 h-3 text-violet-600" />
+                              QR Order
+                            </span>
+                          )}
+                          {getCustomerPaymentClaims(order).upi && (
+                            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-mono font-bold bg-amber-100 text-amber-800 border border-amber-200" title="Customer says they paid by UPI — check before settling">
+                              ⚡ UPI to verify{getCustomerPaymentClaims(order).upiReferences.length > 0 ? ` · UTR ${getCustomerPaymentClaims(order).upiReferences.join(", ")}` : ""}
+                            </span>
+                          )}
+                          {getCustomerPaymentClaims(order).payAtCounter && (
+                            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-blue-100 text-blue-800 border border-blue-200">
+                              {getCustomerPaymentClaims(order).counterMethod === "CARD"
+                                ? "💳 Card at counter"
+                                : getCustomerPaymentClaims(order).counterMethod === "CASH"
+                                  ? "💵 Cash at counter"
+                                  : "💵 Pay at Counter"}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Items Bento Space */}
+                  <div className="p-4 flex-1 flex flex-col gap-2">
+                    {items.length > 0 ? (
+                      <div className="flex flex-wrap gap-1.5">
+                        {(() => {
+                          const consolidatedMap = new Map<string, { item: any; totalQty: number; variantName?: string }>();
+                          // Items removed from the bill are not part of the order any more
+                          const removedCount = items.filter((item: any) => item.status === "CANCELLED").length;
+                          items.filter((item: any) => item.status !== "CANCELLED").forEach((item: any) => {
+                            let itemMods: any[] = [];
+                            if (Array.isArray(item.modifiers) && item.modifiers.length > 0) itemMods = item.modifiers;
+                            else if (item.modifiersJson) {
+                              try {
+                                const p = typeof item.modifiersJson === "string" ? JSON.parse(item.modifiersJson) : item.modifiersJson;
+                                if (Array.isArray(p)) itemMods = p;
+                              } catch {}
+                            }
+                            const variantMod = itemMods.find((m: any) => m.isVariant);
+                            const variantName = variantMod?.name;
+                            const key = (item.menuItemId || item.menuItem?.id || item.menuItem?.name || item.name || "unknown") + (variantName ? `__${variantName}` : "");
+                            const qty = item.quantity || 1;
+                            if (consolidatedMap.has(key)) {
+                              consolidatedMap.get(key)!.totalQty += qty;
+                            } else {
+                              consolidatedMap.set(key, { item, totalQty: qty, variantName });
+                            }
+                          });
+                          
+                          const uniqueItems = Array.from(consolidatedMap.values());
+                          const displayItems = uniqueItems.slice(0, 4);
+                          const remaining = uniqueItems.length - 4;
+
+                          return (
+                            <>
+                              {displayItems.map(({ item, totalQty, variantName }, idx: number) => (
+                                <span key={idx} className="inline-flex items-center gap-1 px-2 py-1 bg-gray-100 border border-gray-200 text-gray-700 text-[10px] font-bold rounded-lg max-w-full truncate">
+                                  <span className="text-[#1B2A4A] font-bold">{totalQty}×</span>
+                                  <span className="truncate ml-1">{item.menuItem?.name || item.name || "Item"}</span>
+                                  {variantName && (
+                                    <span className="ml-1 px-1 py-0.2 bg-blue-100 text-blue-700 rounded text-[9px] font-semibold shrink-0">
+                                      {variantName}
+                                    </span>
+                                  )}
+                                </span>
+                              ))}
+                              {remaining > 0 && (
+                                <span className="inline-flex items-center px-2 py-1 bg-gray-50 border border-gray-100 text-gray-400 text-[10px] font-bold rounded-lg italic">
+                                  +{remaining} more
+                                </span>
+                              )}
+                              {removedCount > 0 && (
+                                <span className="inline-flex items-center gap-1 px-2 py-1 bg-rose-50 border border-rose-200 text-rose-700 text-[10px] font-bold rounded-lg">
+                                  <XCircle className="w-3 h-3" />
+                                  {removedCount} removed
+                                </span>
+                              )}
+                            </>
+                          );
+                        })()}
+                      </div>
+                    ) : (
+                      <div className="flex-1 flex items-center justify-center p-4">
+                        <span className="italic text-[11px] text-gray-400">No items recorded</span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Card Footer (Totals & Actions) */}
+                  <div className="p-4 pt-3 border-t border-gray-100 bg-white flex flex-col gap-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[11px] text-gray-500 font-bold uppercase tracking-wider">Total</span>
+                      <span className="text-base font-bold text-[#1B2A4A] font-mono">₹{Number(totalAmt).toFixed(2)}</span>
+                    </div>
+                    
+                    <div className="flex items-center gap-2">
+                      <button onClick={() => setSelectedOrder(order)} className="flex-1 px-3 py-2 bg-gray-50 hover:bg-gray-100 border border-gray-200 text-gray-700 text-[11px] font-bold rounded-xl transition-colors text-center">
+                        Details
+                      </button>
+                      
+                      {!isStaffRole && (order.status === "SENT_TO_KITCHEN" || order.status === "RECEIVED") && (
+                        <button onClick={() => handleStatusChange(order.id, "PREPARING")} disabled={isUpdating} className="flex-1 px-3 py-2 bg-amber-500 hover:bg-amber-600 text-white text-[11px] font-bold rounded-xl transition-colors text-center shadow-xs">
+                          Start Prep
+                        </button>
+                      )}
+                      {!isStaffRole && order.status === "PREPARING" && (
+                        <button onClick={() => handleStatusChange(order.id, "READY")} disabled={isUpdating} className="flex-1 px-3 py-2 bg-emerald-500 hover:bg-emerald-600 text-white text-[11px] font-bold rounded-xl transition-colors text-center shadow-xs">
+                          Mark Ready
+                        </button>
+                      )}
+                      {order.status === "READY" && (
+                        <button onClick={() => handleStatusChange(order.id, "SERVED")} disabled={isUpdating} className="flex-1 px-3 py-2 bg-purple-500 hover:bg-purple-600 text-white text-[11px] font-bold rounded-xl transition-colors text-center shadow-xs">
+                          Mark Served
+                        </button>
+                      )}
+                      {order.status === "SERVED" && (
+                        <button
+                          onClick={() => {
+                            setCustomerName(order.customerName || "");
+                            setCustomerPhone(order.customerPhone || "");
+                            const claims = getCustomerPaymentClaims(order);
+                            if (claims.upi || order.paymentMethod === "UPI") {
+                              setPaymentMethod("UPI");
+                            } else if (claims.counterMethod === "CARD") {
+                              setPaymentMethod("CARD");
+                            } else if (claims.payAtCounter || order.paymentMethod === "CASH") {
+                              setPaymentMethod("CASH");
+                            }
+                            setSettlingOrder(order);
+                          }}
+                          disabled={isUpdating}
+                          className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 bg-[#1B2A4A] hover:bg-black text-white text-[11px] font-bold rounded-xl transition-all shadow-sm active:translate-y-[1px]"
+                        >
+                          <Printer className="w-3.5 h-3.5" />
+                          Settle
+                        </button>
+                      )}
+                      {kitchenCaps.supportsKotPrint && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setPrintingKOT({ order, isCancellation: order.status === "CANCELLED" });
+                          }}
+                          className="px-2.5 py-2 border border-gray-200 hover:bg-gray-100 text-gray-700 rounded-xl transition cursor-pointer shrink-0"
+                          title="Print Kitchen Order Ticket (KOT)"
+                        >
+                          <Printer className="w-3.5 h-3.5 text-zinc-700" />
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        {/* ── Modal: Full Order Details ── */}
+        <TModal open={!!selectedOrder} className="p-4 bg-gray-900/60 backdrop-blur-sm">
+          {selectedOrder && (
+            <div className="bg-white rounded-2xl border border-gray-200 max-w-md w-full shadow-2xl overflow-hidden">
+              {/* Modal header */}
+              <div className="flex justify-between items-center p-5 border-b border-gray-100">
+                <div className="flex items-center gap-3">
+                  <div
+                    className={`p-2 rounded-xl ${selectedOrder.tableNo ||
+                      (selectedOrder as any).tableNumber
+                      ? "bg-[#D3232A]/10"
+                      : "bg-indigo-50"
+                      }`}
+                  >
+                    {selectedOrder.tableNo ||
+                      (selectedOrder as any).tableNumber ? (
+                      <Utensils className="w-4 h-4 text-[#D3232A]" />
+                    ) : (
+                      <CreditCard className="w-4 h-4 text-indigo-600" />
+                    )}
+                  </div>
+                  <div>
+                    <h3 className="text-base font-bold text-[#1B2A4A]">
+                      {selectedOrder.orderNo ||
+                        (selectedOrder as any).orderNumber ||
+                        `#${selectedOrder.id.slice(0, 8).toUpperCase()}`}
+                    </h3>
+                    <p className="text-xs text-gray-500 font-medium">
+                      {selectedOrder.tableNo ||
+                        (selectedOrder as any).tableNumber
+                        ? `Table ${selectedOrder.tableNo || (selectedOrder as any).tableNumber}`
+                        : "Counter Direct"}{" "}
+                      ·{" "}
+                      {new Date(selectedOrder.createdAt).toLocaleTimeString(
+                        [],
+                        { hour: "2-digit", minute: "2-digit" }
+                      )}
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setSelectedOrder(null)}
+                  className="p-1.5 rounded-lg text-gray-400 hover:bg-gray-100 hover:text-gray-700 transition cursor-pointer"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              <div className="p-5 space-y-4 max-h-[70vh] overflow-y-auto">
+                {/* Status banner */}
+                <div
+                  className={`flex items-center justify-between p-3 rounded-xl border ${getStatusMeta(selectedOrder.status).bg
+                    } ${getStatusMeta(selectedOrder.status).border}`}
+                >
+                  <span
+                    className={`text-xs font-bold ${getStatusMeta(selectedOrder.status).text}`}
+                  >
+                    Kitchen Status
+                  </span>
+                  <span
+                    className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold border ${getStatusMeta(selectedOrder.status).bg
+                      } ${getStatusMeta(selectedOrder.status).text} ${getStatusMeta(selectedOrder.status).border
+                      }`}
+                  >
+                    <span
+                      className={`w-1.5 h-1.5 rounded-full ${getStatusMeta(selectedOrder.status).dot}`}
+                    />
+                    {getStatusMeta(selectedOrder.status).label}
+                  </span>
+                </div>
+
+                {/* Items */}
+                <div>
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400 mb-2">
+                    Ordered Items
+                  </p>
+                  <div className="space-y-2">
+                    {(() => {
+                      const modalItems = selectedOrder.orderItems || (selectedOrder as any).items || [];
+                      const activeItems = modalItems.filter((i: any) => i.status !== "CANCELLED");
+                      const cancelledItems = modalItems.filter((i: any) => i.status === "CANCELLED");
+                      const modalConsolidated = new Map<string, { item: any; totalQty: number; totalPrice: number; notes: string[] }>();
+                      activeItems.forEach((item: any) => {
+                        const key = item.id || item.menuItemId || item.menuItem?.id || item.menuItem?.name || item.name || "unknown";
+                        const qty = item.quantity || 1;
+                        const price = getItemPrice(item);
+                        if (modalConsolidated.has(key)) {
+                          const existing = modalConsolidated.get(key)!;
+                          existing.totalQty += qty;
+                          existing.totalPrice += price;
+                          if (item.notes && !existing.notes.includes(item.notes)) {
+                            existing.notes.push(item.notes);
+                          }
+                        } else {
+                          modalConsolidated.set(key, { item, totalQty: qty, totalPrice: price, notes: item.notes ? [item.notes] : [] });
+                        }
+                      });
+
+                      return (
+                        <>
+                          {Array.from(modalConsolidated.values()).map(({ item, totalQty, totalPrice, notes }, idx: number) => (
+                            <div
+                              key={item.id || idx}
+                              className="flex justify-between items-start p-3 bg-gray-50 rounded-xl border border-gray-100 text-xs"
+                            >
+                              <div>
+                                <span className="font-bold text-[#1B2A4A] block">
+                                  <span className="text-[#D3232A] mr-1 font-bold">
+                                    {totalQty}×
+                                  </span>
+                                  {item.menuItem?.name || item.name || "Dish Item"}
+                                </span>
+                                {(() => {
+                                  const itemMods: any[] = (() => {
+                                    if (Array.isArray(item.modifiers) && item.modifiers.length > 0) return item.modifiers;
+                                    if (item.modifiersJson) {
+                                      try {
+                                        const parsed = typeof item.modifiersJson === "string" ? JSON.parse(item.modifiersJson) : item.modifiersJson;
+                                        if (Array.isArray(parsed)) return parsed;
+                                      } catch {
+                                        return [];
+                                      }
+                                    }
+                                    return [];
+                                  })();
+                                  if (itemMods.length === 0) return null;
+                                  return (
+                                    <div className="flex flex-wrap gap-1 mt-1">
+                                      {itemMods.map((m: any, mIdx: number) => {
+                                        const isVar = Boolean(m.isVariant);
+                                        const priceVal = m.price !== undefined ? Number(m.price) : (m.pricePaise ? Number(m.pricePaise) / 100 : 0);
+                                        if (isVar) {
+                                          return (
+                                            <span
+                                              key={mIdx}
+                                              className="inline-flex items-center text-[10px] font-bold text-blue-900 bg-blue-100/90 border border-blue-300 px-1.5 py-0.5 rounded-md"
+                                            >
+                                              Size: {m.name || m.title}
+                                            </span>
+                                          );
+                                        }
+                                        return (
+                                          <span
+                                            key={mIdx}
+                                            className="inline-flex items-center text-[10px] font-bold text-amber-900 bg-amber-100/90 border border-amber-300 px-1.5 py-0.5 rounded-md"
+                                          >
+                                            + {m.name || m.title || "Extra"}{priceVal > 0 ? ` (+₹${priceVal.toFixed(2)})` : ""}
+                                          </span>
+                                        );
+                                      })}
+                                    </div>
+                                  );
+                                })()}
+                                {notes.length > 0 && (
+                                  <span className="text-[10px] text-gray-400 italic mt-0.5 block">
+                                    {notes.join(", ")}
+                                  </span>
+                                )}
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <span className="font-bold text-gray-700">
+                                  ₹{totalPrice.toFixed(2)}
+                                </span>
+                                {selectedOrder.status !== "COMPLETED" &&
+                                  selectedOrder.status !== "CANCELLED" &&
+                                  canRemoveBillItems && (
+                                    <button
+                                      type="button"
+                                      onClick={() => handleOpenCancelItem(selectedOrder, item)}
+                                      className="p-1.5 rounded-lg text-rose-600 bg-rose-50 hover:bg-rose-100 hover:text-rose-700 border border-rose-200 transition cursor-pointer"
+                                      title="Remove item from bill"
+                                    >
+                                      <Trash2 className="w-3.5 h-3.5" />
+                                    </button>
+                                  )}
+                              </div>
+                            </div>
+                          ))}
+
+                          {cancelledItems.length > 0 && (
+                            <div className="mt-2.5 pt-2 border-t border-dashed border-gray-200">
+                              <p className="text-[10px] font-bold uppercase tracking-wider text-rose-500 mb-1.5 flex items-center gap-1">
+                                <XCircle className="w-3 h-3" /> Removed Items ({cancelledItems.length})
+                              </p>
+                              <div className="space-y-1">
+                                {cancelledItems.map((cItem: any, cIdx: number) => (
+                                  <div
+                                    key={cItem.id || cIdx}
+                                    className="flex justify-between items-center px-2.5 py-1.5 bg-rose-50/60 rounded-lg text-xs text-rose-800 opacity-60"
+                                  >
+                                    <span className="line-through">
+                                      {cItem.quantity}× {cItem.menuItem?.name || cItem.name || "Item"}
+                                    </span>
+                                    <span className="text-[10px] font-bold uppercase tracking-wide">
+                                      Cancelled
+                                    </span>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                        </>
+                      );
+                    })()}
+                  </div>
+                </div>
+
+                {/* Bill summary */}
+                {(() => {
+                  const subtotalVal =
+                    selectedOrder.subtotal !== undefined
+                      ? selectedOrder.subtotal
+                      : (selectedOrder as any).subtotalPaise !== undefined
+                        ? (selectedOrder as any).subtotalPaise / 100
+                        : 0;
+
+                  const totalVal =
+                    selectedOrder.totalAmount !== undefined
+                      ? selectedOrder.totalAmount
+                      : (selectedOrder as any).totalPaise !== undefined
+                        ? (selectedOrder as any).totalPaise / 100
+                        : 0;
+
+                  const discountVal =
+                    selectedOrder.discountAmount !== undefined
+                      ? selectedOrder.discountAmount
+                      : (selectedOrder as any).discountPaise !== undefined
+                        ? (selectedOrder as any).discountPaise / 100
+                        : 0;
+
+                  const serviceChargeVal =
+                    selectedOrder.serviceChargeAmount !== undefined
+                      ? selectedOrder.serviceChargeAmount
+                      : (selectedOrder as any).serviceTaxAmount !== undefined
+                        ? (selectedOrder as any).serviceTaxAmount
+                        : (selectedOrder as any).serviceTaxPaise !== undefined
+                          ? (selectedOrder as any).serviceTaxPaise / 100
+                          : 0;
+
+                  const cgstVal =
+                    selectedOrder.cgstAmount !== undefined
+                      ? selectedOrder.cgstAmount
+                      : (selectedOrder as any).cgstPaise !== undefined
+                        ? (selectedOrder as any).cgstPaise / 100
+                        : 0;
+
+                  const sgstVal =
+                    selectedOrder.sgstAmount !== undefined
+                      ? selectedOrder.sgstAmount
+                      : (selectedOrder as any).sgstPaise !== undefined
+                        ? (selectedOrder as any).sgstPaise / 100
+                        : 0;
+
+                  const roundOffVal =
+                    selectedOrder.roundOffAmount !== undefined
+                      ? selectedOrder.roundOffAmount
+                      : (selectedOrder as any).roundOffPaise !== undefined
+                        ? (selectedOrder as any).roundOffPaise / 100
+                        : 0;
+
+                  const taxableVal = Math.max(0, subtotalVal - discountVal + serviceChargeVal);
+
+                  // Use snapshotted rates if available, else derive
+                  const scRate = selectedOrder.serviceChargeRate !== undefined && selectedOrder.serviceChargeRate !== null
+                    ? Number(selectedOrder.serviceChargeRate)
+                    : (subtotalVal > 0 && serviceChargeVal > 0 ? Number(((serviceChargeVal / subtotalVal) * 100).toFixed(1)) : 0);
+
+                  const cgstRate = selectedOrder.cgstRate !== undefined && selectedOrder.cgstRate !== null
+                    ? Number(selectedOrder.cgstRate)
+                    : (taxableVal > 0 && cgstVal > 0 ? Number(((cgstVal / taxableVal) * 100).toFixed(1)) : 2.5);
+
+                  const sgstRate = selectedOrder.sgstRate !== undefined && selectedOrder.sgstRate !== null
+                    ? Number(selectedOrder.sgstRate)
+                    : (taxableVal > 0 && sgstVal > 0 ? Number(((sgstVal / taxableVal) * 100).toFixed(1)) : 2.5);
+
+                  const isDineIn = selectedOrder.isDineIn ?? (selectedOrder.orderSource === "TABLE" || selectedOrder.orderSource === "QR");
+                  const isOrderOpen = selectedOrder.status !== "COMPLETED" && selectedOrder.status !== "CANCELLED";
+
+                  return (
+                    <div className="bg-gray-50 border border-gray-200 rounded-xl p-3.5 space-y-2 text-xs">
+                      <div className="flex justify-between text-gray-600 font-medium">
+                        <span>Actual Amount (Subtotal)</span>
+                        <span className="font-semibold text-gray-800">
+                          ₹{subtotalVal.toFixed(2)}
+                        </span>
+                      </div>
+
+                      {discountVal > 0 && (
+                        <>
+                          <div className="flex justify-between text-emerald-600 font-medium">
+                            <span>Discount {selectedOrder.couponCode ? `(${selectedOrder.couponCode})` : ""}</span>
+                            <span className="font-semibold">
+                              - ₹{discountVal.toFixed(2)}
+                            </span>
+                          </div>
+                          <div className="flex justify-between text-slate-700 font-semibold border-t border-dashed border-gray-200 pt-1">
+                            <span>Taxable Value</span>
+                            <span>₹{taxableVal.toFixed(2)}</span>
+                          </div>
+                        </>
+                      )}
+
+                      {serviceChargeVal > 0 && (
+                        <div className="flex justify-between text-gray-600 font-medium">
+                          <span>Service Charge ({scRate}%)</span>
+                          <span className="font-semibold text-gray-800">
+                            ₹{serviceChargeVal.toFixed(2)}
+                          </span>
+                        </div>
+                      )}
+
+                      {selectedOrder.serviceChargeWaived && (
+                        <div className="flex justify-between items-center text-amber-700 bg-amber-50 border border-amber-200/80 px-2 py-1 rounded-lg text-[11px] font-medium">
+                          <span>Service Charge Waived</span>
+                          <span className="italic text-[10px] text-amber-600">
+                            {selectedOrder.serviceChargeWaiveReason || "Customer request"}
+                          </span>
+                        </div>
+                      )}
+
+                      {cgstVal > 0 && (
+                        <div className="flex justify-between text-gray-600 font-medium">
+                          <span>CGST ({cgstRate}%)</span>
+                          <span className="font-semibold text-gray-800">
+                            ₹{cgstVal.toFixed(2)}
+                          </span>
+                        </div>
+                      )}
+
+                      {sgstVal > 0 && (
+                        <div className="flex justify-between text-gray-600 font-medium">
+                          <span>SGST ({sgstRate}%)</span>
+                          <span className="font-semibold text-gray-800">
+                            ₹{sgstVal.toFixed(2)}
+                          </span>
+                        </div>
+                      )}
+
+                      {roundOffVal !== 0 && (
+                        <div className="flex justify-between text-gray-500 font-medium text-[11px]">
+                          <span>Round off</span>
+                          <span className="font-semibold text-gray-700">
+                            {roundOffVal > 0 ? `+ ₹${roundOffVal.toFixed(2)}` : `- ₹${Math.abs(roundOffVal).toFixed(2)}`}
+                          </span>
+                        </div>
+                      )}
+
+                      <div className="flex justify-between font-bold text-sm text-[#1B2A4A] pt-2 border-t border-gray-200">
+                        <span>Overall Total</span>
+                        <span className="text-[#D3232A]">
+                          ₹{totalVal.toFixed(2)}
+                        </span>
+                      </div>
+
+                      {/* Voluntary Service Charge action for open dine-in orders */}
+                      {isDineIn && isOrderOpen && (
+                        <div className="pt-2 border-t border-dashed border-gray-200">
+                          {!selectedOrder.serviceChargeWaived && (serviceChargeVal > 0 || scRate > 0) ? (
+                            <button
+                              type="button"
+                              onClick={() => setWaivingServiceChargeOrder(selectedOrder)}
+                              className="w-full py-1.5 px-3 rounded-lg border border-amber-300 bg-amber-50 hover:bg-amber-100 text-amber-900 text-[11px] font-bold flex items-center justify-center gap-1.5 transition cursor-pointer"
+                            >
+                              <span>Remove Service Charge (Voluntary)</span>
+                            </button>
+                          ) : selectedOrder.serviceChargeWaived ? (
+                            <button
+                              type="button"
+                              onClick={() => handleToggleServiceCharge(selectedOrder, false)}
+                              className="w-full py-1.5 px-3 rounded-lg border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 text-[11px] font-bold flex items-center justify-center gap-1.5 transition cursor-pointer"
+                            >
+                              <span>Restore Service Charge</span>
+                            </button>
+                          ) : null}
+                        </div>
+                      )}
+
+                      {selectedOrder.placedByName && (
+                        <div className="mt-2 pt-2 border-t border-dashed border-gray-200 flex items-center justify-between text-[11px]">
+                          <span className="text-gray-500 font-medium">Placed Source</span>
+                          <span className="inline-flex items-center gap-1 font-bold text-[#1B2A4A] bg-gray-100 px-2 py-0.5 rounded border border-gray-200">
+                            {selectedOrder.placedByName}
+                          </span>
+                        </div>
+                      )}
+
+                      {selectedOrder.status === "COMPLETED" || selectedOrder.paymentStatus === "CONFIRMED" ? (
+                        <div className="mt-2 pt-2 border-t border-dashed border-gray-200 flex items-center justify-between text-[11px]">
+                          <span className="text-gray-500 font-medium">Payment Method</span>
+                          <span className="inline-flex items-center gap-1 font-bold text-gray-700 bg-white px-2 py-0.5 rounded border border-gray-200">
+                            {describePaymentLines(selectedOrder, selectedOrder.paymentMethod || "PAID")}
+                            <span className="text-emerald-600 font-bold ml-1">✓ Paid</span>
+                          </span>
+                        </div>
+                      ) : (
+                        <div className="mt-2 pt-2 border-t border-dashed border-gray-200 flex items-center justify-between text-[11px]">
+                          <span className="text-gray-500 font-medium">Payment Status</span>
+                          <span className="inline-flex items-center gap-1 font-bold text-amber-700 bg-amber-50 px-2 py-0.5 rounded border border-amber-200">
+                            Unpaid (Collect at Settlement)
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()}
+              </div>
+
+              {/* Modal footer */}
+              <div className="p-4 border-t border-gray-100 flex gap-2">
+                {selectedOrder.status !== "COMPLETED" &&
+                  selectedOrder.status !== "CANCELLED" && (
+                    <>
+                      {isManagerOrOwner ? (
+                        <button
+                          onClick={() => {
+                            setCancellingOrder(selectedOrder);
+                            setSelectedOrder(null);
+                          }}
+                          className="inline-flex items-center justify-center gap-1.5 bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-700 font-bold py-2.5 px-3 text-xs rounded-xl transition cursor-pointer"
+                        >
+                          <XCircle className="w-4 h-4 text-rose-600" />
+                          Cancel
+                        </button>
+                      ) : (
+                        <div
+                          className="inline-flex items-center justify-center gap-1.5 px-3 py-2 bg-gray-50 border border-gray-200 text-gray-400 font-semibold text-[11px] rounded-xl cursor-not-allowed select-none"
+                          title="Only a Manager or Business Owner can cancel an order"
+                        >
+                          <Lock className="w-3.5 h-3.5 text-gray-400" />
+                          <span>Cancel (Manager Only)</span>
+                        </div>
+                      )}
+                      {kitchenCaps.supportsKotPrint && (
+                        <button
+                          onClick={() => setPrintingKOT({ order: selectedOrder, isCancellation: selectedOrder.status === "CANCELLED" })}
+                          className="inline-flex items-center justify-center gap-1.5 bg-blue-50 hover:bg-blue-100 border border-blue-200 text-[#1B2A4A] font-bold py-2.5 px-3 text-xs rounded-xl transition cursor-pointer"
+                          title="Print Kitchen Order Ticket (KOT)"
+                        >
+                          <Printer className="w-4 h-4 text-blue-600" />
+                          Print KOT
+                        </button>
+                      )}
+                      <button
+                        onClick={() => {
+                          setCustomerName(selectedOrder.customerName || "");
+                          setCustomerPhone(selectedOrder.customerPhone || "");
+                          setSettlingOrder(selectedOrder);
+                          setSelectedOrder(null);
+                        }}
+                        className="flex-1 inline-flex items-center justify-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 px-3 text-xs rounded-xl transition-all hover:scale-[1.01] active:scale-[0.99] shadow-xs cursor-pointer"
+                      >
+                        <Printer className="w-4 h-4 text-emerald-200" />
+                        Settle & Print Bill
+                      </button>
+                    </>
+                  )}
+                <button
+                  onClick={() => setSelectedOrder(null)}
+                  className="flex-1 border border-gray-200 hover:bg-gray-50 text-gray-700 py-2.5 text-xs font-bold rounded-xl transition cursor-pointer"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          )}
+        </TModal>
+
+        {/* ── Modal: Settle Payment & Generate Thermal Invoice ── */}
+        <TModal open={!!settlingOrder} onClose={() => setSettlingOrder(null)} className="p-4 bg-slate-900/60 backdrop-blur-sm">
+          {settlingOrder && (
+            <MotionConfig reducedMotion="user">
+            <div className="bg-white rounded-2xl border border-slate-200/90 max-w-md w-full shadow-2xl overflow-hidden flex flex-col max-h-[92vh]">
+              {/* Header */}
+              <div className="px-5 pt-4 pb-3 flex items-start justify-between shrink-0">
+                <div>
+                  <h3 className="text-[15px] font-semibold text-slate-900 leading-tight">Settle bill</h3>
+                  <p className="text-[11px] text-slate-500 font-mono mt-0.5">
+                    #{settlingOrder.orderNo || (settlingOrder as any).orderNumber || settlingOrder.id.slice(0, 8).toUpperCase()} · {settlingOrder.tableNo || (settlingOrder as any).tableNumber ? `Table ${settlingOrder.tableNo || (settlingOrder as any).tableNumber}` : "Counter"}
+                  </p>
+                </div>
+                <button
+                  onClick={() => setSettlingOrder(null)}
+                  aria-label="Close"
+                  className="w-8 h-8 -mr-1.5 -mt-1 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition flex items-center justify-center cursor-pointer"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              {/* Body */}
+              <div className="px-5 pb-5 space-y-4 overflow-y-auto flex-1">
+                {/* Amount due — breakdown folded behind "Details" */}
+                {(() => {
+                  const {
+                    subtotalVal, discountVal, isDineIn, scRate, serviceChargeVal, taxableVal,
+                    cgstVal, sgstVal, roundOffVal, totalVal, paidPaise, balanceDuePaise,
+                  } = settlementBill(settlingOrder, appliedCoupon);
+                  const gstVal = cgstVal + sgstVal;
+                  const fmt = (n: number) => `₹${n.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+                  const summaryParts = [
+                    `Subtotal ${fmt(subtotalVal)}`,
+                    discountVal > 0 ? `Discount −${fmt(discountVal)}` : null,
+                    serviceChargeVal > 0 ? `Service ${fmt(serviceChargeVal)}` : null,
+                    gstVal > 0 ? `GST ${fmt(gstVal)}` : null,
+                  ].filter(Boolean);
+
+                  return (
+                    <div className="rounded-xl bg-slate-50 border border-slate-200/70 px-4 py-3.5">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <span className="text-[11px] font-medium text-slate-500 block">
+                            {paidPaise > 0 ? "To collect" : "Amount due"}
+                          </span>
+                          <span className="text-[28px] leading-tight font-semibold text-slate-900 tracking-tight tabular-nums">
+                            {paidPaise > 0 ? formatPaise(balanceDuePaise) : fmt(totalVal)}
+                          </span>
+                          {paidPaise > 0 && (
+                            <span className="block text-[11px] text-amber-700 font-medium">
+                              {formatPaise(paidPaise)} of {fmt(totalVal)} already paid
+                            </span>
+                          )}
+                        </div>
+                        <button
+                          type="button"
+                          aria-expanded={showBillDetails}
+                          onClick={() => setShowBillDetails((v) => !v)}
+                          className="mt-1 shrink-0 inline-flex items-center gap-1 px-2 py-1 rounded-md text-[11px] font-medium text-slate-600 hover:bg-slate-200/60 hover:text-slate-900 transition cursor-pointer"
+                        >
+                          Details
+                          <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${showBillDetails ? "rotate-180" : ""}`} />
+                        </button>
+                      </div>
+
+                      {!showBillDetails && (
+                        <p className="mt-1 text-[11px] text-slate-500 tabular-nums truncate">{summaryParts.join(" · ")}</p>
+                      )}
+
+                      <AnimatePresence initial={false}>
+                        {showBillDetails && (
+                          <motion.div key="bill-details" {...COLLAPSE_MOTION} className="overflow-hidden">
+                            <div className="mt-3 pt-3 border-t border-slate-200/70 space-y-1.5 text-xs text-slate-600 tabular-nums">
+                              <div className="flex justify-between">
+                                <span>Subtotal</span>
+                                <span className="text-slate-800">{fmt(subtotalVal)}</span>
+                              </div>
+                              {discountVal > 0 && (
+                                <>
+                                  <div className="flex justify-between text-emerald-700">
+                                    <span>Coupon {appliedCoupon?.code || settlingOrder.couponCode || ""}</span>
+                                    <span>−{fmt(discountVal)}</span>
+                                  </div>
+                                  <div className="flex justify-between">
+                                    <span>Taxable value</span>
+                                    <span className="text-slate-800">{fmt(taxableVal)}</span>
+                                  </div>
+                                </>
+                              )}
+                              {serviceChargeVal > 0 && (
+                                <div className="flex justify-between">
+                                  <span>Service charge ({scRate}%)</span>
+                                  <span className="text-slate-800">{fmt(serviceChargeVal)}</span>
+                                </div>
+                              )}
+                              {gstVal > 0 && (
+                                <div className="flex justify-between">
+                                  <span>GST (CGST + SGST)</span>
+                                  <span className="text-slate-800">{fmt(gstVal)}</span>
+                                </div>
+                              )}
+                              {roundOffVal !== 0 && (
+                                <div className="flex justify-between text-slate-500">
+                                  <span>Round off</span>
+                                  <span>{roundOffVal > 0 ? "+" : "−"} {fmt(Math.abs(roundOffVal))}</span>
+                                </div>
+                              )}
+
+                              {/* Service charge is voluntary: removed at the customer's request */}
+                              {isDineIn && (settlingOrder.serviceChargeWaived || serviceChargeVal > 0 || scRate > 0) && (
+                                <div className="flex items-center justify-between pt-2 mt-1 border-t border-dashed border-slate-200">
+                                  {settlingOrder.serviceChargeWaived ? (
+                                    <>
+                                      <span className="text-[11px] text-amber-700">
+                                        Service charge removed · {settlingOrder.serviceChargeWaiveReason || "Customer request"}
+                                      </span>
+                                      <button
+                                        type="button"
+                                        onClick={() => handleToggleServiceCharge(settlingOrder, false)}
+                                        className="text-[11px] font-semibold text-slate-700 hover:text-slate-950 underline underline-offset-2 cursor-pointer"
+                                      >
+                                        Restore
+                                      </button>
+                                    </>
+                                  ) : (
+                                    <button
+                                      type="button"
+                                      onClick={() => setWaivingServiceChargeOrder(settlingOrder)}
+                                      className="text-[11px] font-semibold text-amber-800 hover:text-amber-950 underline underline-offset-2 cursor-pointer"
+                                    >
+                                      Remove service charge (customer request)
+                                    </button>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+                    </div>
+                  );
+                })()}
+
+                {/* ── Bill Items Review & Manager Edit before settlement ── */}
+                {(() => {
+                  const rawItems = settlingOrder.orderItems || (settlingOrder as any).items || [];
+                  const activeItems = rawItems.filter((i: any) => i.status !== "CANCELLED");
+                  const cancelledItems = rawItems.filter((i: any) => i.status === "CANCELLED");
+
+                  return (
+                    <div className="rounded-xl border border-slate-200/80 bg-white overflow-hidden shadow-2xs">
+                      <button
+                        type="button"
+                        onClick={() => setShowSettleItems((v) => !v)}
+                        className="w-full px-3.5 py-2.5 bg-slate-50/80 hover:bg-slate-100 flex items-center justify-between text-xs font-semibold text-slate-700 transition cursor-pointer"
+                      >
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <Utensils className="w-3.5 h-3.5 text-slate-500" />
+                          <span>Bill Items ({activeItems.length})</span>
+                          {cancelledItems.length > 0 && (
+                            <span className="text-[10px] font-bold bg-rose-50 text-rose-700 border border-rose-200 px-1.5 py-0.5 rounded-full">
+                              {cancelledItems.length} removed
+                            </span>
+                          )}
+                          {canRemoveBillItems && (
+                            <span className="text-[10px] font-medium bg-emerald-50 text-emerald-800 border border-emerald-200 px-1.5 py-0.5 rounded-md">
+                              {isManagerOrOwner ? "Manager Edit" : "Item Edit"}
+                            </span>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-1 text-[11px] text-slate-500">
+                          <span>{showSettleItems ? "Hide" : "Edit / Review"}</span>
+                          <ChevronDown
+                            className={`w-3.5 h-3.5 transition-transform duration-200 ${
+                              showSettleItems ? "rotate-180" : ""
+                            }`}
+                          />
+                        </div>
+                      </button>
+
+                      <AnimatePresence initial={false}>
+                        {showSettleItems && (
+                          <motion.div
+                            key="settle-items-list"
+                            {...COLLAPSE_MOTION}
+                            className="overflow-hidden"
+                          >
+                            <div className="p-3 divide-y divide-slate-100 max-h-52 overflow-y-auto space-y-2">
+                              {rawItems.map((item: any, idx: number) => {
+                                const isCancelled = item.status === "CANCELLED";
+                                const unitPrice =
+                                  item.unitPrice !== undefined
+                                    ? Number(item.unitPrice)
+                                    : item.unitPricePaise !== undefined
+                                      ? item.unitPricePaise / 100
+                                      : 0;
+                                const subtotal =
+                                  item.subtotal !== undefined
+                                    ? Number(item.subtotal)
+                                    : item.subtotalPaise !== undefined
+                                      ? item.subtotalPaise / 100
+                                      : unitPrice * (item.quantity || 1);
+
+                                return (
+                                  <div
+                                    key={item.id || idx}
+                                    className={`pt-2 first:pt-0 flex items-start justify-between gap-3 text-xs ${
+                                      isCancelled ? "opacity-40" : ""
+                                    }`}
+                                  >
+                                    <div className="min-w-0 flex-1">
+                                      <div className="flex items-center gap-1.5 flex-wrap">
+                                        <span
+                                          className={`font-semibold ${
+                                            isCancelled
+                                              ? "line-through text-slate-500"
+                                              : "text-slate-800"
+                                          }`}
+                                        >
+                                          <span className="text-[#D3232A] mr-1 font-bold">
+                                            {item.quantity}×
+                                          </span>
+                                          {item.menuItem?.name || item.name || "Item"}
+                                        </span>
+                                        {isCancelled && (
+                                          <span className="text-[9px] uppercase font-bold px-1.5 py-0.5 rounded bg-rose-100 text-rose-700">
+                                            Cancelled
+                                          </span>
+                                        )}
+                                      </div>
+                                      {item.notes && (
+                                        <p className="text-[10px] text-slate-400 italic">
+                                          {item.notes}
+                                        </p>
+                                      )}
+                                    </div>
+
+                                    <div className="flex items-center gap-2 shrink-0">
+                                      <span
+                                        className={`font-semibold tabular-nums ${
+                                          isCancelled
+                                            ? "line-through text-slate-400"
+                                            : "text-slate-800"
+                                        }`}
+                                      >
+                                        ₹{subtotal.toFixed(2)}
+                                      </span>
+
+                                      {!isCancelled && (
+                                        <>
+                                          {canRemoveBillItems ? (
+                                            <button
+                                              type="button"
+                                              onClick={() =>
+                                                handleOpenCancelItem(settlingOrder, item)
+                                              }
+                                              title={
+                                                activeItems.length === 1 &&
+                                                (item.quantity || 1) === 1
+                                                  ? "Cannot remove only item (cancel order instead)"
+                                                  : "Cancel / remove item from bill"
+                                              }
+                                              className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-semibold text-rose-600 bg-rose-50 hover:bg-rose-100 hover:text-rose-700 border border-rose-200 transition cursor-pointer"
+                                            >
+                                              <Trash2 className="w-3 h-3 text-rose-500" />
+                                              <span>Remove</span>
+                                            </button>
+                                          ) : (
+                                            <span
+                                              className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] text-slate-400 bg-slate-50 border border-slate-200/60"
+                                              title="You don't have permission to remove items"
+                                            >
+                                              <Lock className="w-2.5 h-2.5" />
+                                            </span>
+                                          )}
+                                        </>
+                                      )}
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+                    </div>
+                  );
+                })()}
+
+                {/* Customer details — always visible */}
+                <div className="grid grid-cols-2 gap-2">
+                  <input
+                    type="text"
+                    placeholder="Customer name"
+                    aria-label="Customer name"
+                    value={customerName}
+                    onChange={(e) => setCustomerName(e.target.value)}
+                    className="w-full px-3 py-2 text-xs bg-white border border-slate-200 rounded-lg text-slate-900 focus:outline-none focus:border-slate-800 transition placeholder:text-slate-400"
+                  />
+                  <input
+                    type="tel"
+                    placeholder="Mobile number"
+                    aria-label="Customer mobile number"
+                    value={customerPhone}
+                    onChange={(e) => setCustomerPhone(e.target.value)}
+                    className="w-full px-3 py-2 text-xs bg-white border border-slate-200 rounded-lg text-slate-900 focus:outline-none focus:border-slate-800 transition placeholder:text-slate-400"
+                  />
+                </div>
+
+                {/* Coupon — opened on demand */}
+                <div>
+                  <div className="flex flex-wrap gap-2">
+                    {(
+                      [
+                        {
+                          id: "COUPON" as const,
+                          icon: Tag,
+                          label: appliedCoupon ? `${appliedCoupon.code} · −₹${appliedCoupon.discountAmount.toFixed(2)}` : "Coupon",
+                          filled: !!appliedCoupon,
+                        },
+                      ]
+                    ).map(({ id, icon: Icon, label, filled }) => {
+                      const open = settleExtra === id;
+                      return (
+                        <button
+                          key={id}
+                          type="button"
+                          aria-expanded={open}
+                          onClick={() => setSettleExtra(open ? null : id)}
+                          className={`inline-flex items-center gap-1.5 max-w-[60%] px-3 py-1.5 rounded-full border text-[12px] font-medium transition cursor-pointer ${
+                            open
+                              ? "bg-slate-900 border-slate-900 text-white"
+                              : filled
+                                ? "bg-emerald-50 border-emerald-200 text-emerald-800 hover:bg-emerald-100"
+                                : "bg-white border-slate-200 text-slate-600 hover:border-slate-300 hover:text-slate-900"
+                          }`}
+                        >
+                          {filled ? <Icon className="w-3.5 h-3.5 shrink-0" /> : <Plus className="w-3.5 h-3.5 shrink-0" />}
+                          <span className="truncate">{label}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  <AnimatePresence initial={false} mode="wait">
+                    {settleExtra === "COUPON" && (
+                      <motion.div key="coupon" {...COLLAPSE_MOTION} className="overflow-hidden">
+                        <div className="pt-2.5 space-y-1.5">
+                          {appliedCoupon ? (
+                            <div className="flex items-center justify-between rounded-lg bg-emerald-50 border border-emerald-200 px-3 py-2 text-xs">
+                              <span className="text-emerald-800">
+                                <span className="font-mono font-semibold">{appliedCoupon.code}</span> applied · −₹{appliedCoupon.discountAmount.toFixed(2)}
+                              </span>
+                              <button
+                                type="button"
+                                onClick={handleRemoveCoupon}
+                                className="text-[11px] font-semibold text-slate-600 hover:text-rose-600 transition cursor-pointer"
+                              >
+                                Remove
+                              </button>
+                            </div>
+                          ) : (
+                            <div className="flex gap-2">
+                              <input
+                                type="text"
+                                autoFocus
+                                placeholder="Coupon code"
+                                aria-label="Coupon code"
+                                value={couponInput}
+                                onChange={(e) => {
+                                  setCouponInput(e.target.value.toUpperCase());
+                                  setCouponError(null);
+                                }}
+                                onKeyDown={(e) => {
+                                  if (e.key === "Enter") {
+                                    e.preventDefault();
+                                    handleApplyCoupon();
+                                  }
+                                }}
+                                className="flex-1 min-w-0 px-3 py-2 text-xs font-mono font-semibold uppercase tracking-wider bg-white border border-slate-200 rounded-lg text-slate-900 placeholder:normal-case placeholder:font-sans placeholder:font-normal placeholder:tracking-normal placeholder:text-slate-400 focus:outline-none focus:border-slate-800 transition"
+                              />
+                              <button
+                                type="button"
+                                disabled={isValidatingCoupon || !couponInput.trim()}
+                                onClick={handleApplyCoupon}
+                                className="px-4 py-2 bg-slate-900 hover:bg-black disabled:opacity-40 text-white text-xs font-semibold rounded-lg transition cursor-pointer shrink-0"
+                              >
+                                {isValidatingCoupon ? "Checking…" : "Apply"}
+                              </button>
+                            </div>
+                          )}
+                          {couponError && (
+                            <p className="flex items-center gap-1.5 text-[11px] text-rose-600 font-medium">
+                              <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                              {couponError}
+                            </p>
+                          )}
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+
+                {/* QR order: what the customer already told us about payment */}
+                {/* QR order paid by UPI on the customer's phone: what to match on the soundbox (UPI / split only) */}
+                {getCustomerPaymentClaims(settlingOrder).upi && (paymentMode === "SPLIT" || paymentMethod === "UPI") && (() => {
+                  const claims = getCustomerPaymentClaims(settlingOrder);
+                  return (
+                    <div className="rounded-lg bg-amber-50 border border-amber-200 px-3 py-2 flex items-start gap-2 text-[11px] text-amber-900">
+                      <QrCode className="w-3.5 h-3.5 shrink-0 mt-px" />
+                      <div className="min-w-0 space-y-0.5">
+                        <p className="font-semibold">
+                          Customer paid by UPI on the QR page
+                          {claims.upiPaise > 0 && <> · {formatPaise(claims.upiPaise)}</>}
+                        </p>
+                        <p className="text-amber-800 break-all">
+                          {claims.upiReferences.length > 0 ? (
+                            <>UTR <span className="font-mono font-semibold">{claims.upiReferences.join(", ")}</span> · match it on the soundbox / UPI app</>
+                          ) : (
+                            <>No UTR given · match the amount on the soundbox / UPI app</>
+                          )}
+                        </p>
+                      </div>
+                    </div>
+                  );
+                })()}
+
+                {getCustomerPaymentClaims(settlingOrder).payAtCounter && (
+                  <div className="rounded-lg bg-blue-50 border border-blue-200 px-3 py-2 flex items-center gap-1.5 text-[11px] text-blue-900">
+                    <Banknote className="w-3.5 h-3.5 shrink-0" />
+                    <span>
+                      {getCustomerPaymentClaims(settlingOrder).counterMethod === "CARD" ? (
+                        <>Customer will pay by <strong>card</strong> at the counter — collect now.</>
+                      ) : getCustomerPaymentClaims(settlingOrder).counterMethod === "CASH" ? (
+                        <>Customer will pay by <strong>cash</strong> at the counter — collect now.</>
+                      ) : (
+                        <>Customer chose <strong>Pay at Counter</strong> — collect now.</>
+                      )}
+                    </span>
+                  </div>
+                )}
+
+                <div className="border-t border-slate-100" />
+
+                {/* Payment: one method, or split across several */}
+                {(() => {
+                  const { balanceDuePaise } = settlementBill(settlingOrder, appliedCoupon);
+                  if (balanceDuePaise === 0) {
+                    return (
+                      <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-3 flex items-center gap-2 text-xs text-emerald-900">
+                        <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                        <span>This bill is already fully paid ({describePaymentLines(settlingOrder)}). Settle to close it.</span>
+                      </div>
+                    );
+                  }
+                  return (
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-semibold text-slate-800">Payment</span>
+                        <div role="group" aria-label="Payment mode" className="flex rounded-lg bg-slate-100 p-0.5">
+                          {(["SINGLE", "SPLIT"] as const).map((mode) => (
+                            <button
+                              key={mode}
+                              type="button"
+                              aria-pressed={paymentMode === mode}
+                              onClick={() => {
+                                setSettleError(null);
+                                setPaymentMode(mode);
+                                if (mode === "SPLIT" && splitLines.length === 0) {
+                                  setSplitLines(initialSplitLines(balanceDuePaise, paymentMethod === "CASH" ? "UPI" : "CASH"));
+                                }
+                              }}
+                              className={`px-2.5 py-1 rounded-md text-[11px] font-semibold transition cursor-pointer ${
+                                paymentMode === mode ? "bg-white text-slate-900 shadow-xs" : "text-slate-500 hover:text-slate-800"
+                              }`}
+                            >
+                              {mode === "SINGLE" ? "Single" : "Split payment"}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      <AnimatePresence initial={false} mode="wait">
+                      <motion.div
+                        key={paymentMode}
+                        initial={{ opacity: 0, y: 4 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -4 }}
+                        transition={{ duration: 0.15 }}
+                      >
+                      {paymentMode === "SINGLE" ? (
+                        <div className="space-y-2">
+                        <div className="grid grid-cols-6 gap-2">
+                          {(
+                            [
+                              { value: "UPI", label: "UPI / QR", icon: QrCode },
+                              { value: "CASH", label: "Cash", icon: Banknote },
+                              { value: "CARD", label: "Card", icon: CreditCard },
+                              // Dine-in booked on partner apps: Swiggy, Zomato, EazyDiner
+                              { value: "SWIGGY", label: PLATFORM_META.SWIGGY.label, icon: null },
+                              { value: "ZOMATO", label: PLATFORM_META.ZOMATO.label, icon: null },
+                              { value: "EAZYDINER", label: PLATFORM_META.EAZYDINER.label, icon: null },
+                            ] as const
+                          ).map(({ value, label, icon: Icon }) => {
+                            const isSelected = paymentMethod === value;
+                            return (
+                              <button
+                                key={value}
+                                type="button"
+                                onClick={() => {
+                                  setSettleError(null);
+                                  setPaymentMethod(value);
+                                }}
+                                aria-pressed={isSelected}
+                                className={`col-span-2 py-2.5 px-2 rounded-xl border text-xs font-semibold flex items-center justify-center gap-1.5 transition-all duration-150 cursor-pointer ${
+                                  isSelected
+                                    ? "bg-slate-900 text-white border-slate-900 shadow-sm"
+                                    : "bg-white text-slate-700 border-slate-200 hover:border-slate-300 hover:bg-slate-50"
+                                }`}
+                              >
+                                {Icon ? (
+                                  <Icon className={`w-4 h-4 ${isSelected ? "text-emerald-400" : "text-slate-500"}`} />
+                                ) : (
+                                  <span aria-hidden className={`w-2.5 h-2.5 rounded-full ${PLATFORM_META[value].dot}`} />
+                                )}
+                                <span>{label}</span>
+                              </button>
+                            );
+                          })}
+                        </div>
+                        {/* Swiggy / Zomato / EazyDiner dine-in: overall bill settlement */}
+                        {isPlatformMethod(paymentMethod) && (() => {
+                          const confirmed = isReceivedConfirmed(settlingOrder, balanceDuePaise);
+                          const app = PLATFORM_META[paymentMethod].label;
+                          return (
+                            <div
+                              className={`rounded-xl border p-3 space-y-2.5 transition-colors ${
+                                confirmed ? "bg-emerald-50 border-emerald-200" : "bg-amber-50 border-amber-200"
+                              }`}
+                            >
+                              <div className="flex justify-between items-center text-xs font-semibold px-0.5">
+                                <span className="text-slate-700 flex items-center gap-1.5">
+                                  <span aria-hidden className={`w-2.5 h-2.5 rounded-full ${PLATFORM_META[paymentMethod].dot}`} />
+                                  Dine-in bill via {app}
+                                </span>
+                                <span className="text-slate-900 font-bold tabular-nums text-sm">{formatPaise(balanceDuePaise)}</span>
+                              </div>
+                              <label className="flex items-start gap-2 cursor-pointer select-none">
+                                <input
+                                  type="checkbox"
+                                  checked={confirmed}
+                                  onChange={(e) => {
+                                    setSettleError(null);
+                                    setReceivedConfirmation(
+                                      e.target.checked ? { orderId: settlingOrder.id, method: paymentMethod, paise: balanceDuePaise } : null
+                                    );
+                                  }}
+                                  className="mt-0.5 w-4 h-4 accent-emerald-600 cursor-pointer shrink-0"
+                                />
+                                <span className={`text-[11px] font-semibold leading-snug ${confirmed ? "text-emerald-900" : "text-amber-900"}`}>
+                                  I&apos;ve verified payment was completed in the {app} app
+                                </span>
+                              </label>
+                              <input
+                                type="text"
+                                aria-label={`${app} booking ID`}
+                                placeholder={`${app} booking / reference ID (optional)`}
+                                value={paymentReferenceFor(settlingOrder)}
+                                maxLength={64}
+                                onChange={(e) => setReferenceDraft({ orderId: settlingOrder.id, method: paymentMethod, text: e.target.value })}
+                                className="w-full px-2.5 py-1.5 text-[11px] font-mono bg-white border border-slate-200 rounded-lg text-slate-800 focus:outline-none focus:border-slate-800 transition placeholder:font-sans placeholder:text-slate-400"
+                              />
+                            </div>
+                          );
+                        })()}
+                        {/* UPI / card money lands outside the till: the cashier confirms it arrived before settling */}
+                        {isOnlineMethod(paymentMethod) && !isPlatformMethod(paymentMethod) && (() => {
+                          const confirmed = isReceivedConfirmed(settlingOrder, balanceDuePaise);
+                          return (
+                            <div
+                              className={`rounded-xl border p-2.5 space-y-2 transition-colors ${
+                                confirmed ? "bg-emerald-50 border-emerald-200" : "bg-amber-50 border-amber-200"
+                              }`}
+                            >
+                              {paymentMethod === "UPI" && (
+                                <UpiPayQr {...upiPayeeFor(settlingOrder)} amountPaise={balanceDuePaise} />
+                              )}
+                              <label className="flex items-start gap-2 cursor-pointer select-none">
+                                <input
+                                  type="checkbox"
+                                  checked={confirmed}
+                                  onChange={(e) => {
+                                    setSettleError(null);
+                                    setReceivedConfirmation(
+                                      e.target.checked ? { orderId: settlingOrder.id, method: paymentMethod, paise: balanceDuePaise } : null
+                                    );
+                                  }}
+                                  className="mt-0.5 w-4 h-4 accent-emerald-600 cursor-pointer shrink-0"
+                                />
+                                <span className={`text-[11px] font-semibold leading-snug ${confirmed ? "text-emerald-900" : "text-amber-900"}`}>
+                                  {paymentMethod === "UPI"
+                                    ? <>I&apos;ve checked {formatPaise(balanceDuePaise)} was received on the soundbox / UPI app</>
+                                    : <>I&apos;ve checked {formatPaise(balanceDuePaise)} was approved on the card machine</>}
+                                </span>
+                              </label>
+                              <input
+                                type="text"
+                                aria-label={paymentMethod === "UPI" ? "UPI reference (UTR)" : "Card approval code"}
+                                placeholder={paymentMethod === "UPI" ? "UTR / last 4 digits (optional)" : "Approval code (optional)"}
+                                value={paymentReferenceFor(settlingOrder)}
+                                maxLength={64}
+                                onChange={(e) => setReferenceDraft({ orderId: settlingOrder.id, method: paymentMethod, text: e.target.value })}
+                                className="w-full px-2.5 py-1.5 text-[11px] font-mono bg-white border border-slate-200 rounded-lg text-slate-800 focus:outline-none focus:border-slate-800 transition placeholder:font-sans placeholder:text-slate-400"
+                              />
+                            </div>
+                          );
+                        })()}
+                        </div>
+                      ) : (
+                        <SplitPaymentEditor
+                          duePaise={balanceDuePaise}
+                          upi={upiPayeeFor(settlingOrder)}
+                          lines={splitLines}
+                          onChange={(next) => {
+                            setSettleError(null);
+                            setSplitLines(next);
+                          }}
+                        />
+                      )}
+                      </motion.div>
+                      </AnimatePresence>
+                    </div>
+                  );
+                })()}
+
+                {settleError && duplicateReference && (
+                  <div role="alert" className="flex items-start gap-1.5 text-[11px] text-amber-800 font-semibold bg-amber-50 border border-amber-200 rounded-lg p-2.5">
+                    <AlertCircle className="w-3.5 h-3.5 shrink-0 mt-px" />
+                    <div className="flex-1 space-y-1.5">
+                      <span className="block">{settleError}</span>
+                      <button
+                        type="button"
+                        onClick={() => settleBill(settlingOrder, true)}
+                        disabled={isUpdating}
+                        className="px-2.5 py-1 text-[11px] font-semibold text-amber-900 bg-white border border-amber-300 hover:bg-amber-100 rounded-md transition cursor-pointer disabled:opacity-50"
+                      >
+                        Reference is correct — settle anyway
+                      </button>
+                    </div>
+                  </div>
+                )}
+                {settleError && !duplicateReference && (
+                  <div role="alert" className="flex items-start gap-1.5 text-[11px] text-rose-700 font-semibold bg-rose-50 border border-rose-200 rounded-lg p-2.5">
+                    <AlertCircle className="w-3.5 h-3.5 shrink-0 mt-px" />
+                    <span>{settleError}</span>
+                  </div>
+                )}
+              </div>
+
+              {/* Clean Footer Actions */}
+              <div className="p-4 bg-slate-50 border-t border-slate-100 flex items-center gap-2 shrink-0">
+                <button
+                  onClick={() => {
+                    const { discountVal, serviceChargeVal, cgstVal, sgstVal, roundOffVal, totalVal } =
+                      settlementBill(settlingOrder, appliedCoupon);
+
+                    setPrintingOrder({
+                      ...settlingOrder,
+                      cashierName: user?.name,
+                      customerName: customerName.trim() || settlingOrder.customerName,
+                      customerPhone: customerPhone.trim() || settlingOrder.customerPhone,
+                      paymentMethod,
+                      discountAmount: discountVal,
+                      discountPaise: Math.round(discountVal * 100),
+                      couponCode: appliedCoupon?.code || settlingOrder.couponCode,
+                      couponId: appliedCoupon?.couponId || settlingOrder.couponId,
+                      cgstAmount: cgstVal,
+                      cgstPaise: Math.round(cgstVal * 100),
+                      sgstAmount: sgstVal,
+                      sgstPaise: Math.round(sgstVal * 100),
+                      serviceChargeAmount: serviceChargeVal,
+                      serviceTaxAmount: serviceChargeVal,
+                      serviceTaxPaise: Math.round(serviceChargeVal * 100),
+                      roundOffAmount: roundOffVal,
+                      roundOffPaise: Math.round(roundOffVal * 100),
+                      totalAmount: totalVal,
+                      totalPaise: Math.round(totalVal * 100),
+                      outlet: branches.find((b) => b.id === settlingOrder.outletId) || activeBranch,
+                    });
+                  }}
+                  className="px-3.5 py-2.5 text-xs font-semibold text-slate-700 bg-white border border-slate-200 hover:bg-slate-100 rounded-xl transition cursor-pointer flex items-center gap-1.5"
+                >
+                  <Receipt className="w-3.5 h-3.5 text-slate-500" />
+                  Pre-Bill
+                </button>
+
+                <button
+                  onClick={() => settleBill(settlingOrder)}
+                  disabled={(() => {
+                    if (isUpdating) return true;
+                    const { balanceDuePaise } = settlementBill(settlingOrder, appliedCoupon);
+                    if (balanceDuePaise === 0) return false;
+                    if (paymentMode === "SPLIT") return !summarizeSplit(splitLines, balanceDuePaise).canSettle;
+                    return isOnlineMethod(paymentMethod) && !isReceivedConfirmed(settlingOrder, balanceDuePaise);
+                  })()}
+                  className="flex-1 inline-flex items-center justify-center gap-1.5 bg-slate-900 hover:bg-slate-800 text-white font-semibold py-2.5 px-4 text-xs rounded-xl transition disabled:opacity-50 cursor-pointer shadow-xs active:scale-98"
+                >
+                  <Printer className="w-3.5 h-3.5 text-emerald-400" />
+                  {(() => {
+                    if (isUpdating) return "Settling…";
+                    const { balanceDuePaise } = settlementBill(settlingOrder, appliedCoupon);
+                    if (paymentMode === "SPLIT" && balanceDuePaise > 0) {
+                      return summarizeSplit(splitLines, balanceDuePaise).blocker || "Settle & Print Receipt";
+                    }
+                    if (balanceDuePaise > 0 && isOnlineMethod(paymentMethod) && !isReceivedConfirmed(settlingOrder, balanceDuePaise)) {
+                      if (isPlatformMethod(paymentMethod)) return `Confirm ${PLATFORM_META[paymentMethod].label} payment`;
+                      return paymentMethod === "UPI" ? "Confirm UPI received" : "Confirm card payment";
+                    }
+                    return "Settle & Print Receipt";
+                  })()}
+                </button>
+              </div>
+            </div>
+            </MotionConfig>
+          )}
+        </TModal>
+
+        {/* ── Printable Thermal Receipt Modal ── */}
+        {printingOrder && (
+          <div
+            className="fixed inset-0 z-[60] flex items-center justify-center bg-black/70 backdrop-blur-sm receipt-backdrop-animation"
+            onClick={(e) => { if (e.target === e.currentTarget) setPrintingOrder(null); }}
+          >
+            <div className="relative w-full max-w-sm mx-4 rounded-2xl overflow-hidden shadow-[0_32px_80px_-12px_rgba(0,0,0,0.6)] border border-white/10 receipt-modal-animation">
+              <ThermalReceipt
+                order={printingOrder}
+                autoPrint={false}
+                onClose={() => setPrintingOrder(null)}
+              />
+            </div>
+          </div>
+        )}
+
+        {/* ── Modal: Cancel Order Confirmation ── */}
+        <TModal open={!!cancellingOrder} className="p-4 bg-gray-900/60 backdrop-blur-sm">
+          {cancellingOrder && (
+            <div className="bg-white rounded-2xl border border-gray-200 max-w-sm w-full p-6 shadow-2xl space-y-4">
+              <div className="flex items-center gap-3">
+                <div className="w-11 h-11 rounded-xl bg-rose-100 text-rose-600 flex items-center justify-center shrink-0">
+                  <XCircle className="w-6 h-6 text-rose-600" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-[#1B2A4A]">
+                    Cancel Order
+                  </h3>
+                  <p className="text-xs text-gray-500 font-bold font-mono">
+                    {cancellingOrder.orderNo ||
+                      (cancellingOrder as any).orderNumber ||
+                      `#${cancellingOrder.id.slice(0, 8)}`}
+                  </p>
+                </div>
+              </div>
+
+              <div className="bg-rose-50/80 border border-rose-100 rounded-xl p-3.5 text-xs text-rose-900 space-y-1">
+                <p className="font-bold">
+                  Are you sure you want to cancel this order?
+                </p>
+                <p className="text-[11px] text-rose-700 font-medium">
+                  The order status will be updated to <strong className="font-extrabold uppercase">CANCELLED</strong>, linked table will be marked as available, and kitchen screen will alert for 3 minutes.
+                </p>
+              </div>
+
+              {/* Manager Authorization Audit Badge */}
+              <div className="flex items-center gap-2 text-[11px] text-gray-600 bg-gray-50 px-3 py-2 rounded-xl border border-gray-200">
+                <Lock className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                <span>
+                  Authorizing: <strong className="text-[#1B2A4A]">{user?.name || "Manager"}</strong> ({user?.role?.replace("_", " ")})
+                </span>
+              </div>
+
+              {/* High-risk warning if cancelling after food was already served */}
+              {cancellingOrder.status === "SERVED" && (
+                <div className="bg-amber-50 border border-amber-200 rounded-xl p-2.5 text-[11px] text-amber-900 font-medium flex items-center gap-2">
+                  <AlertCircle className="w-4 h-4 text-amber-600 shrink-0" />
+                  <span>Food already served. This cancellation will be logged for stock wastage audit.</span>
+                </div>
+              )}
+
+              {/* Cancellation Reason Dropdown & Quick Select */}
+              <div className="space-y-2.5">
+                <div className="flex items-center justify-between">
+                  <label className="block text-[11px] font-bold text-gray-700 uppercase tracking-wider">
+                    Reason for Cancellation
+                  </label>
+                  <span className="text-[10px] text-gray-400 font-medium">Select or specify</span>
+                </div>
+
+                {/* Dropdown Selector */}
+                <select
+                  value={selectedCancelPreset}
+                  onChange={(e) => setSelectedCancelPreset(e.target.value)}
+                  className="w-full px-3 py-2.5 bg-white border border-gray-300 rounded-xl text-xs font-semibold text-gray-800 focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 cursor-pointer shadow-xs transition"
+                >
+                  {CANCELLATION_PRESETS.map((preset) => (
+                    <option key={preset} value={preset}>
+                      {preset}
+                    </option>
+                  ))}
+                </select>
+
+                {/* Quick-Select Reason Chips */}
+                <div className="flex flex-wrap gap-1.5">
+                  {CANCELLATION_PRESETS.map((preset) => {
+                    const isSelected = selectedCancelPreset === preset;
+                    return (
+                      <button
+                        key={preset}
+                        type="button"
+                        onClick={() => setSelectedCancelPreset(preset)}
+                        className={`text-[10px] font-bold px-2.5 py-1 rounded-lg border transition-all cursor-pointer ${
+                          isSelected
+                            ? "bg-rose-100/80 text-rose-800 border-rose-300 shadow-xs"
+                            : "bg-gray-50 text-gray-600 border-gray-200 hover:bg-gray-100 hover:text-gray-900"
+                        }`}
+                      >
+                        {preset === "Other (Specify reason)" ? "Custom Other..." : preset}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {/* Custom reason text input if "Other" is selected */}
+                {selectedCancelPreset === "Other (Specify reason)" && (
+                  <div className="pt-1 animate-in fade-in duration-200">
+                    <input
+                      type="text"
+                      value={customCancelReason}
+                      onChange={(e) => setCustomCancelReason(e.target.value)}
+                      placeholder="Type specific reason for audit log..."
+                      autoFocus
+                      className="w-full px-3 py-2 border border-rose-300 bg-rose-50/30 rounded-xl text-xs font-medium text-gray-800 focus:outline-none focus:ring-2 focus:ring-rose-500/30 focus:border-rose-500 transition"
+                    />
+                  </div>
+                )}
+              </div>
+
+              {/* Print Cancellation KOT Checkbox - only shown if outlet supports KOT */}
+              {kitchenCaps.supportsKotPrint && (
+                <label className="flex items-center gap-2.5 p-2.5 rounded-xl bg-gray-50 border border-gray-200 text-xs font-bold text-gray-700 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={printCancelKOTOnConfirm}
+                    onChange={(e) => setPrintCancelKOTOnConfirm(e.target.checked)}
+                    className="rounded text-rose-600 focus:ring-rose-500 h-4 w-4"
+                  />
+                  <Printer className="w-4 h-4 text-rose-600 shrink-0" />
+                  <span>Print Cancellation KOT to Kitchen Printer</span>
+                </label>
+              )}
+
+              <div className="flex gap-2 pt-2">
+                <button
+                  onClick={async () => {
+                    const idToCancel = cancellingOrder.id;
+                    const finalReason =
+                      selectedCancelPreset === "Other (Specify reason)"
+                        ? customCancelReason.trim() || "Cancelled by staff"
+                        : selectedCancelPreset;
+                    const orderToVoid = {
+                      ...cancellingOrder,
+                      comment: finalReason,
+                      status: "CANCELLED",
+                      cancelledAt: new Date().toISOString(),
+                    };
+                    setCancellingOrder(null);
+                    setCustomCancelReason("");
+                    setSelectedCancelPreset("Customer changed mind");
+                    await handleStatusChange(idToCancel, "CANCELLED", finalReason);
+                    if (kitchenCaps.supportsKotPrint && printCancelKOTOnConfirm) {
+                      setPrintingKOT({ order: orderToVoid, isCancellation: true });
+                    }
+                  }}
+                  disabled={isUpdating}
+                  className="flex-1 inline-flex items-center justify-center gap-1.5 bg-rose-600 hover:bg-rose-700 text-white font-bold py-2.5 px-3 text-xs rounded-xl transition shadow-xs disabled:opacity-60 cursor-pointer"
+                >
+                  <XCircle className="w-4 h-4" />
+                  Yes, Cancel Order
+                </button>
+                <button
+                  onClick={() => {
+                    setCancellingOrder(null);
+                    setCustomCancelReason("");
+                    setSelectedCancelPreset("Customer changed mind");
+                  }}
+                  className="px-4 border border-gray-200 hover:bg-gray-50 text-gray-700 py-2.5 text-xs font-bold rounded-xl transition cursor-pointer"
+                >
+                  Keep Order
+                </button>
+              </div>
+            </div>
+          )}
+        </TModal>
+
+        {/* ── Printable Thermal KOT Slip Modal ── */}
+        {printingKOT && (
+          <div
+            className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-sm animate-in fade-in duration-200"
+            onClick={(e) => {
+              if (e.target === e.currentTarget) setPrintingKOT(null);
+            }}
+          >
+            <ThermalKOT
+              order={printingKOT.order}
+              autoPrint={true}
+              isCancellation={printingKOT.isCancellation}
+              onClose={() => setPrintingKOT(null)}
+            />
+          </div>
+        )}
+
+        {/* ── Modal: Voluntary Service Charge Removal ── */}
+        <TModal open={!!waivingServiceChargeOrder} onClose={() => setWaivingServiceChargeOrder(null)} className="z-[75] p-4 bg-slate-950/60 backdrop-blur-sm">
+          {waivingServiceChargeOrder && (
+            <div className="bg-white rounded-2xl border border-slate-200 max-w-sm w-full p-5 shadow-2xl space-y-4">
+              <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center">
+                    <Receipt className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-bold text-slate-900 leading-tight">Remove Service Charge</h4>
+                    <p className="text-[11px] text-slate-500 font-mono mt-0.5">
+                      Order #{waivingServiceChargeOrder.orderNo || (waivingServiceChargeOrder as any).orderNumber || waivingServiceChargeOrder.id.slice(0, 8).toUpperCase()}
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setWaivingServiceChargeOrder(null)}
+                  className="w-7 h-7 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-slate-600 flex items-center justify-center cursor-pointer"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              <div className="space-y-2">
+                <p className="text-xs text-slate-600 leading-relaxed">
+                  Under statutory CCPA guidelines, service charge is voluntary. Please select or enter the customer's reason for removal:
+                </p>
+                <div className="space-y-1.5">
+                  {[
+                    "Customer requested removal",
+                    "Dissatisfied with table service",
+                    "Management discretion / VIP guest",
+                    "Billing correction",
+                  ].map((preset) => (
+                    <button
+                      key={preset}
+                      type="button"
+                      onClick={() => setWaiveReason(preset)}
+                      className={`w-full text-left text-xs px-3 py-2 rounded-xl border transition cursor-pointer ${
+                        waiveReason === preset
+                          ? "bg-amber-50 border-amber-300 text-amber-900 font-semibold"
+                          : "bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100"
+                      }`}
+                    >
+                      {preset}
+                    </button>
+                  ))}
+                  <input
+                    type="text"
+                    value={waiveReason}
+                    onChange={(e) => setWaiveReason(e.target.value)}
+                    placeholder="Or type custom reason..."
+                    className="w-full px-3 py-2 text-xs border border-slate-200 rounded-xl focus:outline-none focus:border-amber-500 font-medium"
+                  />
+                </div>
+              </div>
+
+              <div className="flex gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setWaivingServiceChargeOrder(null)}
+                  className="flex-1 py-2 rounded-xl border border-slate-200 text-xs font-bold text-slate-600 hover:bg-slate-50 transition cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  disabled={isUpdatingServiceCharge || !waiveReason.trim()}
+                  onClick={() =>
+                    handleToggleServiceCharge(waivingServiceChargeOrder, true, waiveReason)
+                  }
+                  className="flex-1 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold transition shadow-sm disabled:opacity-50 cursor-pointer"
+                >
+                  {isUpdatingServiceCharge ? "Removing..." : "Confirm Removal"}
+                </button>
+              </div>
+            </div>
+          )}
+        </TModal>
+
+        {/* ── Modal: Cancel / Remove Item from Bill (Staff, Manager or Owner) ── */}
+        <TModal
+          open={!!cancellingItemTarget}
+          onClose={() => {
+            if (!isCancellingItem) setCancellingItemTarget(null);
+          }}
+          className="p-4 bg-slate-900/60 backdrop-blur-sm"
+        >
+          {cancellingItemTarget && (
+            <div className="bg-white rounded-2xl border border-slate-200/90 max-w-sm w-full p-5 shadow-2xl space-y-4">
+              {/* Header */}
+              <div className="flex items-start justify-between">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center shrink-0">
+                    <Trash2 className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-bold text-slate-900 leading-tight">
+                      Remove Item from Bill
+                    </h4>
+                    <p className="text-[11px] text-slate-500 font-mono mt-0.5">
+                      By {user?.name || "Staff"} ({user?.role?.replace("_", " ")})
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  disabled={isCancellingItem}
+                  onClick={() => setCancellingItemTarget(null)}
+                  className="w-7 h-7 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-slate-600 flex items-center justify-center cursor-pointer"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              {/* Item Details */}
+              {(() => {
+                const item = cancellingItemTarget.item;
+                const unitPrice =
+                  item.unitPrice !== undefined
+                    ? Number(item.unitPrice)
+                    : item.unitPricePaise !== undefined
+                      ? item.unitPricePaise / 100
+                      : 0;
+                const subtotal =
+                  item.subtotal !== undefined
+                    ? Number(item.subtotal)
+                    : item.subtotalPaise !== undefined
+                      ? item.subtotalPaise / 100
+                      : unitPrice * (item.quantity || 1);
+                const maxQty = item.quantity || 1;
+
+                return (
+                  <div className="space-y-3.5">
+                    <div className="p-3 bg-slate-50 rounded-xl border border-slate-200/70">
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <p className="font-semibold text-xs text-slate-900">
+                            {item.menuItem?.name || item.name || "Item"}
+                          </p>
+                          <p className="text-[11px] text-slate-500">
+                            Current: {maxQty} × ₹{unitPrice.toFixed(2)} = ₹{subtotal.toFixed(2)}
+                          </p>
+                        </div>
+                        <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-amber-50 text-amber-700 border border-amber-200">
+                          Qty: {maxQty}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Quantity Stepper if maxQty > 1 */}
+                    {maxQty > 1 && (
+                      <div className="space-y-1.5">
+                        <label className="text-xs font-semibold text-slate-700 flex justify-between">
+                          <span>Quantity to remove:</span>
+                          <span className="text-rose-600 font-bold">
+                            −₹{(cancelItemQty * unitPrice).toFixed(2)}
+                          </span>
+                        </label>
+                        <div className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            disabled={cancelItemQty <= 1}
+                            onClick={() => setCancelItemQty((q) => Math.max(1, q - 1))}
+                            className="w-9 h-9 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 disabled:opacity-40 text-slate-700 font-bold flex items-center justify-center cursor-pointer"
+                          >
+                            −
+                          </button>
+                          <div className="flex-1 text-center font-bold text-sm text-slate-800 bg-slate-50 py-1.5 rounded-lg border border-slate-200/70">
+                            {cancelItemQty} of {maxQty}
+                          </div>
+                          <button
+                            type="button"
+                            disabled={cancelItemQty >= maxQty}
+                            onClick={() => setCancelItemQty((q) => Math.min(maxQty, q + 1))}
+                            className="w-9 h-9 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 disabled:opacity-40 text-slate-700 font-bold flex items-center justify-center cursor-pointer"
+                          >
+                            +
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setCancelItemQty(maxQty)}
+                            className="px-2.5 py-1.5 rounded-lg border border-slate-200 text-xs font-semibold text-slate-600 hover:bg-slate-50"
+                          >
+                            All ({maxQty})
+                          </button>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Reason Selection */}
+                    <div className="space-y-2">
+                      <label className="text-xs font-semibold text-slate-700 block">
+                        Reason for removal (required):
+                      </label>
+                      <div className="space-y-1 max-h-36 overflow-y-auto pr-1">
+                        {ITEM_CANCEL_PRESETS.map((preset) => (
+                          <button
+                            key={preset}
+                            type="button"
+                            onClick={() => setCancelItemReasonPreset(preset)}
+                            className={`w-full text-left text-xs px-2.5 py-1.5 rounded-lg border transition cursor-pointer ${
+                              cancelItemReasonPreset === preset
+                                ? "bg-rose-50 border-rose-300 text-rose-900 font-semibold"
+                                : "bg-slate-50 border-slate-200/70 text-slate-700 hover:bg-slate-100"
+                            }`}
+                          >
+                            {preset}
+                          </button>
+                        ))}
+                      </div>
+
+                      {cancelItemReasonPreset === "Other reason" && (
+                        <input
+                          type="text"
+                          value={cancelItemCustomReason}
+                          onChange={(e) => setCancelItemCustomReason(e.target.value)}
+                          placeholder="Type specific reason for audit log..."
+                          className="w-full px-3 py-2 text-xs border border-slate-200 rounded-lg focus:outline-none focus:border-rose-500 font-medium"
+                          autoFocus
+                        />
+                      )}
+                    </div>
+
+                    {/* Error Notice */}
+                    {cancelItemError && (
+                      <div className="p-2.5 rounded-lg bg-rose-50 border border-rose-200 text-rose-700 text-xs flex items-center gap-2">
+                        <AlertCircle className="w-4 h-4 shrink-0 text-rose-600" />
+                        <span>{cancelItemError}</span>
+                      </div>
+                    )}
+
+                    {/* Void KOT: tell the kitchen to stop preparing what was removed */}
+                    {kitchenCaps.supportsKotPrint && isItemInKitchen(item) && (
+                      <label className="flex items-center gap-2 text-xs font-semibold text-rose-900 bg-rose-50/60 border border-rose-200 rounded-lg px-3 py-2 cursor-pointer select-none">
+                        <input
+                          type="checkbox"
+                          checked={printItemVoidKOT}
+                          onChange={(e) => setPrintItemVoidKOT(e.target.checked)}
+                          className="rounded text-rose-600 focus:ring-rose-500 h-4 w-4"
+                        />
+                        <Printer className="w-4 h-4 text-rose-600 shrink-0" />
+                        <span>Print Cancellation KOT to Kitchen Printer</span>
+                      </label>
+                    )}
+
+                    <p className="text-[10px] text-slate-400 italic">
+                      * Logged with your user ID in audit trail. Bill will recompute automatically.
+                      {isItemInKitchen(item) && " Kitchen screen will be alerted to stop preparing."}
+                    </p>
+
+                    {/* Actions */}
+                    <div className="flex gap-2 pt-1">
+                      <button
+                        type="button"
+                        disabled={isCancellingItem}
+                        onClick={() => setCancellingItemTarget(null)}
+                        className="flex-1 py-2 rounded-xl border border-slate-200 text-xs font-bold text-slate-600 hover:bg-slate-50 transition cursor-pointer"
+                      >
+                        Keep Item
+                      </button>
+                      <button
+                        type="button"
+                        disabled={
+                          isCancellingItem ||
+                          (cancelItemReasonPreset === "Other reason" &&
+                            !cancelItemCustomReason.trim())
+                        }
+                        onClick={handleConfirmCancelItem}
+                        className="flex-1 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold transition shadow-sm disabled:opacity-50 flex items-center justify-center gap-1.5 cursor-pointer"
+                      >
+                        {isCancellingItem ? (
+                          <>
+                            <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                            <span>Removing...</span>
+                          </>
+                        ) : (
+                          <>
+                            <Trash2 className="w-3.5 h-3.5" />
+                            <span>Remove from Bill</span>
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  </div>
+                );
+              })()}
+            </div>
+          )}
+        </TModal>
+      </div>
+    </DashboardLayout>
+  );
+}

@@ -1,0 +1,209 @@
+import type { Metadata } from "next";
+import { Inter, Plus_Jakarta_Sans, Geist_Mono, Playfair_Display } from "next/font/google";
+import "./globals.css";
+import "@/styles/transitions.css";
+
+const inter = Inter({
+  variable: "--font-inter",
+  subsets: ["latin"],
+});
+
+const plusJakarta = Plus_Jakarta_Sans({
+  variable: "--font-plus-jakarta",
+  subsets: ["latin"],
+});
+
+// Only used for small labels and code, never above-the-fold headings, so it
+// isn't worth a preload on every page.
+const geistMono = Geist_Mono({
+  variable: "--font-geist-mono",
+  subsets: ["latin"],
+  preload: false,
+});
+
+const playfair = Playfair_Display({
+  variable: "--font-playfair",
+  subsets: ["latin"],
+});
+
+const siteUrl = "https://alaynai.com";
+
+export const metadata: Metadata = {
+  metadataBase: new URL(siteUrl),
+  // No canonical here: metadata merges shallowly, so a layout canonical is
+  // inherited by every page that doesn't set its own and points them all at
+  // the homepage. Each indexable page declares its own.
+  title: {
+    default: "Alayn AI: Intelligent Restaurant POS, Inventory & Workforce OS",
+    template: "%s | Alayn AI",
+  },
+  description: "Restaurant POS, kitchen display, FEFO inventory, waste tracking, and staff scheduling in one unified platform. Built for modern restaurants, cafés, and multi-outlet hospitality.",
+  keywords: [
+    "Alayn",
+    "Alayn AI",
+    "alaynai.com",
+    "Restaurant Operating System",
+    "Hospitality AI",
+    "Cafe POS",
+    "Kitchen Display System",
+    "Restaurant Management Software",
+    "FEFO Inventory",
+  ],
+  applicationName: "Alayn AI",
+  appleWebApp: {
+    title: "Alayn AI",
+    capable: true,
+    statusBarStyle: "black-translucent",
+  },
+  openGraph: {
+    title: "Alayn AI: Intelligent Restaurant POS, Inventory & Workforce OS",
+    description: "Restaurant POS, kitchen display, FEFO inventory, waste tracking, and staff scheduling in one unified platform. Built for modern restaurants, cafés, and multi-outlet hospitality.",
+    siteName: "Alayn AI",
+    locale: "en_US",
+    type: "website",
+    images: [
+      {
+        url: "/alaynlogo.png",
+        width: 1200,
+        height: 630,
+        alt: "Alayn AI Logo",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Alayn AI: Intelligent Restaurant POS, Inventory & Workforce OS",
+    description: "Restaurant POS, kitchen display, FEFO inventory, waste tracking, and staff scheduling in one unified platform. Built for modern restaurants, cafés, and multi-outlet hospitality.",
+    images: ["/alaynlogo.png"],
+  },
+  icons: {
+    icon: [
+      { url: "/favicon.ico", sizes: "48x48", type: "image/x-icon" },
+      { url: "/favicon-48x48.png", sizes: "48x48", type: "image/png" },
+      { url: "/favicon-96x96.png", sizes: "96x96", type: "image/png" },
+      { url: "/icon-192x192.png", sizes: "192x192", type: "image/png" },
+      { url: "/icon-512x512.png", sizes: "512x512", type: "image/png" },
+    ],
+    shortcut: "/favicon.ico",
+    apple: [
+      { url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" },
+    ],
+  },
+};
+
+export default function RootLayout({
+  children,
+}: Readonly<{
+  children: React.ReactNode;
+}>) {
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "WebSite",
+        "@id": `${siteUrl}/#website`,
+        "url": siteUrl,
+        "name": "Alayn AI",
+        "alternateName": ["Alayn", "AlaynAI"],
+        "description": "The Official Intelligent Operating System for Modern Hospitality.",
+        "disambiguatingDescription": "The official Alayn AI software platform and operating system for hospitality, restaurants, and cafes at alaynai.com.",
+        "publisher": {
+          "@id": `${siteUrl}/#organization`
+        },
+        "inLanguage": "en"
+      },
+      {
+        "@type": "Brand",
+        "@id": `${siteUrl}/#brand`,
+        "name": "Alayn AI",
+        "alternateName": ["Alayn", "AlaynAI"],
+        "url": siteUrl,
+        "logo": `${siteUrl}/alaynlogo.png`
+      },
+      {
+        "@type": "SoftwareApplication",
+        "@id": `${siteUrl}/#software`,
+        "name": "Alayn AI",
+        "alternateName": ["Alayn", "AlaynAI"],
+        "operatingSystem": "Web, iOS, Android",
+        "applicationCategory": "BusinessApplication",
+        "description": "Alayn AI is an enterprise operating system unifying POS, kitchen KDS, FEFO inventory, and workforce matrix scheduling for restaurants and cafes.",
+        "url": siteUrl,
+        "creator": {
+          "@type": "Organization",
+          "name": "BRAHM Global Holdings",
+          "url": "https://brahmglobalholdings.com"
+        }
+      },
+      {
+        "@type": "Organization",
+        "@id": `${siteUrl}/#organization`,
+        "name": "Alayn AI",
+        // Alayn AI is a brand of BRAHM Global Holdings, a sole proprietorship;
+        // keep this in step with /legal/corporate.
+        "legalName": "BRAHM Global Holdings",
+        "alternateName": ["Alayn", "AlaynAI"],
+        "url": siteUrl,
+        "logo": `${siteUrl}/alaynlogo.png`,
+        "brand": {
+          "@id": `${siteUrl}/#brand`
+        },
+        "description": "Alayn AI is an enterprise operating system unifying POS, kitchen KDS, inventory, and workforce management for restaurants and cafes.",
+        "disambiguatingDescription": "Alayn AI (alaynai.com) is the official enterprise operating system for modern hospitality, restaurants, and cafes, developed under BRAHM Global Holdings. Distinct from regional boutique consultancies.",
+        "address": {
+          "@type": "PostalAddress",
+          "streetAddress": "Shop No. 6, Veena Beena Shopping Centre, Guru Nanak Marg, Bandra West",
+          "addressLocality": "Mumbai",
+          "addressRegion": "Maharashtra",
+          "postalCode": "400050",
+          "addressCountry": "IN"
+        },
+        "contactPoint": [
+          {
+            "@type": "ContactPoint",
+            "contactType": "sales",
+            "email": "info@alaynai.com",
+            "availableLanguage": ["English", "Hindi"]
+          },
+          {
+            "@type": "ContactPoint",
+            "contactType": "customer support",
+            "email": "info@alaynai.com",
+            "availableLanguage": ["English", "Hindi"]
+          }
+        ],
+        // Add every official profile here (LinkedIn, Google Business Profile,
+        // Crunchbase, G2/Capterra listings) — these links are how Google
+        // learns "Alayn" is a distinct brand from similarly named products.
+        "sameAs": [
+          "https://www.instagram.com/alayn.si/",
+          "https://share.google/CBr807mWPl3Ekx5os"
+        ]
+      }
+    ]
+  };
+
+  return (
+    <html
+      lang="en"
+      className={`${inter.variable} ${plusJakarta.variable} ${geistMono.variable} ${playfair.variable} h-full antialiased`}
+      suppressHydrationWarning
+    >
+      <head>
+        <meta name="application-name" content="Alayn AI" />
+        <meta name="apple-mobile-web-app-title" content="Alayn AI" />
+      </head>
+      <body className="min-h-full flex flex-col bg-[#F4F7F9] text-gray-900 font-sans">
+        {/* App-only providers live in src/app/(app)/layout.tsx. */}
+        {children}
+        {/* At the end of the body rather than in <head>: some agents read only
+            the start of a response, and this graph pushed the page text
+            further down. Google reads JSON-LD anywhere in the document. */}
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        />
+      </body>
+    </html>
+  );
+}
