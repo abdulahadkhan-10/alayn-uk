@@ -41,3 +41,30 @@ export function readNextFromLocation(): string | null {
     return null;
   }
 }
+
+/**
+ * Where to go after signing in: the ?next= page only if this role may open it, otherwise the role's home.
+ * Keeps a leftover ?next=/supplier from sending a restaurant owner to the supplier route, and keeps
+ * POS and kitchen staff inside their own screens.
+ */
+export function roleAllowedNext(role?: string | null, rawNext?: string | null): string {
+  const home = roleHome(role);
+  const next = safeNextPath(rawNext);
+  if (!next) return home;
+
+  const path = next.split(/[?#]/)[0];
+
+  if (role === "SUPPLIER") {
+    return path === "/supplier" || path.startsWith("/supplier/") || path === "/profile" || path.startsWith("/profile/")
+      ? next
+      : "/supplier";
+  }
+
+  // Only suppliers use the supplier route
+  if (path === "/supplier" || path.startsWith("/supplier/")) return home;
+
+  if (role === "STAFF" && !path.startsWith("/pos")) return "/pos";
+  if (role === "KITCHEN" && !path.startsWith("/kitchen")) return "/kitchen";
+
+  return next;
+}

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo, useEffect } from "react";
+import React, { useState, useMemo } from "react";
 import { useSearchParams } from "next/navigation";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import InventoryNavTabs from "@/components/Inventory/InventoryNavTabs";
@@ -12,7 +12,6 @@ import {
   useUpdateSupplierMutation,
   useDeleteSupplierMutation,
   useGetPurchaseOrdersQuery,
-  useCreatePurchaseOrderMutation,
   useReceivePOItemMutation,
   useCancelPurchaseOrderMutation,
   useClosePurchaseOrderMutation,
@@ -24,34 +23,31 @@ import {
   Truck,
   Plus,
   Building2,
-  PackageCheck,
   Loader2,
-  CheckCircle2,
-  Clock,
   AlertCircle,
   X,
-  Zap,
   Trash2,
   Search,
   ChevronLeft,
   ChevronRight,
-  Filter,
   IndianRupee,
-  Phone,
-  Mail,
   RotateCcw,
   Eye,
-  User,
-  MapPin,
   Pencil,
-  LayoutGrid,
-  List,
-  ShoppingCart,
+  Store,
+  Package,
+  TrendingDown,
 } from "lucide-react";
 import Skeleton from "react-loading-skeleton";
 import SmartPOModal from "@/components/Inventory/SmartPOModal";
 import { TModal } from "@/components/ui/TModal";
 import CreatePurchaseOrderModal from "@/components/Inventory/CreatePurchaseOrderModal";
+import SupplierMarketplaceSection, { type MarketplaceSupplier } from "@/components/Inventory/SupplierMarketplaceSection";
+import MarketplacePOModal from "@/components/Inventory/MarketplacePOModal";
+import type { SupplierItemApi } from "@/redux/slices/supplierApiSlice";
+import { apiErrorMessage } from "@/lib/apiError";
+import { formatPONumber, matchesPONumber } from "@/lib/poNumber";
+import NumberInput from "@/components/ui/NumberInput";
 
 // Helper for timestamped batch numbers: e.g. BCH-20260727-1237-483
 function generateTimestampBatchNo(category?: string): string {
@@ -66,13 +62,6 @@ function generateTimestampBatchNo(category?: string): string {
   return `${prefix}-${yyyy}${mm}${dd}-${hh}${min}-${rand}`;
 }
 
-// Helper for short, clean order numbers fetched from backend or generated compactly: e.g. PO-5F459
-function formatUnderstandableOrderNo(po: { id: string; poNumber?: string; createdAt?: string }): string {
-  if (po.poNumber) return po.poNumber;
-  const shortHash = po.id.slice(0, 5).toUpperCase();
-  return `PO-${shortHash}`;
-}
-
 export default function ProcurementPage() {
   const { activeBranch, loading: branchLoading } = useBranch();
   const user = useAppSelector((state) => state.auth.user);
@@ -81,22 +70,21 @@ export default function ProcurementPage() {
   const searchParams = useSearchParams();
   const tabParam = searchParams?.get("tab");
 
-  const [activeTab, setActiveTab] = useState<"POS" | "SUPPLIERS">("POS");
-  const [supplierViewMode, setSupplierViewMode] = useState<"TABLE" | "CARDS">("TABLE");
-
-  useEffect(() => {
-    if (tabParam === "suppliers") {
-      setActiveTab("SUPPLIERS");
-    } else {
-      setActiveTab("POS");
-    }
-  }, [tabParam]);
+  const tabFromParam = (param: string | null | undefined) =>
+    param === "suppliers" ? "SUPPLIERS" : param === "marketplace" ? "MARKETPLACE" : "POS";
+  const [activeTab, setActiveTab] = useState<"POS" | "SUPPLIERS" | "MARKETPLACE">(() => tabFromParam(tabParam));
+  // Follow ?tab= when the URL changes; clicking a tab still switches without touching the URL
+  const [syncedTabParam, setSyncedTabParam] = useState(tabParam);
+  if (tabParam !== syncedTabParam) {
+    setSyncedTabParam(tabParam);
+    setActiveTab(tabFromParam(tabParam));
+  }
 
   // RTK Queries
   const { data: suppliers = [], isLoading: isLoadingSuppliers } = useGetSuppliersQuery(undefined, { skip: !activeBranch });
   const { data: purchaseOrders = [], isLoading: isLoadingPOs, refetch: refetchPOs } = useGetPurchaseOrdersQuery(undefined, { skip: !activeBranch });
   const { data: inventoryData } = useGetItemsQuery(undefined, { skip: !activeBranch });
-  const items = inventoryData?.items || [];
+  const items = useMemo(() => inventoryData?.items || [], [inventoryData]);
 
   // Mutations
   const [createSupplier, { isLoading: isCreatingSupplier }] = useCreateSupplierMutation();
@@ -112,6 +100,12 @@ export default function ProcurementPage() {
   const [showSmartPOModal, setShowSmartPOModal] = useState(false);
   const [showCreateCustomPOModal, setShowCreateCustomPOModal] = useState(false);
   const [prefilledSupplierId, setPrefilledSupplierId] = useState<string | null>(null);
+  // Marketplace suppliers are ordered from here only, never through the normal vendor dropdown
+  const [marketplaceOrder, setMarketplaceOrder] = useState<{
+    supplier: MarketplaceSupplier;
+    items: SupplierItemApi[];
+    initialQuantities?: Record<string, number>;
+  } | null>(null);
   const [receivingPO, setReceivingPO] = useState<PurchaseOrderApi | null>(null);
   const [deletingSupplier, setDeletingSupplier] = useState<SupplierApi | null>(null);
   const [viewingSupplier, setViewingSupplier] = useState<SupplierApi | null>(null);
@@ -122,31 +116,19 @@ export default function ProcurementPage() {
   const [supplierSearchQuery, setSupplierSearchQuery] = useState("");
   const [selectedSupplierCategoryFilter, setSelectedSupplierCategoryFilter] = useState("ALL");
   const [selectedSupplierTypeFilter, setSelectedSupplierTypeFilter] = useState<"ALL" | "ONLINE" | "OFFLINE">("ALL");
-  const [procurementOutletFilter, setProcurementOutletFilter] = useState("ALL");
+  const [procurementOutletFilter] = useState("ALL");
 
   // Pagination states
   const [poPage, setPoPage] = useState(1);
-  const [poPageSize, setPoPageSize] = useState(10);
+  const [poPageSize] = useState(10);
   const [supPage, setSupPage] = useState(1);
-  const [supPageSize, setSupPageSize] = useState(6);
+  const [supPageSize] = useState(6);
 
   const isAllOutlets = activeBranch?.id === "all";
 
   const lowStockItems = useMemo(() => {
     return items.filter((i) => (i.currentStock || 0) <= i.reorderThreshold);
   }, [items]);
-
-  const availableOutlets = useMemo(() => {
-    const map = new Map<string, string>();
-    suppliers.forEach((s) => {
-      if (s.outlet) map.set(s.outlet.id, s.outlet.name);
-    });
-    purchaseOrders.forEach((po) => {
-      if (po.supplier) map.set(po.supplier.id, po.supplier.name);
-      if (po.outlet) map.set(po.outlet.id, po.outlet.name);
-    });
-    return Array.from(map.entries()).map(([id, name]) => ({ id, name }));
-  }, [suppliers, purchaseOrders]);
 
   // Calculated PO Metrics
   const activePOCount = useMemo(() => {
@@ -175,7 +157,7 @@ export default function ProcurementPage() {
       const q = poSearchQuery.toLowerCase().trim();
       result = result.filter(
         (po) =>
-          po.id.toLowerCase().includes(q) ||
+          matchesPONumber(po, q) ||
           po.actualSupplier?.name.toLowerCase().includes(q) ||
           po.supplier?.name.toLowerCase().includes(q)
       );
@@ -217,7 +199,7 @@ export default function ProcurementPage() {
 
       return matchesSearch && matchesCategory && matchesType && matchesOutlet;
     });
-  }, [suppliers, supplierSearchQuery, selectedSupplierCategoryFilter, selectedSupplierTypeFilter, isAllOutlets, activeBranch, procurementOutletFilter]);
+  }, [suppliers, supplierSearchQuery, selectedSupplierCategoryFilter, selectedSupplierTypeFilter, procurementOutletFilter]);
 
   // Form states
   const [supplierForm, setSupplierForm] = useState<{
@@ -295,8 +277,8 @@ export default function ProcurementPage() {
           `ONLINE Supplier registered successfully!\n\nLogin Email: ${res.email}\nTemporary Password: ${res.initialPassword}\n\nPlease share these credentials with the vendor.`
         );
       }
-    } catch (err: any) {
-      alert(err?.data?.message || "Failed to create supplier");
+    } catch (err) {
+      alert(apiErrorMessage(err, "Failed to create supplier"));
     }
   };
 
@@ -305,8 +287,8 @@ export default function ProcurementPage() {
     try {
       await deleteSupplier(deletingSupplier.id).unwrap();
       setDeletingSupplier(null);
-    } catch (err: any) {
-      alert(err?.data?.message || "Failed to delete supplier");
+    } catch (err) {
+      alert(apiErrorMessage(err, "Failed to delete supplier"));
     }
   };
 
@@ -345,7 +327,7 @@ export default function ProcurementPage() {
   const handleConfirmReceive = async () => {
     if (!receivingPO) return;
 
-    for (const [itemId, input] of Object.entries(receiveItemInputs)) {
+    for (const input of Object.values(receiveItemInputs)) {
       const qty = Number(input.receivedQuantity);
       const damaged = Number(input.damagedQuantity || 0);
       if (!Number.isFinite(qty) || !Number.isFinite(damaged) || qty < 0 || damaged < 0) {
@@ -372,8 +354,8 @@ export default function ProcurementPage() {
       await receivePOItem({ id: receivingPO.id, items: itemsPayload }).unwrap();
       setReceivingPO(null);
       refetchPOs();
-    } catch (err: any) {
-      alert(err?.data?.message || "Failed to receive PO items");
+    } catch (err) {
+      alert(apiErrorMessage(err, "Failed to receive PO items"));
     }
   };
 
@@ -387,108 +369,102 @@ export default function ProcurementPage() {
           <div>
             <div className="flex items-center gap-2">
               <h1 className="text-lg sm:text-xl font-semibold text-zinc-900 tracking-tight">
-                Purchase Orders
+                {activeTab === "MARKETPLACE"
+                  ? "Wholesale Marketplace & Best Rates"
+                  : activeTab === "SUPPLIERS"
+                  ? "Supplier Directory"
+                  : "Purchase Orders"}
               </h1>
               <span className="rounded-md bg-zinc-100 px-2.5 py-0.5 text-xs font-medium text-zinc-600">
                 {activeBranch?.name || "Main Branch"}
               </span>
             </div>
             <p className="text-xs text-zinc-500 mt-1 font-medium">
-              Create restock orders, track incoming shipments, and manage supplier contacts
+              {activeTab === "MARKETPLACE"
+                ? "Compare live rates from verified suppliers and place an order in a few clicks"
+                : activeTab === "SUPPLIERS"
+                ? "Manage your registered vendor profiles, commercial agreements, and procurement contacts"
+                : "Create restock orders, track incoming shipments, and manage supplier contacts"}
             </p>
           </div>
 
           <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
-            <button
-              id="add-custom-po-btn"
-              onClick={() => {
-                setPrefilledSupplierId(null);
-                setShowCreateCustomPOModal(true);
-              }}
-              className="inline-flex items-center gap-1.5 rounded-xl bg-zinc-900 px-4 py-2 text-xs font-bold text-white hover:bg-zinc-800 transition-colors shadow-2xs"
-            >
-              <Plus className="h-3.5 w-3.5" /> Add Purchase Order
-            </button>
-            <button
-              id="add-supplier-btn"
-              onClick={() => setShowAddSupplierModal(true)}
-              className="inline-flex items-center gap-1.5 rounded-xl border border-zinc-200 bg-white px-3.5 py-2 text-xs font-bold text-zinc-700 hover:bg-zinc-50 transition-colors shadow-2xs"
-            >
-              <Plus className="h-3.5 w-3.5" /> Add Supplier
-            </button>
-            <button
-              id="smart-po-procurement-btn"
-              onClick={() => {
-                setPrefilledSupplierId(null);
-                setShowSmartPOModal(true);
-              }}
-              className="inline-flex items-center gap-1.5 rounded-xl bg-[#D3232A] px-4 py-2 text-xs font-semibold text-white hover:bg-[#b01e23] transition-colors"
-            >
-              Quick Restock {lowStockItems.length > 0 ? `· ${lowStockItems.length} low` : ''}
-            </button>
+            {activeTab !== "MARKETPLACE" && (
+              <>
+                <button
+                  id="add-custom-po-btn"
+                  onClick={() => {
+                    setPrefilledSupplierId(null);
+                    setShowCreateCustomPOModal(true);
+                  }}
+                  className="inline-flex items-center gap-1.5 rounded-xl bg-zinc-900 px-4 py-2 text-xs font-bold text-white hover:bg-zinc-800 transition-colors shadow-2xs"
+                >
+                  <Plus className="h-3.5 w-3.5" /> Add Purchase Order
+                </button>
+                <button
+                  id="add-supplier-btn"
+                  onClick={() => setShowAddSupplierModal(true)}
+                  className="inline-flex items-center gap-1.5 rounded-xl border border-zinc-200 bg-white px-3.5 py-2 text-xs font-bold text-zinc-700 hover:bg-zinc-50 transition-colors shadow-2xs"
+                >
+                  <Plus className="h-3.5 w-3.5" /> Add Supplier
+                </button>
+                <button
+                  id="smart-po-procurement-btn"
+                  onClick={() => {
+                    setPrefilledSupplierId(null);
+                    setShowSmartPOModal(true);
+                  }}
+                  className="inline-flex items-center gap-1.5 rounded-xl bg-[#D3232A] px-4 py-2 text-xs font-semibold text-white hover:bg-[#b01e23] transition-colors"
+                >
+                  Quick Restock {lowStockItems.length > 0 ? `· ${lowStockItems.length} low` : ""}
+                </button>
+              </>
+            )}
           </div>
         </div>
 
-        {/* Top Executive KPI Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
-          <div className="rounded-2xl border border-zinc-200/80 bg-white p-4 sm:p-5 shadow-2xs flex items-center justify-between">
-            <div>
-              <span className="text-[11px] font-semibold text-zinc-500 uppercase tracking-wider">Active Restock Orders</span>
-              <h2 className="text-xl sm:text-2xl font-extrabold text-zinc-900 mt-0.5">{activePOCount}</h2>
-              <p className="text-xs text-zinc-500 mt-0.5">Orders in transit or partial delivery</p>
+        {/* Top Executive KPI Cards (Hidden on Marketplace for clean vendor-first view) */}
+        {activeTab !== "MARKETPLACE" && (
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
+            <div className="rounded-2xl border border-zinc-200/80 bg-white p-4 sm:p-5 shadow-2xs flex items-center justify-between">
+              <div>
+                <span className="text-[11px] font-semibold text-zinc-500 uppercase tracking-wider">Active Restock Orders</span>
+                <h2 className="text-xl sm:text-2xl font-extrabold text-zinc-900 mt-0.5">{activePOCount}</h2>
+                <p className="text-xs text-zinc-500 mt-0.5">Orders in transit or partial delivery</p>
+              </div>
+              <div className="rounded-xl bg-blue-50 p-3 text-blue-700 shrink-0">
+                <Truck className="h-5 w-5" />
+              </div>
             </div>
-            <div className="rounded-xl bg-blue-50 p-3 text-blue-700 shrink-0">
-              <Truck className="h-5 w-5" />
+
+            <div className="rounded-2xl border border-zinc-200/80 bg-white p-4 sm:p-5 shadow-2xs flex items-center justify-between">
+              <div>
+                <span className="text-[11px] font-semibold text-zinc-500 uppercase tracking-wider">Total Restock Spend</span>
+                <h2 className="text-xl sm:text-2xl font-extrabold text-zinc-900 mt-0.5">₹{totalSpendRupees}</h2>
+                <p className="text-xs text-zinc-500 mt-0.5">Total purchase order value</p>
+              </div>
+              <div className="rounded-xl bg-emerald-50 p-3 text-emerald-700 shrink-0">
+                <IndianRupee className="h-5 w-5" />
+              </div>
+            </div>
+
+            <div className="rounded-2xl border border-zinc-200/80 bg-white p-4 sm:p-5 shadow-2xs flex items-center justify-between">
+              <div>
+                <span className="text-[11px] font-semibold text-zinc-500 uppercase tracking-wider">Registered Vendors</span>
+                <h2 className="text-xl sm:text-2xl font-extrabold text-zinc-900 mt-0.5">{suppliers.length}</h2>
+                <button
+                  onClick={() => setActiveTab("SUPPLIERS")}
+                  className="text-xs text-[#D3232A] font-bold underline hover:text-[#b01e23] mt-1 block text-left"
+                >
+                  View Vendors List →
+                </button>
+              </div>
+              <div className="rounded-xl bg-red-50 p-3 text-[#D3232A] shrink-0">
+                <Building2 className="h-5 w-5" />
+              </div>
             </div>
           </div>
-
-          <div className="rounded-2xl border border-zinc-200/80 bg-white p-4 sm:p-5 shadow-2xs flex items-center justify-between">
-            <div>
-              <span className="text-[11px] font-semibold text-zinc-500 uppercase tracking-wider">Total Restock Spend</span>
-              <h2 className="text-xl sm:text-2xl font-extrabold text-zinc-900 mt-0.5">₹{totalSpendRupees}</h2>
-              <p className="text-xs text-zinc-500 mt-0.5">Total purchase order value</p>
-            </div>
-            <div className="rounded-xl bg-emerald-50 p-3 text-emerald-700 shrink-0">
-              <IndianRupee className="h-5 w-5" />
-            </div>
-          </div>
-
-          <div className="rounded-2xl border border-zinc-200/80 bg-white p-4 sm:p-5 shadow-2xs flex items-center justify-between">
-            <div>
-              <span className="text-[11px] font-semibold text-zinc-500 uppercase tracking-wider">Registered Vendors</span>
-              <h2 className="text-xl sm:text-2xl font-extrabold text-zinc-900 mt-0.5">{suppliers.length}</h2>
-              <button
-                onClick={() => setActiveTab("SUPPLIERS")}
-                className="text-xs text-[#D3232A] font-bold underline hover:text-[#b01e23] mt-1 block text-left"
-              >
-                View Vendors List →
-              </button>
-            </div>
-            <div className="rounded-xl bg-red-50 p-3 text-[#D3232A] shrink-0">
-              <Building2 className="h-5 w-5" />
-            </div>
-          </div>
-        </div>
-
-        {/* Sub-Tabs */}
-        <div className="flex border-b border-zinc-200/80 gap-6 overflow-x-auto scrollbar-none whitespace-nowrap px-1">
-          <button
-            onClick={() => setActiveTab("POS")}
-            className={`pb-2.5 text-xs sm:text-sm font-bold transition-colors border-b-2 ${
-              activeTab === "POS" ? "border-[#D3232A] text-[#D3232A]" : "border-transparent text-zinc-500 hover:text-zinc-800"
-            }`}
-          >
-            Restock Orders ({finalFilteredPOs.length})
-          </button>
-          <button
-            onClick={() => setActiveTab("SUPPLIERS")}
-            className={`pb-2.5 text-xs sm:text-sm font-bold transition-colors border-b-2 ${
-              activeTab === "SUPPLIERS" ? "border-[#D3232A] text-[#D3232A]" : "border-transparent text-zinc-500 hover:text-zinc-800"
-            }`}
-          >
-            Supplier Directory ({filteredSuppliers.length})
-          </button>
-        </div>
+        )}
 
         {/* TAB 1: PURCHASE ORDERS */}
         {activeTab === "POS" && (
@@ -499,7 +475,7 @@ export default function ProcurementPage() {
                 <Search className="absolute left-3 top-2.5 h-4 w-4 text-zinc-400 pointer-events-none" />
                 <input
                   type="text"
-                  placeholder="Search by order # or supplier name..."
+                  placeholder="Search by PO number or supplier..."
                   value={poSearchQuery}
                   onChange={(e) => {
                     setPoSearchQuery(e.target.value);
@@ -565,16 +541,15 @@ export default function ProcurementPage() {
                       <table className="w-full min-w-[960px] text-sm border-collapse table-fixed">
                       <thead>
                         <tr className="bg-zinc-50/90 text-left text-[11px] font-semibold uppercase tracking-wider text-zinc-500 border-b border-zinc-200">
-                          <th className={`px-4 py-3.5 ${showPoOutlet ? "w-[11%]" : "w-[14%]"}`}>Order #</th>
-                          <th className={`px-4 py-3.5 ${showPoOutlet ? "w-[18%]" : "w-[24%]"}`}>Supplier</th>
+                          <th className={`px-4 py-3.5 ${showPoOutlet ? "w-[24%]" : "w-[30%]"}`}>Supplier</th>
                           {showPoOutlet && (
-                            <th className="px-4 py-3.5 w-[14%]">Outlet</th>
+                            <th className="px-4 py-3.5 w-[16%]">Outlet</th>
                           )}
-                          <th className="px-3 py-3.5 text-center w-[6%]">Items</th>
-                          <th className={`px-4 py-3.5 text-right ${showPoOutlet ? "w-[10%]" : "w-[12%]"}`}>Total Cost</th>
+                          <th className="px-3 py-3.5 text-center w-[7%]">Items</th>
+                          <th className={`px-4 py-3.5 text-right ${showPoOutlet ? "w-[11%]" : "w-[13%]"}`}>Total Cost</th>
                           <th className={`px-3 py-3.5 text-center ${showPoOutlet ? "w-[14%]" : "w-[15%]"}`}>Status</th>
-                          <th className={`px-4 py-3.5 text-center ${showPoOutlet ? "w-[13%]" : "w-[14%]"}`}>Date Placed</th>
-                          <th className={`px-4 py-3.5 text-right ${showPoOutlet ? "w-[14%]" : "w-[15%]"}`}>Actions</th>
+                          <th className={`px-4 py-3.5 text-center ${showPoOutlet ? "w-[14%]" : "w-[16%]"}`}>Date Placed</th>
+                          <th className={`px-4 py-3.5 text-right ${showPoOutlet ? "w-[14%]" : "w-[16%]"}`}>Actions</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-zinc-100">
@@ -600,11 +575,11 @@ export default function ProcurementPage() {
 
                           return (
                             <tr key={po.id} className="hover:bg-zinc-50/70 transition-colors">
-                              <td className="px-4 py-3.5 font-mono font-semibold text-zinc-900 text-xs whitespace-nowrap">
-                                #{formatUnderstandableOrderNo(po)}
-                              </td>
                               <td className="px-4 py-3.5 font-medium text-zinc-900 whitespace-nowrap overflow-hidden">
-                                <span className="truncate max-w-[200px] block">{po.actualSupplier?.name || "Supplier"}</span>
+                                <span className="truncate max-w-[220px] font-bold text-zinc-900 block">{po.actualSupplier?.name || "Supplier"}</span>
+                                {formatPONumber(po) && (
+                                  <span className="block font-mono text-[11px] font-medium text-zinc-500">{formatPONumber(po)}</span>
+                                )}
                               </td>
                               {showPoOutlet && (
                                 <td className="px-4 py-3.5 whitespace-nowrap overflow-hidden">
@@ -835,19 +810,6 @@ export default function ProcurementPage() {
               const startSupIdx = (safeSupPage - 1) * supPageSize;
               const paginatedSuppliers = filteredSuppliers.slice(startSupIdx, startSupIdx + supPageSize);
 
-              const getCategoryBadgeStyle = (category?: string) => {
-                const cat = (category || "").toLowerCase();
-                if (cat.includes("dairy")) return "bg-sky-50 text-sky-800 border-sky-200/80 font-semibold";
-                if (cat.includes("produce") || cat.includes("veg")) return "bg-emerald-50 text-emerald-800 border-emerald-200/80 font-semibold";
-                if (cat.includes("meat") || cat.includes("poultry") || cat.includes("chicken")) return "bg-rose-50 text-rose-800 border-rose-200/80 font-semibold";
-                if (cat.includes("beverage") || cat.includes("drink")) return "bg-indigo-50 text-indigo-800 border-indigo-200/80 font-semibold";
-                if (cat.includes("bakery") || cat.includes("bread")) return "bg-amber-50 text-amber-800 border-amber-200/80 font-semibold";
-                if (cat.includes("frozen")) return "bg-cyan-50 text-cyan-800 border-cyan-200/80 font-semibold";
-                if (cat.includes("syrup") || cat.includes("sauce")) return "bg-orange-50 text-orange-800 border-orange-200/80 font-semibold";
-                if (cat.includes("packaging")) return "bg-slate-100 text-slate-800 border-slate-200/80 font-semibold";
-                return "bg-zinc-100 text-zinc-700 border-zinc-200/70 font-semibold";
-              };
-
               return (
                 <div className="space-y-4">
                   {/* DEFAULT ELEGANT TABLE VIEW */}
@@ -994,6 +956,16 @@ export default function ProcurementPage() {
               );
             })()}
           </div>
+        )}
+
+        {/* TAB 3: MARKETPLACE */}
+        {activeTab === "MARKETPLACE" && (
+          <SupplierMarketplaceSection
+            inventoryItems={items}
+            onOrderPO={(supplier, catalogItems, initialQuantities) =>
+              setMarketplaceOrder({ supplier, items: catalogItems, initialQuantities })
+            }
+          />
         )}
 
         {/* MODAL 1: ADD SUPPLIER */}
@@ -1239,8 +1211,8 @@ export default function ProcurementPage() {
                       },
                     }).unwrap();
                     setEditingSupplier(null);
-                  } catch (err: any) {
-                    alert(err?.data?.message || "Failed to update vendor");
+                  } catch (err) {
+                    alert(apiErrorMessage(err, "Failed to update vendor"));
                   }
                 }}
                 className="flex flex-col flex-1 min-h-0"
@@ -1362,8 +1334,11 @@ export default function ProcurementPage() {
               <div className="flex items-center justify-between px-7 py-5 border-b border-zinc-100 bg-white shrink-0">
                 <div>
                   <h2 className="text-lg font-semibold text-zinc-900 tracking-tight">
-                    Receive Stock — Order #{formatUnderstandableOrderNo(receivingPO)}
+                    Receive Stock from {receivingPO.actualSupplier?.name || "Supplier"}
                   </h2>
+                  {formatPONumber(receivingPO) && (
+                    <p className="mt-0.5 font-mono text-xs font-medium text-zinc-500">{formatPONumber(receivingPO)}</p>
+                  )}
                   <p className="text-xs text-zinc-400 mt-0.5">
                     Review supplier dispatched quantities, record accepted stock &amp; log damaged items
                   </p>
@@ -1436,32 +1411,30 @@ export default function ProcurementPage() {
                         <div className="grid grid-cols-2 gap-3">
                           <div>
                             <label className="block text-xs font-semibold text-zinc-700 mb-1.5">Received Qty (accepted)</label>
-                            <input
-                              type="number"
-                              step="any"
-                              min="0"
+                            <NumberInput
+                              min={0}
+                              aria-label="Received quantity"
                               value={input.receivedQuantity}
-                              onChange={(e) =>
-                                setReceiveItemInputs({
-                                  ...receiveItemInputs,
-                                  [poItem.itemId]: { ...input, receivedQuantity: Number(e.target.value) },
-                                })
+                              onChange={(receivedQuantity) =>
+                                setReceiveItemInputs((prev) => ({
+                                  ...prev,
+                                  [poItem.itemId]: { ...(prev[poItem.itemId] ?? input), receivedQuantity },
+                                }))
                               }
                               className="w-full rounded-xl border border-zinc-300 px-3.5 py-2 text-xs bg-white focus:border-emerald-500 focus:outline-none font-semibold text-emerald-900 shadow-xs"
                             />
                           </div>
                           <div>
                             <label className="block text-xs font-semibold text-zinc-700 mb-1.5">Damaged / Rejected Qty</label>
-                            <input
-                              type="number"
-                              step="any"
-                              min="0"
+                            <NumberInput
+                              min={0}
+                              aria-label="Damaged or rejected quantity"
                               value={input.damagedQuantity}
-                              onChange={(e) =>
-                                setReceiveItemInputs({
-                                  ...receiveItemInputs,
-                                  [poItem.itemId]: { ...input, damagedQuantity: Number(e.target.value) },
-                                })
+                              onChange={(damagedQuantity) =>
+                                setReceiveItemInputs((prev) => ({
+                                  ...prev,
+                                  [poItem.itemId]: { ...(prev[poItem.itemId] ?? input), damagedQuantity },
+                                }))
                               }
                               className="w-full rounded-xl border border-zinc-300 px-3.5 py-2 text-xs bg-white focus:border-rose-500 focus:outline-none font-semibold text-rose-800 shadow-xs"
                             />
@@ -1519,6 +1492,24 @@ export default function ProcurementPage() {
           )}
         </TModal>
 
+        {/* MODAL 4C: ORDER FROM A MARKETPLACE SUPPLIER */}
+        <TModal open={Boolean(marketplaceOrder && activeBranch)} className="bg-black/40 backdrop-blur-xs p-4">
+          {marketplaceOrder && activeBranch && (
+            <MarketplacePOModal
+              outletId={activeBranch.id}
+              supplier={marketplaceOrder.supplier}
+              catalogItems={marketplaceOrder.items}
+              initialQuantities={marketplaceOrder.initialQuantities}
+              inventoryItems={items}
+              onClose={() => setMarketplaceOrder(null)}
+              onSuccess={() => {
+                setMarketplaceOrder(null);
+                refetchPOs();
+              }}
+            />
+          )}
+        </TModal>
+
         {/* MODAL 4B: CREATE CUSTOM PURCHASE ORDER MODAL */}
         <TModal open={Boolean(showCreateCustomPOModal && activeBranch)} className="bg-black/40 backdrop-blur-xs p-4">
           {showCreateCustomPOModal && activeBranch && (
@@ -1559,7 +1550,8 @@ export default function ProcurementPage() {
                     {poAction.mode === "CANCEL" ? "Cancel Purchase Order" : "Close Purchase Order"}
                   </h3>
                   <p className="text-xs text-zinc-500">
-                    Order #{formatUnderstandableOrderNo(poAction.po)} · {poAction.po.actualSupplier?.name || "Supplier"}
+                    {formatPONumber(poAction.po) && <span className="font-mono">{formatPONumber(poAction.po)} · </span>}
+                    Supplier: <strong className="text-zinc-800">{poAction.po.actualSupplier?.name || "Supplier"}</strong>
                   </p>
                 </div>
               </div>
@@ -1736,8 +1728,11 @@ export default function ProcurementPage() {
                       {supplierPOs.slice(0, 3).map((po) => (
                         <div key={po.id} className="p-3 bg-white flex items-center justify-between gap-3">
                           <div>
-                            <span className="font-mono font-bold text-zinc-900">#{formatUnderstandableOrderNo(po)}</span>
-                            <span className="text-zinc-400 text-[11px] ml-2">{po.createdAt ? new Date(po.createdAt).toLocaleDateString("en-IN") : ""}</span>
+                            <span className="font-semibold text-xs text-zinc-900">{po.createdAt ? new Date(po.createdAt).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }) : "Restock Order"}</span>
+                            <span className="text-zinc-400 text-[11px] ml-2 font-medium">({po.items?.length || 0} items)</span>
+                            {formatPONumber(po) && (
+                              <span className="block font-mono text-[11px] text-zinc-500">{formatPONumber(po)}</span>
+                            )}
                           </div>
                           <div className="flex items-center gap-3">
                             <span className="font-bold text-zinc-900 tabular-nums">₹{(po.totalAmountPaise / 100).toFixed(2)}</span>

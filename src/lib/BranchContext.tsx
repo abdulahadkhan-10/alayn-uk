@@ -66,6 +66,8 @@ const DEMO_BRANCHES: Branch[] = [
 
 export function BranchProvider({ children }: { children: React.ReactNode }) {
   const authStatus = useAppSelector((state) => state.auth.status);
+  // Supplier accounts own no outlets (they are sent to the Supplier Portal), so never load any for them
+  const isSupplier = useAppSelector((state) => state.auth.user?.role === "SUPPLIER");
   const isAuthenticated = authStatus === "authenticated";
   // Placeholder branches are for visitors who are known to be signed out. While the server is still
   // confirming the session ("unknown") there are simply no branches yet, never demo ones.
@@ -78,7 +80,7 @@ export function BranchProvider({ children }: { children: React.ReactNode }) {
     isUninitialized: isQueryUninitialized,
     refetch 
   } = useGetOutletsQuery(undefined, {
-    skip: !isAuthenticated,
+    skip: !isAuthenticated || isSupplier,
   });
 
   const [activeBranchState, setActiveBranchState] = useState<Branch | null>(null);

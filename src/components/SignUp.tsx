@@ -1,7 +1,8 @@
 "use client";
 
 import { useShake } from "@/lib/useShake";
-import React, { createContext, useContext, useState } from "react";
+import React, { createContext, useContext, useState, useEffect } from "react";
+import { supplierPortalUrl } from "@/lib/supplierPortal";
 import Image from "next/image";
 import Link from "next/link";
 import {
@@ -104,6 +105,13 @@ export default function SignupComponent() {
     const [submitSuccess, setSubmitSuccess] = useState(false);
 
     const [register, { isLoading }] = useRegisterMutation();
+
+    // Supplier sign-ups happen in the standalone Supplier Portal (e.g. links to /signup?role=supplier)
+    useEffect(() => {
+        const params = new URLSearchParams(window.location.search);
+        const role = (params.get("role") || params.get("type"))?.toLowerCase();
+        if (role === "supplier") window.location.href = supplierPortalUrl("/signup");
+    }, []);
 
     const handleChange = (field: keyof SignupFormState) => (
         e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>

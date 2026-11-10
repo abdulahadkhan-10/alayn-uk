@@ -3,11 +3,13 @@
 import React, { useState, useMemo } from "react";
 import { X, CheckCircle2, AlertTriangle, Package, IndianRupee, Loader2, ChevronDown } from "lucide-react";
 import { InventoryItemApi } from "@/redux/slices/inventoryApiSlice";
+import NumberInput from "@/components/ui/NumberInput";
 import {
   useGetSuppliersQuery,
   useCreatePurchaseOrderMutation,
   SupplierApi,
 } from "@/redux/slices/procurementApiSlice";
+import { useRequestKeys } from "@/lib/useRequestKeys";
 
 interface SmartPOItemLine {
   item: InventoryItemApi;
@@ -32,6 +34,9 @@ export default function SmartPOModal({
 }: Props) {
   const { data: suppliers = [] } = useGetSuppliersQuery(undefined, { skip: !outletId });
   const [createPO, { isLoading: isSubmitting }] = useCreatePurchaseOrderMutation();
+  // One key per supplier's PO: if the loop fails part-way and the user retries, the POs that
+  // already went through are returned again instead of being created a second time
+  const keyFor = useRequestKeys();
 
   const [editingSupplierItemId, setEditingSupplierItemId] = useState<string | null>(null);
   const [lines, setLines] = useState<SmartPOItemLine[]>(() => {
@@ -128,10 +133,8 @@ export default function SmartPOModal({
           unitCostPaise: l.unitCostPaise,
         }));
 
-        await createPO({
-          supplierId: supId,
-          items: poLines,
-        }).unwrap();
+        const payload = { supplierId: supId, items: poLines };
+        await createPO({ ...payload, clientRequestId: keyFor(payload) }).unwrap();
       }
 
       setFeedback({
@@ -274,11 +277,11 @@ export default function SmartPOModal({
                     {/* Qty + remove */}
                     <div className="w-32 flex items-center justify-end gap-2">
                       <div className="flex items-center gap-1 border border-zinc-200 rounded-lg overflow-hidden bg-white">
-                        <input
-                          type="number"
-                          min="1"
+                        <NumberInput
+                          min={1}
+                          aria-label={`${line.item.name} quantity`}
                           value={line.suggestedQty}
-                          onChange={(e) => handleLineQtyChange(line.item.id, Number(e.target.value))}
+                          onChange={(qty) => handleLineQtyChange(line.item.id, qty)}
                           className="w-14 px-2 py-1.5 text-center text-sm font-semibold text-zinc-900 focus:outline-none bg-transparent"
                         />
                         <span className="pr-2.5 text-xs text-zinc-400 font-medium">{line.item.unit}</span>

@@ -10,7 +10,8 @@ import { useRouter } from "next/navigation";
 import { useDispatch } from "react-redux";
 import { logout, setCredentials } from "@/redux/slices/authSlice";
 import AuthShowcase from "@/components/auth/AuthShowcase";
-import { readNextFromLocation, roleHome } from "@/lib/authRedirect";
+import { readNextFromLocation, roleAllowedNext } from "@/lib/authRedirect";
+import { supplierPortalUrl } from "@/lib/supplierPortal";
 import { useHydrated } from "@/lib/useHydrated";
 export default function LoginComponent() {
   const hydrated = useHydrated();
@@ -46,10 +47,17 @@ export default function LoginComponent() {
         return;
       }
 
+      // Suppliers work in the standalone Supplier Portal, never in the restaurant app
+      if (role === "SUPPLIER") {
+        localStorage.removeItem("alayn_active_branch_id");
+        window.location.href = supplierPortalUrl();
+        return;
+      }
+
       dispatch(setCredentials(payload));
 
-      // Back to the page they were on when the session ended, otherwise their role's home
-      router.replace(readNextFromLocation() ?? roleHome(role));
+      // Back to the page they were on when the session ended (if this role may open it), otherwise their role's home
+      router.replace(roleAllowedNext(role, readNextFromLocation()));
     } catch (err: any) {
       setError(
         err?.data?.error?.message ||

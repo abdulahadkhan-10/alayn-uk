@@ -6,6 +6,7 @@ import AuthGuard from "../auth/AuthGuard";
 import { useBranch } from "@/lib/BranchContext";
 import { useAppSelector } from "@/redux/store/hooks";
 import SubscriptionPaywall from "../subscription/SubscriptionPaywall";
+import { supplierPortalUrl } from "@/lib/supplierPortal";
 
 const EXPANDED = 244;
 const COLLAPSED = 72;
@@ -42,6 +43,14 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  // Suppliers have their own standalone portal; send them there if they land in the restaurant app
+  const isSupplierAccount = user?.role === "SUPPLIER";
+  useEffect(() => {
+    if (!mounted || !isSupplierAccount) return;
+    const onProfile = pathname === "/profile" || pathname?.startsWith("/profile/");
+    window.location.href = supplierPortalUrl(onProfile ? "/profile" : "/orders");
+  }, [mounted, isSupplierAccount, pathname]);
 
   const handleToggleCollapse = useCallback(() => {
     setIsAnimating(true);
