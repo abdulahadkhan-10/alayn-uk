@@ -54,8 +54,8 @@ const MOMENTS: Moment[] = [
     time: "9:10 pm",
     area: "Stock",
     icon: Package,
-    without: "Paneer runs out mid-rush. Nobody saw it coming, so three dishes come off the menu.",
-    withAlayn: "Paneer dropped below its minimum this morning and sent a low-stock alert. One click raised the restock order.",
+    without: "Cod runs out mid-rush. Nobody saw it coming, so three dishes come off the menu.",
+    withAlayn: "Cod dropped below its minimum this morning and sent a low-stock alert. One click raised the restock order.",
   },
   {
     time: "11:40 pm",
@@ -95,19 +95,6 @@ export default function ChaosScene() {
         {/* Section header */}
         <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-8 mb-14 sm:mb-20">
           <div className="max-w-3xl">
-            <span
-              style={{
-                display: "inline-block",
-                fontSize: "0.6875rem",
-                fontWeight: 700,
-                letterSpacing: "0.08em",
-                textTransform: "uppercase",
-                color: "var(--amber-on-dark)",
-                marginBottom: "16px",
-              }}
-            >
-              HOW ALAYN WORKS
-            </span>
 
             <h2
               style={{

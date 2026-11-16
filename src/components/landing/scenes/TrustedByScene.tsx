@@ -12,6 +12,7 @@ const CLIENTS = [
   { name: "Origami Café", logo: "/origami.webp", subtitle: "Japanese Dining" },
   { name: "The Meatt Boys", logo: "/meatboys.jpeg", subtitle: "Burgers & Grills" },
   { name: "MúrAbba", logo: "/murabba.jpeg", subtitle: "Luxury Café" },
+  { name: "Abb's Corner", logo: "/abbcorner.png", subtitle: "Burgers & Fries" },
 ];
 
 export default function TrustedByScene() {
@@ -47,19 +48,6 @@ export default function TrustedByScene() {
             marginBottom: "48px",
           }}
         >
-          <span
-            style={{
-              display: "inline-block",
-              fontSize: "0.75rem",
-              fontWeight: 800,
-              letterSpacing: "0.15em",
-              textTransform: "uppercase",
-              color: "var(--amber)",
-              marginBottom: "16px",
-            }}
-          >
-            The Vanguard
-          </span>
           <h2
             style={{
               fontFamily: "var(--font-playfair), Georgia, serif",
@@ -70,22 +58,20 @@ export default function TrustedByScene() {
               letterSpacing: "-0.02em",
             }}
           >
-            Trusted by operators who refuse{" "}
+            Restaurants already running{" "}
             <br />
             <em style={{ fontStyle: "italic", color: "var(--amber)", fontWeight: 400 }}>
-              to compromise.
+              on Alayn.
             </em>
           </h2>
         </Assemble>
 
-        <Assemble delay={0.2} as="div" className="w-full grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-5 sm:gap-6 items-stretch justify-center">
+        <Assemble delay={0.2} as="div" className="w-full grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 sm:gap-6 items-stretch justify-center">
           {CLIENTS.map((client, idx) => (
             <motion.div 
               key={`client-${idx}`} 
               whileHover={{ y: -4, transition: { duration: 0.2, ease: "easeOut" } }}
-              className={`relative w-full max-w-[320px] mx-auto group ${
-                idx === 4 ? "sm:col-span-2 lg:col-span-1 sm:justify-self-center lg:justify-self-auto" : ""
-              }`}
+              className="relative w-full max-w-[320px] mx-auto group"
             >
               {/* Double bezel container effect */}
               <div className="absolute inset-0 bg-gradient-to-b from-white to-slate-50 rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-slate-200/60" />

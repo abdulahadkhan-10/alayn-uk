@@ -10,6 +10,10 @@
   --cream: #FFFFFF;
   --cream-light: #F4F5F8;       /* Very subtle navy-tinted off-white */
 
+  /* Secondary text and chips on navy (--espresso): 9.4:1 and 11:1 */
+  --muted-on-dark: #C9D3E5;
+  --chip-on-dark: #E2E8F3;
+
   /* Deep navy — logo's dominant color (wordmark + right stroke) */
   --espresso: #1B2A4A;
   --espresso-mid: #243556;
@@ -54,6 +58,20 @@ body {
 
 h1, h2, h3, h4, h5, h6, .font-heading {
   font-family: var(--font-plus-jakarta), system-ui, -apple-system, sans-serif;
+}
+
+/* Keyboard focus: a visible ring everywhere (navy on light surfaces, white on
+   navy bands and the footer). In the base layer so a component's own
+   focus-visible utilities still win. */
+@layer base {
+  :where(a, button, input, select, textarea, summary, [tabindex]):focus-visible {
+    outline: 2px solid var(--espresso);
+    outline-offset: 2px;
+  }
+  footer :focus-visible,
+  [class~="bg-[var(--espresso)]"] :focus-visible {
+    outline-color: #ffffff;
+  }
 }
 
 /* Shared form input style used across the dashboard */
@@ -134,6 +152,12 @@ html {
   scroll-behavior: smooth;
 }
 
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+}
+
 /* ---- Reveal Animations ---- */
 .reveal {
   opacity: 0;
@@ -192,6 +216,15 @@ html {
   line-height: 1.08;
   letter-spacing: -0.02em;
   color: var(--espresso);
+}
+
+/* Section heads on marketing pages share the hero's serif so a page reads
+   as one voice; item titles inside cards stay in the sans. */
+.section-headline {
+  font-family: var(--font-playfair), Georgia, serif;
+  font-weight: 700;
+  line-height: 1.15;
+  letter-spacing: -0.015em;
 }
 
 /* ---- Hero aurora (Stripe-style soft gradient wash) ----
@@ -565,17 +598,39 @@ html {
   scrollbar-width: none;  /* Firefox */
 }
 
-/* ---- Hero Phone Mockup Responsive Styling ---- */
-.hero-phone-mockup {
-  width: clamp(180px, 28%, 260px);
-  left: -50px;
+/* ---- Hero devices ----
+   Pure-vector Space Black iPad Pro + Black Titanium iPhone 16 Pro lockup
+   (landing/devices/DeviceFrames.tsx). The tablet sits at 89% width on the
+   right; the phone overlaps only the lower-left sidebar strip (0%..27.4%)
+   so every figure on the white Overview canvas stays unobstructed. */
+.hero-stage {
+  position: relative;
+  padding-bottom: 5%;
 }
-@media (max-width: 640px) {
-  .hero-phone-mockup {
-    width: 170px !important;
-    left: 8px !important;
-    bottom: -15px !important;
-  }
+.hero-tablet-wrap {
+  width: 89%;
+  margin-left: auto;
+}
+.hero-phone-wrap {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 27.4%;
+  z-index: 2;
+}
+
+/* ---- Top-bar page links ---- */
+.nav-page-link {
+  padding: 10px 14px;
+  border-radius: 20px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--espresso);
+  text-decoration: none;
+  transition: background-color 0.15s ease;
+}
+.nav-page-link:hover {
+  background: rgba(27, 42, 74, 0.05);
 }
 
 /* ── Thermal Receipt Roll-Out Animation ──────────────────────────────────────
@@ -657,4 +712,28 @@ html {
   0% { opacity: 0; transform: translateX(-100%); }
   20% { opacity: 1; }
   100% { opacity: 0; transform: translateX(400%); }
+}
+
+/* ---- "Your kitchen, your screen": the kitchen list ----
+   The chosen kitchen opens to show its outcome; the rows animate through
+   grid-template-rows so the height follows the text. */
+.vertical-tab {
+  cursor: pointer;
+}
+.vertical-tab:focus-visible {
+  outline: 2px solid var(--espresso);
+  outline-offset: 4px;
+}
+.vertical-tab-body {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 0.45s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.vertical-tab.is-selected .vertical-tab-body {
+  grid-template-rows: 1fr;
+}
+@media (prefers-reduced-motion: reduce) {
+  .vertical-tab-body {
+    transition: none;
+  }
 }
