@@ -63,7 +63,7 @@ const DEMO_EMPLOYEES = [
     id: "demo-1",
     name: "Rohan Sharma",
     email: "rohan.sharma@alayn.com",
-    phone: "+91 98765 43210",
+    phone: "+44 7700 900123",
     role: "MANAGER",
     joiningDate: "2024-01-15",
     status: "ACTIVE",
@@ -73,7 +73,7 @@ const DEMO_EMPLOYEES = [
     id: "demo-2",
     name: "Priya Patel",
     email: "priya.patel@alayn.com",
-    phone: "+91 98123 45678",
+    phone: "+44 7700 900456",
     role: "STAFF",
     joiningDate: "2024-03-01",
     status: "ACTIVE",
@@ -83,7 +83,7 @@ const DEMO_EMPLOYEES = [
     id: "demo-3",
     name: "Amit Kumar",
     email: "amit.kumar@alayn.com",
-    phone: "+91 98989 89898",
+    phone: "+44 7700 900789",
     role: "KITCHEN",
     joiningDate: "2023-11-20",
     status: "INACTIVE",
@@ -812,7 +812,7 @@ export default function WorkforcePage() {
                   <input
                     type="text"
                     required
-                    placeholder="+91 98765 43210"
+                    placeholder="+44 7700 900123"
                     value={formData.phone}
                     onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                     className="w-full px-3 py-2 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#D3232A]"

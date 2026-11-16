@@ -1,10 +1,10 @@
 "use client";
 
 import React from "react";
-import { Banknote, Check, CircleAlert, CreditCard, QrCode } from "lucide-react";
+import { Banknote, Check, CircleAlert, CreditCard } from "lucide-react";
 import { cn } from "@/lib/utils";
 import BottomSheet from "./BottomSheet";
-import { ORDER_STEPS, formatRupees, orderStepIndex, tableBillStatus } from "./menuFormat";
+import { ORDER_STEPS, formatPounds, orderStepIndex, tableBillStatus } from "./menuFormat";
 
 /* eslint-disable @typescript-eslint/no-explicit-any -- the table's running order comes untyped from the public API */
 interface TableBillSheetProps {
@@ -16,7 +16,6 @@ interface TableBillSheetProps {
 }
 
 const METHOD_TEXT = {
-  UPI: { icon: QrCode, title: "UPI payment being checked" },
   CARD: { icon: CreditCard, title: "Paying by card at the counter" },
   CASH: { icon: Banknote, title: "Paying by cash at the counter" },
 } as const;
@@ -61,7 +60,7 @@ export default function TableBillSheet({ open, onClose, order, canOrderMore, onP
               className="flex h-12 min-w-0 flex-1 items-center justify-between gap-3 rounded-xl bg-(--amber) px-4 text-[15px] font-semibold text-white transition-[transform,background-color] duration-150 ease-out hover:bg-[#A91A24] active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--amber)"
             >
               <span className="truncate">{status.requestOutdated ? "Pay new total" : "Pay bill"}</span>
-              <span className="shrink-0 tabular-nums">{formatRupees(status.duePaise, { exact: true })}</span>
+              <span className="shrink-0 tabular-nums">{formatPounds(status.duePaise, { exact: true })}</span>
             </button>
           ) : (
             (!canOrderMore || cancelled || settled) && (
@@ -101,7 +100,7 @@ export default function TableBillSheet({ open, onClose, order, canOrderMore, onP
                     {item.menuItem?.name || "Item"}
                   </span>
                   <span className="shrink-0 tabular-nums text-(--muted)">
-                    {formatRupees(item.subtotalPaise ?? (item.unitPricePaise || 0) * (item.quantity || 1), { exact: true })}
+                    {formatPounds(item.subtotalPaise ?? (item.unitPricePaise || 0) * (item.quantity || 1), { exact: true })}
                   </span>
                 </li>
               );
@@ -163,7 +162,7 @@ function BillBreakdown({ order, paidPaise, duePaise }: { order: any; paidPaise: 
   if (order.cgstPaise > 0) rows.push([`CGST${rate(order.cgstRate)}`, order.cgstPaise]);
   if (order.sgstPaise > 0) rows.push([`SGST${rate(order.sgstRate)}`, order.sgstPaise]);
   if (order.roundOffPaise) rows.push(["Round off", order.roundOffPaise]);
-  const signed = (paise: number) => `${paise < 0 ? "−" : ""}${formatRupees(Math.abs(paise), { exact: true })}`;
+  const signed = (paise: number) => `${paise < 0 ? "−" : ""}${formatPounds(Math.abs(paise), { exact: true })}`;
 
   return (
     <dl className="mt-2 space-y-2 border-t border-zinc-200 pt-3 text-sm">
@@ -175,17 +174,17 @@ function BillBreakdown({ order, paidPaise, duePaise }: { order: any; paidPaise: 
       ))}
       <div className="flex justify-between gap-4 border-t border-zinc-200 pt-3 text-base font-semibold text-(--espresso)">
         <dt>Total</dt>
-        <dd className="tabular-nums">{formatRupees(order.totalPaise || 0, { exact: true })}</dd>
+        <dd className="tabular-nums">{formatPounds(order.totalPaise || 0, { exact: true })}</dd>
       </div>
       {paidPaise > 0 && duePaise > 0 && (
         <>
           <div className="flex justify-between gap-4 text-(--muted)">
             <dt>Paid</dt>
-            <dd className="tabular-nums">−{formatRupees(paidPaise, { exact: true })}</dd>
+            <dd className="tabular-nums">−{formatPounds(paidPaise, { exact: true })}</dd>
           </div>
           <div className="flex justify-between gap-4 font-semibold text-(--espresso)">
             <dt>Still to pay</dt>
-            <dd className="tabular-nums">{formatRupees(duePaise, { exact: true })}</dd>
+            <dd className="tabular-nums">{formatPounds(duePaise, { exact: true })}</dd>
           </div>
         </>
       )}
@@ -209,7 +208,7 @@ function PaymentStatus({ order, tableNumber, onChange }: { order: any; tableNumb
   if (status.requestOutdated) {
     return (
       <StatusCard icon={<CircleAlert className="h-5 w-5" aria-hidden="true" />} tone="warn" title="Your bill has changed">
-        You ordered more after asking for the bill. Choose how to pay the new total of {formatRupees(status.duePaise, { exact: true })}.
+        You ordered more after asking for the bill. Choose how to pay the new total of {formatPounds(status.duePaise, { exact: true })}.
       </StatusCard>
     );
   }
@@ -217,10 +216,9 @@ function PaymentStatus({ order, tableNumber, onChange }: { order: any; tableNumb
   const { icon: Icon, title } = METHOD_TEXT[request.method] || METHOD_TEXT.CASH;
   return (
     <StatusCard icon={<Icon className="h-5 w-5" aria-hidden="true" />} tone="info" title={title}>
-      {request.method === "UPI" && request.references.length > 0 && <>UTR {request.references.join(", ")}. </>}
       Go to the counter and ask for the bill for <span className="font-semibold text-(--espresso)">{tableNumber ? `Table ${tableNumber}` : `order ${order.orderNumber}`}</span>.
       {" "}
-      {request.method === "UPI" ? "The cashier checks your payment and gives you the printed bill." : "The cashier prints it and takes your payment."}
+      The cashier prints it and takes your payment.
       <button
         type="button"
         onClick={onChange}

@@ -7,7 +7,7 @@ import { cn } from "@/lib/utils";
 import BottomSheet from "./BottomSheet";
 import type { CartModifierItem } from "./ItemOptionsSheet";
 import { QuantityStepper } from "./MenuBits";
-import { formatRupees, inputClass } from "./menuFormat";
+import { formatPounds, inputClass } from "./menuFormat";
 
 export interface CartLine {
   cartItemId: string;
@@ -65,7 +65,7 @@ export default function CartSheet(props: CartSheetProps) {
               {placing && <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />}
               {placing ? "Sending to kitchen…" : addingToBill ? "Add to my order" : "Place order"}
             </span>
-            <span className="tabular-nums">{formatRupees(itemTotalPaise, { exact: true })}</span>
+            <span className="tabular-nums">{formatPounds(itemTotalPaise, { exact: true })}</span>
           </button>
         ) : null
       }
@@ -117,7 +117,7 @@ function OrderLines({ lines, onChangeQuantity, onChangeNote }: CartSheetProps) {
                   </p>
                 )}
                 <p className="mt-1 text-sm font-medium tabular-nums text-(--espresso)">
-                  {formatRupees(line.unitPricePaise * line.quantity)}
+                  {formatPounds(line.unitPricePaise * line.quantity)}
                 </p>
               </div>
               <QuantityStepper
@@ -205,7 +205,7 @@ function RoundSummary({ itemTotalPaise, addingToBill }: { itemTotalPaise: number
     <section className="space-y-3">
       <div className="flex justify-between gap-4 text-base font-semibold text-(--espresso)">
         <span>Item total</span>
-        <span className="tabular-nums">{formatRupees(itemTotalPaise, { exact: true })}</span>
+        <span className="tabular-nums">{formatPounds(itemTotalPaise, { exact: true })}</span>
       </div>
       <p className="flex gap-3 rounded-2xl bg-[#F4F5F8] px-4 py-3 text-[13px] leading-relaxed text-(--muted)">
         <ReceiptText className="mt-0.5 h-4 w-4 shrink-0 text-(--espresso)" aria-hidden="true" />

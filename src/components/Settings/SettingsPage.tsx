@@ -83,7 +83,6 @@ export default function SettingsPage() {
   const [outletPhoneInput, setOutletPhoneInput] = useState<string>("");
   const [taglineInput, setTaglineInput] = useState<string>("");
   const [footerInput, setFooterInput] = useState<string>("");
-  const [upiIdInput, setUpiIdInput] = useState<string>("");
   const [updateReceiptDetails, { isLoading: isUpdatingReceipt }] = useUpdateReceiptDetailsMutation();
 
   // Kitchen Operating Mode State
@@ -175,7 +174,6 @@ export default function SettingsPage() {
       setOutletPhoneInput(currentOutlet.phone || "");
       setTaglineInput(currentOutlet.receiptTagline || "Serving joy every day.");
       setFooterInput(currentOutlet.receiptFooter || "Thanks for stopping by!\nWe hope to see you again soon!");
-      setUpiIdInput(currentOutlet.upiId || "");
       setKitchenModeInput((currentOutlet as any).kitchenMode || "HYBRID");
       setTableOrderModeInput((currentOutlet as any).tableOrderMode || "WAITER_SERVICE");
       setAllowPayAtCounterInput((currentOutlet as any).allowPayAtCounter ?? true);
@@ -255,7 +253,6 @@ export default function SettingsPage() {
         phone: outletPhoneInput.trim() || undefined,
         receiptTagline: taglineInput.trim() || undefined,
         receiptFooter: footerInput.trim() || undefined,
-        upiId: upiIdInput.trim() || undefined,
       }).unwrap();
       const scopeLabel = targetOutletId === "all" ? "ALL Outlets" : (currentOutlet?.name || "selected branch");
       setFeedbackMsg(`AlaynAI Receipt & GST Configuration updated successfully for ${scopeLabel}!`);
@@ -726,7 +723,7 @@ export default function SettingsPage() {
                     </div>
                     <h4 className="font-extrabold text-sm text-zinc-900">Direct Order & Pay (QR Self-Checkout)</h4>
                     <p className="text-xs text-gray-500 mt-1.5 leading-relaxed">
-                      Guests scan the table QR code, browse items, add to cart, and <strong>pay directly on their phone (UPI / Online)</strong> without waiting for a server. Orders route immediately to the kitchen KOT/KDS.
+                      Guests scan the table QR code, browse items, add to cart, and <strong>ask for the bill from their phone</strong> without waiting for a server. Orders route immediately to the kitchen KOT/KDS.
                     </p>
                   </div>
                   <div className="mt-4 pt-3 border-t border-gray-100 flex items-center justify-between">
@@ -817,7 +814,7 @@ export default function SettingsPage() {
                     </p>
                   </div>
                   <div className="mt-4 pt-2.5 border-t border-gray-100 flex items-center justify-between">
-                    <span className="text-[10px] font-bold text-gray-400">Standard Indian Kitchens</span>
+                    <span className="text-[10px] font-bold text-gray-400">Standard Commercial Kitchens</span>
                     {kitchenModeInput === "KOT" && <CheckCircle2 className="w-4 h-4 text-[#1B2A4A]" />}
                   </div>
                 </div>
@@ -1025,7 +1022,7 @@ export default function SettingsPage() {
                     AlaynAI Receipt & GST Branding
                   </h3>
                   <p className="text-xs text-gray-500 mt-0.5">
-                    Configure GSTIN, outlet phone number, custom header tagline, footer message, and UPI payment QR ID printed on thermal bills.
+                    Configure GSTIN, outlet phone number, custom header tagline, and footer message printed on thermal bills.
                   </p>
                 </div>
 
@@ -1053,20 +1050,7 @@ export default function SettingsPage() {
                         value={outletPhoneInput}
                         onChange={(e) => setOutletPhoneInput(e.target.value)}
                         className="w-full px-3.5 py-2 border border-gray-300 rounded-xl text-sm font-semibold text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#D3232A]"
-                        placeholder="8104484386"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">
-                        UPI VPA / QR ID
-                      </label>
-                      <input
-                        type="text"
-                        value={upiIdInput}
-                        onChange={(e) => setUpiIdInput(e.target.value)}
-                        className="w-full px-3.5 py-2 border border-gray-300 rounded-xl text-sm font-semibold text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#D3232A]"
-                        placeholder="merchant@upi"
+                        placeholder="020 7946 0123"
                       />
                     </div>
 
@@ -1217,7 +1201,7 @@ export default function SettingsPage() {
                       <div className="relative flex-1">
                         <input
                           type="text"
-                          placeholder="Search address remotely (e.g. Veena Beena, Bandra)"
+                          placeholder="Search address remotely (e.g. 10 Brick Lane, London)"
                           value={addressSearchQuery}
                           onChange={(e) => setAddressSearchQuery(e.target.value)}
                           className="w-full text-sm bg-white border border-gray-300 px-3 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#D3232A]"

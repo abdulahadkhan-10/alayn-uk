@@ -16,6 +16,9 @@ import {
   MenuItem,
 } from "@/redux/slices/menuApiSlice";
 import ModifierGroupManager from "./ModifierGroupManager";
+import RecipeEditor, { RecipeEditorMenuItem } from "./RecipeEditor";
+import { useGetRecipeCoverageQuery } from "@/redux/slices/recipeApiSlice";
+import { FOOD_COST_CLASSES, foodCostTone } from "@/lib/recipeCost";
 import {
   Plus,
   Search,
@@ -37,6 +40,7 @@ import {
   Filter,
   RotateCcw,
   Check,
+  BookOpen,
 } from "lucide-react";
 import DashboardLayout from "../layout/DashboardLayout";
 import { getImageUrl } from "@/lib/utils";
@@ -46,20 +50,20 @@ type StatusFilter = "ALL" | "ACTIVE" | "INACTIVE";
 type DietaryFilter = "ALL" | "VEG" | "NON_VEG" | "VEGAN";
 type SortOption = "NAME_ASC" | "PRICE_ASC" | "PRICE_DESC";
 
-// FSSAI Pack Food Icons
-const FssaiVegIcon = () => (
+// Dietary icons
+const VegIcon = () => (
   <span className="w-3.5 h-3.5 border border-emerald-600 rounded-[2px] p-[1.5px] inline-flex items-center justify-center shrink-0 bg-white" title="Vegetarian">
     <span className="w-1.5 h-1.5 rounded-full bg-emerald-600" />
   </span>
 );
 
-const FssaiNonVegIcon = () => (
+const NonVegIcon = () => (
   <span className="w-3.5 h-3.5 border border-rose-600 rounded-[2px] p-[1.5px] inline-flex items-center justify-center shrink-0 bg-white" title="Non-Vegetarian">
     <span className="w-1.5 h-1.5 rounded-full bg-rose-600" />
   </span>
 );
 
-const FssaiVeganIcon = () => (
+const VeganIcon = () => (
   <span className="w-3.5 h-3.5 border border-teal-600 rounded-[2px] p-[1.5px] inline-flex items-center justify-center shrink-0 bg-white" title="Vegan">
     <span className="w-1.5 h-1.5 rounded-full bg-teal-600" />
   </span>
@@ -284,6 +288,18 @@ export default function MenuManagementComponent() {
   const [deleteMenuItem, { isLoading: isDeletingItem }] = useDeleteMenuItemMutation();
 
   const [itemToDelete, setItemToDelete] = useState<MenuItem | null>(null);
+
+  // Recipes are optional and per branch, so their status is only shown once a specific branch is chosen
+  const [recipeTarget, setRecipeTarget] = useState<RecipeEditorMenuItem | null>(null);
+  const [isRecipeOpen, setIsRecipeOpen] = useState(false);
+  const { data: recipeCoverage } = useGetRecipeCoverageQuery(
+    { outletId: currentOutletId ?? "" },
+    { skip: !currentOutletId },
+  );
+  const recipeByMenuItem = useMemo(
+    () => new Map((recipeCoverage?.items ?? []).map((r) => [r.menuItemId, r])),
+    [recipeCoverage],
+  );
 
   const handleDeleteItem = async () => {
     if (!itemToDelete) return;
@@ -1166,11 +1182,11 @@ export default function MenuManagementComponent() {
                     }`}
                 >
                   {dietaryFilter === "VEG" ? (
-                    <FssaiVegIcon />
+                    <VegIcon />
                   ) : dietaryFilter === "NON_VEG" ? (
-                    <FssaiNonVegIcon />
+                    <NonVegIcon />
                   ) : dietaryFilter === "VEGAN" ? (
-                    <FssaiVeganIcon />
+                    <VeganIcon />
                   ) : null}
                   <span className="truncate">
                     {dietaryFilter === "ALL"
@@ -1188,9 +1204,9 @@ export default function MenuManagementComponent() {
                   <div className="absolute left-0 sm:left-auto sm:right-0 top-full mt-1.5 w-48 bg-white rounded-xl border border-gray-200 shadow-lg z-30 p-1.5 space-y-0.5 animate-in fade-in zoom-in-95 duration-150">
                     {[
                       { id: "ALL", label: "All Types", icon: null },
-                      { id: "VEG", label: "Vegetarian", icon: <FssaiVegIcon /> },
-                      { id: "NON_VEG", label: "Non-Vegetarian", icon: <FssaiNonVegIcon /> },
-                      { id: "VEGAN", label: "Vegan", icon: <FssaiVeganIcon /> },
+                      { id: "VEG", label: "Vegetarian", icon: <VegIcon /> },
+                      { id: "NON_VEG", label: "Non-Vegetarian", icon: <NonVegIcon /> },
+                      { id: "VEGAN", label: "Vegan", icon: <VeganIcon /> },
                     ].map((dt) => (
                       <button
                         key={dt.id}
@@ -1371,8 +1387,8 @@ export default function MenuManagementComponent() {
                             <div className="flex items-center gap-2">
                               {(() => {
                                 const dType = item.dietaryType || (item.isVeg !== false ? "VEG" : "NON_VEG");
-                                if (dType === "VEGAN") return <FssaiVeganIcon />;
-                                return dType === "VEG" ? <FssaiVegIcon /> : <FssaiNonVegIcon />;
+                                if (dType === "VEGAN") return <VeganIcon />;
+                                return dType === "VEG" ? <VegIcon /> : <NonVegIcon />;
                               })()}
                               <p className="font-bold text-[#1B2A4A]">{item.name}</p>
                               {(item.dietaryType === "VEGAN") && (
@@ -1380,6 +1396,26 @@ export default function MenuManagementComponent() {
                                   <Leaf className="w-2.5 h-2.5" /> Vegan
                                 </span>
                               )}
+                              {currentOutletId && recipeCoverage && (() => {
+                                const r = recipeByMenuItem.get(item.id);
+                                if (!r) return null;
+                                return r.hasRecipe ? (
+                                  <span
+                                    className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded border text-[10px] font-extrabold ${FOOD_COST_CLASSES[foodCostTone(r.foodCostPercent)]}`}
+                                    title="Ingredient cost as a share of the selling price"
+                                  >
+                                    <BookOpen className="w-2.5 h-2.5" />
+                                    {r.foodCostPercent === null ? "Recipe" : `Food cost ${r.foodCostPercent}%`}
+                                  </span>
+                                ) : (
+                                  <span
+                                    className="inline-flex items-center px-1.5 py-0.5 rounded border border-zinc-200 bg-zinc-50 text-[10px] font-bold text-zinc-600"
+                                    title="Optional: add a recipe to take ingredients out of stock when this dish is sold"
+                                  >
+                                    No recipe
+                                  </span>
+                                );
+                              })()}
                             </div>
                             <p className="text-xs text-gray-400 max-w-xs truncate">
                               {item.description || "No description"}
@@ -1442,7 +1478,7 @@ export default function MenuManagementComponent() {
                         </span>
                       </td>
                       <td className="py-3 px-4 font-extrabold text-[#1B2A4A]">
-                        ₹{Number(item.price).toFixed(2)}
+                        £{Number(item.price).toFixed(2)}
                       </td>
                       <td className="py-3 px-4">
                         <div className="flex items-center gap-2">
@@ -1476,6 +1512,19 @@ export default function MenuManagementComponent() {
                       </td>
                       <td className="py-3 px-4 text-right">
                         <div className="flex items-center justify-end gap-2">
+                          {currentOutletId && (
+                            <button
+                              onClick={() => {
+                                setRecipeTarget({ id: item.id, name: item.name, price: Number(item.price) });
+                                setIsRecipeOpen(true);
+                              }}
+                              className="px-3 py-1.5 rounded-lg border border-gray-200 text-gray-700 hover:text-[#1B2A4A] hover:bg-gray-100 transition text-xs font-semibold inline-flex items-center gap-1"
+                              title="Recipe: the raw materials this dish uses"
+                            >
+                              <BookOpen className="w-3.5 h-3.5 text-gray-500" />
+                              <span>Recipe</span>
+                            </button>
+                          )}
                           <button
                             onClick={() => handleOpenEditModal(item, outletIds, allRelatedItems)}
                             className="px-3 py-1.5 rounded-lg border border-gray-200 text-gray-700 hover:text-[#1B2A4A] hover:bg-gray-100 transition text-xs font-semibold inline-flex items-center gap-1"
@@ -1626,7 +1675,7 @@ export default function MenuManagementComponent() {
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-xs font-semibold text-gray-700 mb-1">Price (₹) *</label>
+                    <label className="block text-xs font-semibold text-gray-700 mb-1">Price (£) *</label>
                     <input
                       type="number"
                       step="0.01"
@@ -1919,7 +1968,7 @@ export default function MenuManagementComponent() {
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-xs font-semibold text-gray-700 mb-1">Price (₹) *</label>
+                    <label className="block text-xs font-semibold text-gray-700 mb-1">Price (£) *</label>
                     <input
                       type="number"
                       step="0.01"
@@ -2098,6 +2147,8 @@ export default function MenuManagementComponent() {
             </div>
           )}
         </TModal>
+
+        <RecipeEditor open={isRecipeOpen} onClose={() => setIsRecipeOpen(false)} menuItem={recipeTarget} />
 
         {/* All Outlets Creation Confirmation Modal */}
         <TModal open={!!pendingConfirmAction} className="p-4 bg-gray-900/60 backdrop-blur-sm">

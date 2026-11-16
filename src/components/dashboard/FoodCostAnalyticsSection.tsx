@@ -44,7 +44,7 @@ export const FoodCostAnalyticsSection = memo(function FoodCostAnalyticsSection()
             <XAxis dataKey="name" tickLine={false} axisLine={false} tick={{ fontSize: 10, fill: "#71717a", fontWeight: 600 }} />
             <YAxis tickLine={false} axisLine={false} tick={{ fontSize: 10, fill: "#a1a1aa" }} />
             <Tooltip
-              formatter={(val: any) => [`₹${Number(val).toLocaleString("en-IN")}`, "Monthly Spend"]}
+              formatter={(val: any) => [`£${Number(val).toLocaleString("en-GB")}`, "Monthly Spend"]}
               contentStyle={{ backgroundColor: "#18181b", borderRadius: "12px", color: "#fff", fontSize: "12px" }}
             />
             <Bar dataKey="spend" radius={[8, 8, 0, 0]} barSize={26} fill="#18181b" />

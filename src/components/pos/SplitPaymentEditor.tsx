@@ -1,8 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import UpiPayQr from "@/components/pos/UpiPayQr";
-import { Banknote, Check, CreditCard, Plus, QrCode, X } from "lucide-react";
+import { Banknote, Check, CreditCard, Plus, X } from "lucide-react";
 import {
   MAX_SPLIT_PAYMENTS,
   PAYMENT_METHODS,
@@ -13,12 +12,11 @@ import {
   newSplitLine,
   paiseToInput,
   rebalanceAutoLine,
-  rupeesToPaise,
+  poundsToPence,
   summarizeSplit,
 } from "@/lib/splitPayment";
 
 const METHOD_META: Record<PaymentMethodCode, { label: string; icon: React.ElementType }> = {
-  UPI: { label: "UPI", icon: QrCode },
   CASH: { label: "Cash", icon: Banknote },
   CARD: { label: "Card", icon: CreditCard },
 };
@@ -28,27 +26,16 @@ interface SplitPaymentEditorProps {
   duePaise: number;
   lines: SplitLine[];
   onChange: (lines: SplitLine[]) => void;
-  /** The restaurant's UPI ID and name: UPI parts can show a QR for their exact amount */
-  upi?: { upiId: string | null | undefined; payeeName: string; note?: string };
 }
 
 /** Start a split: the cashier types the first part, the second follows the remaining balance */
 export function initialSplitLines(duePaise: number, firstMethod: PaymentMethodCode = "CASH"): SplitLine[] {
-  const second: PaymentMethodCode = firstMethod === "UPI" ? "CASH" : "UPI";
+  const second: PaymentMethodCode = firstMethod === "CARD" ? "CASH" : "CARD";
   return [newSplitLine(firstMethod), newSplitLine(second, duePaise, true)];
 }
 
-export default function SplitPaymentEditor({ duePaise, lines, onChange, upi }: SplitPaymentEditorProps) {
+export default function SplitPaymentEditor({ duePaise, lines, onChange }: SplitPaymentEditorProps) {
   const summary = summarizeSplit(lines, duePaise);
-  // UPI parts whose payment QR is open
-  const [qrOpen, setQrOpen] = useState<Set<string>>(new Set());
-  const toggleQr = (key: string) =>
-    setQrOpen((prev) => {
-      const next = new Set(prev);
-      if (next.has(key)) next.delete(key);
-      else next.add(key);
-      return next;
-    });
 
   // The bill can change while the modal is open (coupon, service charge) — keep the auto part in step
   useEffect(() => {
@@ -81,7 +68,7 @@ export default function SplitPaymentEditor({ duePaise, lines, onChange, upi }: S
   return (
     <div className="space-y-2.5">
       {lines.map((line, index) => {
-        const amountPaise = rupeesToPaise(line.amountText);
+        const amountPaise = poundsToPence(line.amountText);
         const amountInvalid = line.amountText !== "" && (amountPaise === null || amountPaise <= 0);
         const online = isOnlineMethod(line.method);
         const canFill = summary.remainingPaise > 0 && !line.auto;
@@ -111,11 +98,11 @@ export default function SplitPaymentEditor({ duePaise, lines, onChange, upi }: S
               </div>
 
               <div className="relative flex-1 min-w-0">
-                <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-semibold text-slate-400">₹</span>
+                <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-semibold text-slate-400">£</span>
                 <input
                   type="text"
                   inputMode="decimal"
-                  aria-label={`Payment ${index + 1} amount in rupees`}
+                  aria-label={`Payment ${index + 1} amount in pounds`}
                   aria-invalid={amountInvalid}
                   placeholder="0.00"
                   value={line.amountText}
@@ -163,13 +150,13 @@ export default function SplitPaymentEditor({ duePaise, lines, onChange, upi }: S
               </div>
             )}
 
-            {/* UPI / card money arrives outside the till: the cashier confirms it reached the account */}
+            {/* Card money arrives outside the till: the cashier confirms it reached the account */}
             {online && (
               <div className="flex items-center gap-2">
                 <input
                   type="text"
                   aria-label={`${METHOD_META[line.method].label} reference`}
-                  placeholder={line.method === "UPI" ? "UTR / last 4 digits (optional)" : "Approval code (optional)"}
+                  placeholder="Approval code (optional)"
                   value={line.reference}
                   maxLength={64}
                   onChange={(e) => update(line.key, { reference: e.target.value })}
@@ -192,20 +179,6 @@ export default function SplitPaymentEditor({ duePaise, lines, onChange, upi }: S
               </div>
             )}
 
-            {line.method === "UPI" && upi && amountPaise !== null && amountPaise > 0 && (
-              <div className="space-y-1.5">
-                <button
-                  type="button"
-                  aria-expanded={qrOpen.has(line.key)}
-                  onClick={() => toggleQr(line.key)}
-                  className="inline-flex items-center gap-1 text-[11px] font-semibold text-slate-700 hover:text-slate-950 cursor-pointer"
-                >
-                  <QrCode className="w-3.5 h-3.5" />
-                  {qrOpen.has(line.key) ? "Hide payment QR" : `Show QR for ${formatPaise(amountPaise)}`}
-                </button>
-                {qrOpen.has(line.key) && <UpiPayQr {...upi} amountPaise={amountPaise} size={96} />}
-              </div>
-            )}
           </div>
         );
       })}
@@ -243,7 +216,7 @@ export default function SplitPaymentEditor({ duePaise, lines, onChange, upi }: S
               {summary.remainingPaise < 0 ? "Over by" : "Remaining"}
             </span>
             <span className={`text-xs font-bold tabular-nums ${remainingTone}`}>
-              {summary.remainingPaise === 0 ? "₹0.00 ✓" : formatPaise(Math.abs(summary.remainingPaise))}
+              {summary.remainingPaise === 0 ? "£0.00 ✓" : formatPaise(Math.abs(summary.remainingPaise))}
             </span>
           </div>
         </div>

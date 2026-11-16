@@ -5,22 +5,22 @@ import LandingNav from "@/components/landing/LandingNav";
 import LandingFooter from "@/components/landing/LandingFooter";
 
 const siteUrl = "https://alaynai.com";
-const title = "Restaurant Billing Software & GST POS System in India | Alayn AI";
+const title = "Restaurant Billing Software & UK VAT POS System | Alayn AI";
 const description =
-  "Fast GST billing software and POS for restaurants, cafés, QSRs, and cloud kitchens in India. Counter & table billing, instant KOT, UPI/card/cash, live KDS, FEFO inventory & workforce for ₹1,999/month.";
+  "Fast VAT billing software and POS for restaurants, cafés, QSRs, and cloud kitchens in the UK. Counter & table billing, instant KOT, card/cash/mobile pay, live KDS, FEFO inventory & workforce for £79/month.";
 
 export const metadata: Metadata = {
-  title: "Restaurant Billing Software & GST POS System",
+  title: "Restaurant Billing Software & UK VAT POS System",
   description,
   keywords: [
     "Billing Software",
     "Restaurant Billing Software",
     "POS Billing Software",
-    "GST Billing Software for Restaurants",
+    "VAT Billing Software for Restaurants",
     "Cafe Billing Software",
     "KOT Billing Software",
     "Cloud Kitchen Billing Software",
-    "Restaurant POS Billing India",
+    "Restaurant POS Billing UK",
     "Alayn AI Billing Software",
   ],
   alternates: {
@@ -44,13 +44,13 @@ const BILLING_CAPABILITIES = [
   },
   {
     number: "02",
-    title: "GST-Compliant Invoicing (CGST & SGST)",
+    title: "VAT-Compliant Invoicing (UK VAT)",
     description:
-      "Built for Indian taxation and hospitality compliance. Configure outlet-level GST slabs, CGST/SGST splits, discounts, and service charges with sub-unit accounting precision.",
+      "Built for UK taxation and hospitality compliance. Configure outlet-level VAT rates, standard / zero / exempt rates, discounts, and service charges with sub-unit accounting precision.",
     bullets: [
-      "Automated CGST and SGST calculation on every tax invoice",
-      "Customisable thermal receipt headers with GSTIN and FSSAI details",
-      "Clean daily, weekly, and monthly GST sales summaries",
+      "Automated UK VAT calculation on every tax invoice",
+      "Customisable thermal receipt headers with VAT registration details",
+      "Clean daily, weekly, and monthly VAT sales summaries",
     ],
   },
   {
@@ -66,11 +66,11 @@ const BILLING_CAPABILITIES = [
   },
   {
     number: "04",
-    title: "UPI, Card & Cash Settlements",
+    title: "Card, Cash & Mobile Payment Settlements",
     description:
-      "Accept every payment method your guests prefer and keep shift-end cash drawer reconciliation accurate to the rupee.",
+      "Accept every payment method your guests prefer and keep shift-end cash drawer reconciliation accurate to the penny.",
     bullets: [
-      "Record UPI, credit/debit card, and cash settlements with zero friction",
+      "Record contactless card, mobile pay, and cash settlements with zero friction",
       "Track payment mode breakdowns across shifts and outlets in real time",
       "Digital QR table menus so guests can browse live menus from their phone",
     ],
@@ -103,12 +103,12 @@ const FAQS = [
   {
     question: "What makes Alayn AI a complete billing software for restaurants and cafés?",
     answer:
-      "Alayn AI is a unified restaurant billing software and operating system built for Indian restaurants, cafés, QSRs, bakeries, and cloud kitchens. It combines GST POS billing, KOT printing, live kitchen display (KDS), FEFO batch inventory, waste tracking, and staff scheduling in one plan at ₹1,999 per outlet per month + 18% GST.",
+      "Alayn AI is a unified restaurant billing software and operating system built for UK restaurants, cafés, QSRs, bakeries, and cloud kitchens. It combines VAT POS billing, KOT printing, live kitchen display (KDS), FEFO batch inventory, waste tracking, and staff scheduling in one plan at £79 per outlet per month (£600 per outlet per year if billed yearly) + 20% VAT.",
   },
   {
     question: "Does Alayn AI billing software support GST invoicing and thermal KOT printing?",
     answer:
-      "Yes. Alayn AI supports outlet-level GST configuration (CGST and SGST), thermal receipt printing, and instant Kitchen Order Ticket (KOT) generation alongside a real-time digital Kitchen Display System (KDS).",
+      "Yes. Alayn AI supports outlet-level VAT configuration, thermal receipt printing, and instant Kitchen Order Ticket (KOT) generation alongside a real-time digital Kitchen Display System (KDS).",
   },
   {
     question: "What hardware do I need to run Alayn AI billing software?",
@@ -118,12 +118,12 @@ const FAQS = [
   {
     question: "Can I manage billing across multiple restaurant outlets from one account?",
     answer:
-      "Yes. Multi-outlet restaurant groups can manage every location from a single login, with independent menus, GST settings, stock ledgers, staff rosters, and consolidated revenue analytics across branches.",
+      "Yes. Multi-outlet restaurant groups can manage every location from a single login, with independent menus, VAT settings, stock ledgers, staff rosters, and consolidated revenue analytics across branches.",
   },
   {
     question: "How much does Alayn AI billing software cost?",
     answer:
-      "Alayn AI costs ₹1,999 per outlet per month + 18% GST (₹2,358.82 total per month). Every module—POS billing, KDS, FEFO inventory, waste tracking, workforce management, Ask Alayn AI, and REST API access—is included.",
+      "Alayn AI costs £79 per outlet per month (£600 per outlet per year if billed yearly) + 20% VAT (£94.80 total per month). Every module—POS billing, KDS, FEFO inventory, waste tracking, workforce management, Ask Alayn AI, and REST API access—is included.",
   },
 ];
 
@@ -165,16 +165,16 @@ export default function BillingSoftwarePage() {
         {/* Hero Header */}
         <div className="max-w-3xl mb-16">
           <span className="text-xs font-bold uppercase tracking-[0.2em] text-amber-400 block mb-4">
-            RESTAURANT BILLING SOFTWARE &amp; GST POS
+            RESTAURANT BILLING SOFTWARE &amp; UK VAT POS
           </span>
           <h1 className="text-4xl sm:text-5xl md:text-6xl font-extrabold text-white tracking-tight leading-[1.1] mb-6">
             Billing software built for{" "}
             <span className="italic text-amber-400 font-normal">real service rush.</span>
           </h1>
           <p className="text-base sm:text-lg text-slate-300 font-light leading-relaxed mb-8">
-            <strong className="font-semibold text-white">Alayn AI</strong> is a unified restaurant billing software and operating system for Indian restaurants, cafés, QSRs, and cloud kitchens—connecting fast GST counter &amp; table billing directly to your kitchen display (KDS), FEFO batch inventory, waste ledger, and staff rosters for{" "}
+            <strong className="font-semibold text-white">Alayn AI</strong> is a unified restaurant billing software and operating system for UK restaurants, cafés, QSRs, and cloud kitchens—connecting fast VAT counter &amp; table billing directly to your kitchen display (KDS), FEFO batch inventory, waste ledger, and staff rosters for{" "}
             <Link href="/pricing" className="text-amber-400 hover:text-amber-300 underline underline-offset-2">
-              ₹1,999 per outlet per month
+              £79 per outlet per month or £600 per year
             </Link>
             .
           </p>
@@ -201,7 +201,7 @@ export default function BillingSoftwarePage() {
               CAPABILITIES
             </span>
             <h2 className="text-2xl sm:text-3xl font-bold text-white tracking-tight">
-              Everything you need in a GST billing software—plus the rest of your restaurant.
+              Everything you need in a modern billing software—plus the rest of your restaurant.
             </h2>
           </div>
 
@@ -242,11 +242,11 @@ export default function BillingSoftwarePage() {
             {[
               {
                 name: "Fine Dining & Casual Restaurants",
-                desc: "Table-wise running bills, instant KOT dispatch, UPI/card/cash settlements, and live table status.",
+                desc: "Table-wise running bills, instant KOT dispatch, card/cash settlements, and live table status.",
               },
               {
                 name: "Cafés, Bakeries & Coffee Shops",
-                desc: "Rapid counter billing, UPI/card checkout, and FEFO batch expiry alerts for milk and perishables.",
+                desc: "Rapid counter billing, card checkout, and FEFO batch expiry alerts for milk and perishables.",
               },
               {
                 name: "Quick Service Restaurants (QSR)",
@@ -258,7 +258,7 @@ export default function BillingSoftwarePage() {
               },
               {
                 name: "Multi-Outlet Chains & Franchises",
-                desc: "Branch-scoped menus, GST configs, and live cross-outlet revenue and food-cost visibility.",
+                desc: "Branch-scoped menus, VAT configs, and live cross-outlet revenue and food-cost visibility.",
               },
               {
                 name: "Lounges & Restro-Bars",
@@ -310,7 +310,7 @@ export default function BillingSoftwarePage() {
               Upgrade your restaurant billing software today
             </h2>
             <p className="text-sm text-slate-400 font-light leading-relaxed max-w-xl">
-              ₹1,999 per outlet per month + 18% GST. Every POS, KDS, inventory, waste, and workforce feature included from day one.
+              £79 per outlet per month (£600 per outlet per year if billed yearly) + 20% VAT. Every POS, KDS, inventory, waste, and workforce feature included from day one.
             </p>
           </div>
           <div className="md:col-span-4 flex flex-wrap justify-start md:justify-end gap-3">

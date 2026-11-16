@@ -24,7 +24,7 @@ import {
   RefreshCw,
   ChefHat,
   QrCode,
-  IndianRupee,
+  PoundSterling,
   ChevronRight,
   UserCheck,
   CreditCard,
@@ -56,7 +56,6 @@ import ThermalKOT from "@/components/pos/ThermalKOT";
 import { getKitchenModeCapabilities } from "@/lib/kitchenMode";
 import { autoPrintReceipt } from "@/lib/bluetoothAutoPrinter";
 import SplitPaymentEditor, { initialSplitLines } from "@/components/pos/SplitPaymentEditor";
-import UpiPayQr from "@/components/pos/UpiPayQr";
 import { estimateBill } from "@/lib/billing";
 import {
   SplitLine,
@@ -71,11 +70,11 @@ import {
   type SettleMethodCode,
 } from "@/lib/splitPayment";
 
-// Dine-in partner platforms: brand colour for the method buttons
+// Delivery partner platforms: brand colour for the method buttons
 const PLATFORM_META = {
-  SWIGGY: { label: "Swiggy", dot: "bg-[#FC8019]" },
-  ZOMATO: { label: "Zomato", dot: "bg-[#E23744]" },
-  EAZYDINER: { label: "EazyDiner", dot: "bg-[#FF6F00]" },
+  DELIVEROO: { label: "Deliveroo", dot: "bg-[#00CCBC]" },
+  UBER_EATS: { label: "Uber Eats", dot: "bg-[#06C167]" },
+  JUST_EAT: { label: "Just Eat", dot: "bg-[#F36D00]" },
 } as const;
 
 /**
@@ -104,7 +103,7 @@ function settlementBill(order: Order, appliedCoupon: ValidateCouponResponse | nu
   });
 
   const totalPaise = Math.round(bill.total * 100);
-  // Already confirmed on the bill — only the rest is collected now. A QR diner's "I paid by UPI" is PENDING
+  // Already confirmed on the bill — only the rest is collected now. A QR diner's "I will pay by card" is PENDING
   // until the cashier checks it, so it is still part of the amount due here
   const paidPaise = (order.payments || [])
     .filter((p) => p.status === "CONFIRMED")
@@ -299,19 +298,19 @@ export default function LiveOrdersPage() {
   ];
   const [selectedCancelPreset, setSelectedCancelPreset] = useState<string>("Customer changed mind");
   const [customCancelReason, setCustomCancelReason] = useState<string>("");
-  const [paymentMethod, setPaymentMethod] = useState<SettleMethodCode>("UPI");
+  const [paymentMethod, setPaymentMethod] = useState<SettleMethodCode>("CASH");
   const [customerName, setCustomerName] = useState<string>("");
   const [customerPhone, setCustomerPhone] = useState<string>("");
   // Split payment at settlement
   const [paymentMode, setPaymentMode] = useState<"SINGLE" | "SPLIT">("SINGLE");
   const [splitLines, setSplitLines] = useState<SplitLine[]>([]);
   const [settleError, setSettleError] = useState<string | null>(null);
-  // The server found the UTR / approval code on another bill: the cashier can check it or settle anyway
+  // The server found the approval code on another bill: the cashier can check it or settle anyway
   const [duplicateReference, setDuplicateReference] = useState(false);
-  // Single UPI / card payment the cashier confirmed arrived. It only counts for the same bill, method and
+  // Single card payment the cashier confirmed arrived. It only counts for the same bill, method and
   // amount, so switching method or a coupon / service-charge change afterwards needs a fresh confirmation
   const [receivedConfirmation, setReceivedConfirmation] = useState<{ orderId: string; method: string; paise: number } | null>(null);
-  // UTR / approval code the cashier typed for that bill and method (otherwise the diner's own UTR is shown)
+  // Approval code the cashier typed for that bill and method
   const [referenceDraft, setReferenceDraft] = useState<{ orderId: string; method: string; text: string } | null>(null);
   // The coupon and bill breakdown stay folded until the cashier needs them
   const [settleExtra, setSettleExtra] = useState<"COUPON" | null>(null);
@@ -479,24 +478,13 @@ export default function LiveOrdersPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [settlingOrder?.id]);
 
-  // The restaurant's own UPI ID and name, for the payment QR shown at the counter
-  const upiPayeeFor = (order: Order) => ({
-    upiId: order.outlet?.upiId,
-    payeeName: order.outlet?.name || branches.find((b) => b.id === order.outletId)?.name || activeBranch?.name || "Restaurant",
-    note: `Bill ${order.orderNumber || order.orderNo || ""}`.trim(),
-  });
-
   const isReceivedConfirmed = (order: Order, balanceDuePaise: number) =>
     receivedConfirmation?.orderId === order.id &&
     receivedConfirmation.method === paymentMethod &&
     receivedConfirmation.paise === balanceDuePaise;
 
   const paymentReferenceFor = (order: Order) =>
-    referenceDraft?.orderId === order.id && referenceDraft.method === paymentMethod
-      ? referenceDraft.text
-      : paymentMethod === "UPI"
-        ? getCustomerPaymentClaims(order).upiReferences.join(", ").slice(0, 64)
-        : "";
+    referenceDraft?.orderId === order.id && referenceDraft.method === paymentMethod ? referenceDraft.text : "";
 
   useEffect(() => {
     if (settlingOrder) {
@@ -554,10 +542,9 @@ export default function LiveOrdersPage() {
       const isPaymentMethod =
         methodOrComment === "CASH" ||
         methodOrComment === "CARD" ||
-        methodOrComment === "UPI" ||
-        methodOrComment === "SWIGGY" ||
-        methodOrComment === "ZOMATO" ||
-        methodOrComment === "EAZYDINER";
+        methodOrComment === "DELIVEROO" ||
+        methodOrComment === "UBER_EATS" ||
+        methodOrComment === "JUST_EAT";
       const updatedResult = await updateOrderStatus({
         id: orderId,
         status: nextStatus,
@@ -590,7 +577,7 @@ export default function LiveOrdersPage() {
     }
   };
 
-  // Settle the bill; allowDuplicateReference is set when the cashier chose "settle anyway" after a reused UTR warning
+  // Settle the bill; allowDuplicateReference is set when the cashier chose "settle anyway" after a reused approval-code warning
   const settleBill = async (settlingOrder: Order, allowDuplicateReference = false) => {
     // Ignore a second tap while the first settle request is still in flight
     if (settleInFlightRef.current) return;
@@ -1087,11 +1074,6 @@ export default function LiveOrdersPage() {
                               QR Order
                             </span>
                           )}
-                          {getCustomerPaymentClaims(order).upi && (
-                            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-mono font-bold bg-amber-100 text-amber-800 border border-amber-200" title="Customer says they paid by UPI — check before settling">
-                              ⚡ UPI to verify{getCustomerPaymentClaims(order).upiReferences.length > 0 ? ` · UTR ${getCustomerPaymentClaims(order).upiReferences.join(", ")}` : ""}
-                            </span>
-                          )}
                           {getCustomerPaymentClaims(order).payAtCounter && (
                             <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-blue-100 text-blue-800 border border-blue-200">
                               {getCustomerPaymentClaims(order).counterMethod === "CARD"
@@ -1177,7 +1159,7 @@ export default function LiveOrdersPage() {
                   <div className="p-4 pt-3 border-t border-gray-100 bg-white flex flex-col gap-3">
                     <div className="flex items-center justify-between">
                       <span className="text-[11px] text-gray-500 font-bold uppercase tracking-wider">Total</span>
-                      <span className="text-base font-bold text-[#1B2A4A] font-mono">₹{Number(totalAmt).toFixed(2)}</span>
+                      <span className="text-base font-bold text-[#1B2A4A] font-mono">£{Number(totalAmt).toFixed(2)}</span>
                     </div>
                     
                     <div className="flex items-center gap-2">
@@ -1206,9 +1188,7 @@ export default function LiveOrdersPage() {
                             setCustomerName(order.customerName || "");
                             setCustomerPhone(order.customerPhone || "");
                             const claims = getCustomerPaymentClaims(order);
-                            if (claims.upi || order.paymentMethod === "UPI") {
-                              setPaymentMethod("UPI");
-                            } else if (claims.counterMethod === "CARD") {
+                            if (claims.counterMethod === "CARD" || order.paymentMethod === "CARD") {
                               setPaymentMethod("CARD");
                             } else if (claims.payAtCounter || order.paymentMethod === "CASH") {
                               setPaymentMethod("CASH");
@@ -1388,7 +1368,7 @@ export default function LiveOrdersPage() {
                                             key={mIdx}
                                             className="inline-flex items-center text-[10px] font-bold text-amber-900 bg-amber-100/90 border border-amber-300 px-1.5 py-0.5 rounded-md"
                                           >
-                                            + {m.name || m.title || "Extra"}{priceVal > 0 ? ` (+₹${priceVal.toFixed(2)})` : ""}
+                                            + {m.name || m.title || "Extra"}{priceVal > 0 ? ` (+£${priceVal.toFixed(2)})` : ""}
                                           </span>
                                         );
                                       })}
@@ -1403,7 +1383,7 @@ export default function LiveOrdersPage() {
                               </div>
                               <div className="flex items-center gap-2">
                                 <span className="font-bold text-gray-700">
-                                  ₹{totalPrice.toFixed(2)}
+                                  £{totalPrice.toFixed(2)}
                                 </span>
                                 {selectedOrder.status !== "COMPLETED" &&
                                   selectedOrder.status !== "CANCELLED" &&
@@ -1525,7 +1505,7 @@ export default function LiveOrdersPage() {
                       <div className="flex justify-between text-gray-600 font-medium">
                         <span>Actual Amount (Subtotal)</span>
                         <span className="font-semibold text-gray-800">
-                          ₹{subtotalVal.toFixed(2)}
+                          £{subtotalVal.toFixed(2)}
                         </span>
                       </div>
 
@@ -1534,12 +1514,12 @@ export default function LiveOrdersPage() {
                           <div className="flex justify-between text-emerald-600 font-medium">
                             <span>Discount {selectedOrder.couponCode ? `(${selectedOrder.couponCode})` : ""}</span>
                             <span className="font-semibold">
-                              - ₹{discountVal.toFixed(2)}
+                              - £{discountVal.toFixed(2)}
                             </span>
                           </div>
                           <div className="flex justify-between text-slate-700 font-semibold border-t border-dashed border-gray-200 pt-1">
                             <span>Taxable Value</span>
-                            <span>₹{taxableVal.toFixed(2)}</span>
+                            <span>£{taxableVal.toFixed(2)}</span>
                           </div>
                         </>
                       )}
@@ -1548,7 +1528,7 @@ export default function LiveOrdersPage() {
                         <div className="flex justify-between text-gray-600 font-medium">
                           <span>Service Charge ({scRate}%)</span>
                           <span className="font-semibold text-gray-800">
-                            ₹{serviceChargeVal.toFixed(2)}
+                            £{serviceChargeVal.toFixed(2)}
                           </span>
                         </div>
                       )}
@@ -1566,7 +1546,7 @@ export default function LiveOrdersPage() {
                         <div className="flex justify-between text-gray-600 font-medium">
                           <span>CGST ({cgstRate}%)</span>
                           <span className="font-semibold text-gray-800">
-                            ₹{cgstVal.toFixed(2)}
+                            £{cgstVal.toFixed(2)}
                           </span>
                         </div>
                       )}
@@ -1575,7 +1555,7 @@ export default function LiveOrdersPage() {
                         <div className="flex justify-between text-gray-600 font-medium">
                           <span>SGST ({sgstRate}%)</span>
                           <span className="font-semibold text-gray-800">
-                            ₹{sgstVal.toFixed(2)}
+                            £{sgstVal.toFixed(2)}
                           </span>
                         </div>
                       )}
@@ -1584,7 +1564,7 @@ export default function LiveOrdersPage() {
                         <div className="flex justify-between text-gray-500 font-medium text-[11px]">
                           <span>Round off</span>
                           <span className="font-semibold text-gray-700">
-                            {roundOffVal > 0 ? `+ ₹${roundOffVal.toFixed(2)}` : `- ₹${Math.abs(roundOffVal).toFixed(2)}`}
+                            {roundOffVal > 0 ? `+ £${roundOffVal.toFixed(2)}` : `- £${Math.abs(roundOffVal).toFixed(2)}`}
                           </span>
                         </div>
                       )}
@@ -1592,7 +1572,7 @@ export default function LiveOrdersPage() {
                       <div className="flex justify-between font-bold text-sm text-[#1B2A4A] pt-2 border-t border-gray-200">
                         <span>Overall Total</span>
                         <span className="text-[#D3232A]">
-                          ₹{totalVal.toFixed(2)}
+                          £{totalVal.toFixed(2)}
                         </span>
                       </div>
 
@@ -1740,12 +1720,12 @@ export default function LiveOrdersPage() {
                     cgstVal, sgstVal, roundOffVal, totalVal, paidPaise, balanceDuePaise,
                   } = settlementBill(settlingOrder, appliedCoupon);
                   const gstVal = cgstVal + sgstVal;
-                  const fmt = (n: number) => `₹${n.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+                  const fmt = (n: number) => `£${n.toLocaleString("en-GB", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
                   const summaryParts = [
                     `Subtotal ${fmt(subtotalVal)}`,
                     discountVal > 0 ? `Discount −${fmt(discountVal)}` : null,
                     serviceChargeVal > 0 ? `Service ${fmt(serviceChargeVal)}` : null,
-                    gstVal > 0 ? `GST ${fmt(gstVal)}` : null,
+                    gstVal > 0 ? `VAT ${fmt(gstVal)}` : null,
                   ].filter(Boolean);
 
                   return (
@@ -1955,7 +1935,7 @@ export default function LiveOrdersPage() {
                                             : "text-slate-800"
                                         }`}
                                       >
-                                        ₹{subtotal.toFixed(2)}
+                                        £{subtotal.toFixed(2)}
                                       </span>
 
                                       {!isCancelled && (
@@ -2027,7 +2007,7 @@ export default function LiveOrdersPage() {
                         {
                           id: "COUPON" as const,
                           icon: Tag,
-                          label: appliedCoupon ? `${appliedCoupon.code} · −₹${appliedCoupon.discountAmount.toFixed(2)}` : "Coupon",
+                          label: appliedCoupon ? `${appliedCoupon.code} · −£${appliedCoupon.discountAmount.toFixed(2)}` : "Coupon",
                           filled: !!appliedCoupon,
                         },
                       ]
@@ -2061,7 +2041,7 @@ export default function LiveOrdersPage() {
                           {appliedCoupon ? (
                             <div className="flex items-center justify-between rounded-lg bg-emerald-50 border border-emerald-200 px-3 py-2 text-xs">
                               <span className="text-emerald-800">
-                                <span className="font-mono font-semibold">{appliedCoupon.code}</span> applied · −₹{appliedCoupon.discountAmount.toFixed(2)}
+                                <span className="font-mono font-semibold">{appliedCoupon.code}</span> applied · −£{appliedCoupon.discountAmount.toFixed(2)}
                               </span>
                               <button
                                 type="button"
@@ -2114,29 +2094,6 @@ export default function LiveOrdersPage() {
                 </div>
 
                 {/* QR order: what the customer already told us about payment */}
-                {/* QR order paid by UPI on the customer's phone: what to match on the soundbox (UPI / split only) */}
-                {getCustomerPaymentClaims(settlingOrder).upi && (paymentMode === "SPLIT" || paymentMethod === "UPI") && (() => {
-                  const claims = getCustomerPaymentClaims(settlingOrder);
-                  return (
-                    <div className="rounded-lg bg-amber-50 border border-amber-200 px-3 py-2 flex items-start gap-2 text-[11px] text-amber-900">
-                      <QrCode className="w-3.5 h-3.5 shrink-0 mt-px" />
-                      <div className="min-w-0 space-y-0.5">
-                        <p className="font-semibold">
-                          Customer paid by UPI on the QR page
-                          {claims.upiPaise > 0 && <> · {formatPaise(claims.upiPaise)}</>}
-                        </p>
-                        <p className="text-amber-800 break-all">
-                          {claims.upiReferences.length > 0 ? (
-                            <>UTR <span className="font-mono font-semibold">{claims.upiReferences.join(", ")}</span> · match it on the soundbox / UPI app</>
-                          ) : (
-                            <>No UTR given · match the amount on the soundbox / UPI app</>
-                          )}
-                        </p>
-                      </div>
-                    </div>
-                  );
-                })()}
-
                 {getCustomerPaymentClaims(settlingOrder).payAtCounter && (
                   <div className="rounded-lg bg-blue-50 border border-blue-200 px-3 py-2 flex items-center gap-1.5 text-[11px] text-blue-900">
                     <Banknote className="w-3.5 h-3.5 shrink-0" />
@@ -2179,7 +2136,7 @@ export default function LiveOrdersPage() {
                                 setSettleError(null);
                                 setPaymentMode(mode);
                                 if (mode === "SPLIT" && splitLines.length === 0) {
-                                  setSplitLines(initialSplitLines(balanceDuePaise, paymentMethod === "CASH" ? "UPI" : "CASH"));
+                                  setSplitLines(initialSplitLines(balanceDuePaise, paymentMethod === "CASH" ? "CARD" : "CASH"));
                                 }
                               }}
                               className={`px-2.5 py-1 rounded-md text-[11px] font-semibold transition cursor-pointer ${
@@ -2205,13 +2162,12 @@ export default function LiveOrdersPage() {
                         <div className="grid grid-cols-6 gap-2">
                           {(
                             [
-                              { value: "UPI", label: "UPI / QR", icon: QrCode },
                               { value: "CASH", label: "Cash", icon: Banknote },
                               { value: "CARD", label: "Card", icon: CreditCard },
-                              // Dine-in booked on partner apps: Swiggy, Zomato, EazyDiner
-                              { value: "SWIGGY", label: PLATFORM_META.SWIGGY.label, icon: null },
-                              { value: "ZOMATO", label: PLATFORM_META.ZOMATO.label, icon: null },
-                              { value: "EAZYDINER", label: PLATFORM_META.EAZYDINER.label, icon: null },
+                              // Orders taken through delivery partner apps
+                              { value: "DELIVEROO", label: PLATFORM_META.DELIVEROO.label, icon: null },
+                              { value: "UBER_EATS", label: PLATFORM_META.UBER_EATS.label, icon: null },
+                              { value: "JUST_EAT", label: PLATFORM_META.JUST_EAT.label, icon: null },
                             ] as const
                           ).map(({ value, label, icon: Icon }) => {
                             const isSelected = paymentMethod === value;
@@ -2240,7 +2196,7 @@ export default function LiveOrdersPage() {
                             );
                           })}
                         </div>
-                        {/* Swiggy / Zomato / EazyDiner dine-in: overall bill settlement */}
+                        {/* Deliveroo / Uber Eats / Just Eat: overall bill settlement */}
                         {isPlatformMethod(paymentMethod) && (() => {
                           const confirmed = isReceivedConfirmed(settlingOrder, balanceDuePaise);
                           const app = PLATFORM_META[paymentMethod].label;
@@ -2253,7 +2209,7 @@ export default function LiveOrdersPage() {
                               <div className="flex justify-between items-center text-xs font-semibold px-0.5">
                                 <span className="text-slate-700 flex items-center gap-1.5">
                                   <span aria-hidden className={`w-2.5 h-2.5 rounded-full ${PLATFORM_META[paymentMethod].dot}`} />
-                                  Dine-in bill via {app}
+                                  Delivery bill via {app}
                                 </span>
                                 <span className="text-slate-900 font-bold tabular-nums text-sm">{formatPaise(balanceDuePaise)}</span>
                               </div>
@@ -2285,7 +2241,7 @@ export default function LiveOrdersPage() {
                             </div>
                           );
                         })()}
-                        {/* UPI / card money lands outside the till: the cashier confirms it arrived before settling */}
+                        {/* Card money lands outside the till: the cashier confirms it arrived before settling */}
                         {isOnlineMethod(paymentMethod) && !isPlatformMethod(paymentMethod) && (() => {
                           const confirmed = isReceivedConfirmed(settlingOrder, balanceDuePaise);
                           return (
@@ -2294,9 +2250,6 @@ export default function LiveOrdersPage() {
                                 confirmed ? "bg-emerald-50 border-emerald-200" : "bg-amber-50 border-amber-200"
                               }`}
                             >
-                              {paymentMethod === "UPI" && (
-                                <UpiPayQr {...upiPayeeFor(settlingOrder)} amountPaise={balanceDuePaise} />
-                              )}
                               <label className="flex items-start gap-2 cursor-pointer select-none">
                                 <input
                                   type="checkbox"
@@ -2310,15 +2263,13 @@ export default function LiveOrdersPage() {
                                   className="mt-0.5 w-4 h-4 accent-emerald-600 cursor-pointer shrink-0"
                                 />
                                 <span className={`text-[11px] font-semibold leading-snug ${confirmed ? "text-emerald-900" : "text-amber-900"}`}>
-                                  {paymentMethod === "UPI"
-                                    ? <>I&apos;ve checked {formatPaise(balanceDuePaise)} was received on the soundbox / UPI app</>
-                                    : <>I&apos;ve checked {formatPaise(balanceDuePaise)} was approved on the card machine</>}
+                                  I&apos;ve checked {formatPaise(balanceDuePaise)} was approved on the card machine
                                 </span>
                               </label>
                               <input
                                 type="text"
-                                aria-label={paymentMethod === "UPI" ? "UPI reference (UTR)" : "Card approval code"}
-                                placeholder={paymentMethod === "UPI" ? "UTR / last 4 digits (optional)" : "Approval code (optional)"}
+                                aria-label="Card approval code"
+                                placeholder="Approval code (optional)"
                                 value={paymentReferenceFor(settlingOrder)}
                                 maxLength={64}
                                 onChange={(e) => setReferenceDraft({ orderId: settlingOrder.id, method: paymentMethod, text: e.target.value })}
@@ -2331,7 +2282,6 @@ export default function LiveOrdersPage() {
                       ) : (
                         <SplitPaymentEditor
                           duePaise={balanceDuePaise}
-                          upi={upiPayeeFor(settlingOrder)}
                           lines={splitLines}
                           onChange={(next) => {
                             setSettleError(null);
@@ -2426,7 +2376,7 @@ export default function LiveOrdersPage() {
                     }
                     if (balanceDuePaise > 0 && isOnlineMethod(paymentMethod) && !isReceivedConfirmed(settlingOrder, balanceDuePaise)) {
                       if (isPlatformMethod(paymentMethod)) return `Confirm ${PLATFORM_META[paymentMethod].label} payment`;
-                      return paymentMethod === "UPI" ? "Confirm UPI received" : "Confirm card payment";
+                      return "Confirm card payment";
                     }
                     return "Settle & Print Receipt";
                   })()}
@@ -2772,7 +2722,7 @@ export default function LiveOrdersPage() {
                             {item.menuItem?.name || item.name || "Item"}
                           </p>
                           <p className="text-[11px] text-slate-500">
-                            Current: {maxQty} × ₹{unitPrice.toFixed(2)} = ₹{subtotal.toFixed(2)}
+                            Current: {maxQty} × £{unitPrice.toFixed(2)} = £{subtotal.toFixed(2)}
                           </p>
                         </div>
                         <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-amber-50 text-amber-700 border border-amber-200">
@@ -2787,7 +2737,7 @@ export default function LiveOrdersPage() {
                         <label className="text-xs font-semibold text-slate-700 flex justify-between">
                           <span>Quantity to remove:</span>
                           <span className="text-rose-600 font-bold">
-                            −₹{(cancelItemQty * unitPrice).toFixed(2)}
+                            −£{(cancelItemQty * unitPrice).toFixed(2)}
                           </span>
                         </label>
                         <div className="flex items-center gap-2">

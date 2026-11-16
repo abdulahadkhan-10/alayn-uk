@@ -6,12 +6,12 @@ export function dietaryTypeOf(item: Pick<CustomerMenuItem, "dietaryType" | "isVe
   return item.dietaryType || (item.isVeg ? "VEG" : "NON_VEG");
 }
 
-/** ₹250 on the menu, ₹250.50 when there are paise; `exact` always shows paise (bill lines) */
-export function formatRupees(paise: number, { exact = false }: { exact?: boolean } = {}): string {
-  const rupees = paise / 100;
-  const showPaise = exact || Math.round(paise) % 100 !== 0;
-  return `₹${rupees.toLocaleString("en-IN", {
-    minimumFractionDigits: showPaise ? 2 : 0,
+/** £2.50 on the menu, £2.50 when there are pence; `exact` always shows pence (bill lines) */
+export function formatPounds(paise: number, { exact = false }: { exact?: boolean } = {}): string {
+  const pounds = paise / 100;
+  const showPence = exact || Math.round(paise) % 100 !== 0;
+  return `£${pounds.toLocaleString("en-GB", {
+    minimumFractionDigits: showPence ? 2 : 0,
     maximumFractionDigits: 2,
   })}`;
 }
@@ -47,7 +47,7 @@ export const inputClass =
   "block h-12 w-full rounded-xl border border-zinc-300 bg-white px-3.5 text-base text-(--espresso) placeholder:text-zinc-400 " +
   "transition-[border-color,box-shadow] focus:border-(--espresso) focus:outline-none focus:ring-3 focus:ring-[#1B2A4A]/10";
 
-export type BillPaymentMethod = "UPI" | "CARD" | "CASH";
+export type BillPaymentMethod = "CARD" | "CASH";
 
 interface PaymentLike {
   method: string;

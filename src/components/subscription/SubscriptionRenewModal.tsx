@@ -2,21 +2,18 @@
 
 import React, { useState } from "react";
 import { useModalTransition } from "@/components/ui/TModal";
-import { 
-  X, 
-  CheckCircle2, 
-  ShieldCheck, 
-  Zap, 
-  CreditCard, 
-  Sparkles, 
-  Loader2, 
+import {
+  X,
+  Check,
+  CheckCircle2,
+  ShieldCheck,
+  Loader2,
   AlertCircle,
   Building2,
   Calendar,
   Lock,
   ArrowRight,
   Tag,
-  Gift
 } from "lucide-react";
 import { 
   useInitiateOutletSubscriptionMutation, 
@@ -26,7 +23,8 @@ import {
 import { openCashfreeCheckout } from "@/lib/cashfree";
 import SubscriptionMonthSelector, { 
   calculateSubscriptionPricing, 
-  calculateProjectedEndDate 
+  calculateProjectedEndDate,
+  formatGBP
 } from "./SubscriptionMonthSelector";
 
 interface SubscriptionRenewModalProps {
@@ -59,6 +57,7 @@ export default function SubscriptionRenewModal({
   const [months, setMonths] = useState<number>(1);
   const [paymentSuccess, setPaymentSuccess] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
+  const [showCoupon, setShowCoupon] = useState(false);
   const [couponInput, setCouponInput] = useState("");
   const [couponError, setCouponError] = useState("");
   const [couponSuccess, setCouponSuccess] = useState(false);
@@ -74,13 +73,13 @@ export default function SubscriptionRenewModal({
 
   if (!mounted || !outlet) return null;
 
-  const pricing = calculateSubscriptionPricing(months, 1999, 18, appliedCoupon);
+  const pricing = calculateSubscriptionPricing(months, undefined, undefined, appliedCoupon);
   const projectedEnd = calculateProjectedEndDate(months, outlet.subscription?.currentPeriodEnd);
   const now = new Date();
   const existingEnd = outlet.subscription?.currentPeriodEnd ? new Date(outlet.subscription.currentPeriodEnd) : null;
   const effectiveStartDate = existingEnd && existingEnd > now ? existingEnd : now;
   const daysDiff = Math.max(1, Math.round((projectedEnd.getTime() - effectiveStartDate.getTime()) / (1000 * 60 * 60 * 24)));
-  const formattedEndDate = projectedEnd.toLocaleDateString("en-IN", {
+  const formattedEndDate = projectedEnd.toLocaleDateString("en-GB", {
     day: "numeric",
     month: "short",
     year: "numeric",
@@ -192,188 +191,151 @@ export default function SubscriptionRenewModal({
 
   const isSubActive = outlet.subscription?.status === "ACTIVE";
   const expiryDate = outlet.subscription?.currentPeriodEnd 
-    ? new Date(outlet.subscription.currentPeriodEnd).toLocaleDateString("en-IN", {
+    ? new Date(outlet.subscription.currentPeriodEnd).toLocaleDateString("en-GB", {
         day: "numeric",
         month: "short",
         year: "numeric"
       })
     : null;
 
+  const isBusy = paymentStep === "processing" || isInitiating || isVerifying;
+  const locationLabel = outlet.city || outlet.address || "Physical location";
+
+  const includedFeatures = [
+    "Unlimited POS counters",
+    "Live kitchen display (KDS)",
+    "Multi-batch inventory",
+    "AI menu costing assistant",
+    "Staff geofence attendance",
+    "24/7 priority support",
+  ];
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 overflow-y-auto">
+    <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto p-4">
       {/* Backdrop */}
-      <div 
+      <div
         className={`t-modal-backdrop ${stateClass} fixed inset-0 bg-black/60 backdrop-blur-xs`}
-        onClick={paymentStep === "processing" ? undefined : onClose} 
+        onClick={paymentStep === "processing" ? undefined : onClose}
       />
 
       {/* Modal Container */}
-      <div className={`t-modal ${stateClass} relative w-full max-w-lg overflow-hidden rounded-3xl bg-white shadow-2xl border border-gray-100 z-10`}>
-        {/* Modal Header */}
-        <div className="relative bg-gradient-to-br from-[#0B1221] via-[#111A2E] to-[#1E293B] p-6 sm:p-8 text-white">
-          <button
-            onClick={onClose}
-            disabled={paymentStep === "processing"}
-            className="absolute top-5 right-5 flex h-8 w-8 items-center justify-center rounded-full bg-white/10 hover:bg-white/20 text-slate-300 hover:text-white transition-colors cursor-pointer"
-          >
-            <X className="h-4 w-4" />
-          </button>
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label={isSubActive ? "Extend subscription" : "Activate subscription"}
+        className={`t-modal ${stateClass} relative z-10 w-full ${
+          paymentStep === "success" ? "max-w-md" : "max-w-3xl"
+        } overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl`}
+      >
+        <button
+          onClick={onClose}
+          disabled={paymentStep === "processing"}
+          aria-label="Close"
+          className={`absolute right-3 top-3 z-20 flex h-8 w-8 cursor-pointer items-center justify-center rounded-full transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${
+            paymentStep === "success"
+              ? "bg-slate-100 text-slate-500 hover:bg-slate-200"
+              : "bg-white/10 text-slate-300 hover:bg-white/20 hover:text-white lg:bg-slate-100 lg:text-slate-500 lg:hover:bg-slate-200 lg:hover:text-slate-700"
+          }`}
+        >
+          <X className="h-4 w-4" />
+        </button>
 
-          <div className="flex items-center gap-2 mb-2">
-            <span className="inline-flex items-center gap-1.5 rounded-md bg-[#D3232A]/20 px-2.5 py-0.5 text-[11px] font-bold text-red-400 border border-[#D3232A]/30">
-              <Sparkles className="h-3 w-3" />
-              Outlet Subscription
-            </span>
-            {isSubActive && (
-              <span className="inline-flex items-center gap-1 rounded-md bg-emerald-500/20 px-2 py-0.5 text-[11px] font-bold text-emerald-400 border border-emerald-500/30">
-                <CheckCircle2 className="h-3 w-3" />
-                Active Branch
+        {paymentStep === "success" ? (
+          <div className="space-y-4 p-8 text-center">
+            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-emerald-50 text-emerald-600">
+              <CheckCircle2 className="h-7 w-7" />
+            </div>
+            <h3 className="text-lg font-semibold text-zinc-900">Payment confirmed</h3>
+            <p className="mx-auto max-w-sm text-sm leading-relaxed text-zinc-600">
+              <strong className="font-semibold text-zinc-900">{outlet.name}</strong> is active for {months}{" "}
+              {months === 1 ? "month" : "months"} ({daysDiff} days), valid until{" "}
+              <strong className="font-semibold text-zinc-900">{formattedEndDate}</strong>.
+            </p>
+            <button
+              onClick={onClose}
+              className="h-11 w-full cursor-pointer rounded-xl bg-[#D3232A] text-sm font-semibold text-white transition-colors hover:bg-[#b01e23]"
+            >
+              Done
+            </button>
+          </div>
+        ) : (
+          <div className="grid lg:grid-cols-[minmax(0,5fr)_minmax(0,6fr)]">
+            {/* Context panel */}
+            <aside className="bg-[#0B1221] p-6 text-white">
+              <span className="inline-flex items-center gap-1.5 rounded-md bg-white/10 px-2 py-1 text-[11px] font-medium text-slate-200">
+                {isSubActive ? <CheckCircle2 className="h-3 w-3 text-emerald-400" /> : <Lock className="h-3 w-3" />}
+                {isSubActive ? "Active branch" : "Subscription required"}
               </span>
-            )}
-          </div>
 
-          <h2 className="text-xl sm:text-2xl font-bold font-serif tracking-tight text-white">
-            {isSubActive ? "Extend Monthly Subscription" : "Activate Branch Subscription"}
-          </h2>
-          <p className="mt-1 text-xs text-slate-300 font-medium">
-            Powering POS, Live Kitchen Display, Inventory & Workforce for:
-          </p>
+              <h2 className="mt-3 text-xl font-semibold tracking-tight">
+                {isSubActive ? "Extend subscription" : "Activate subscription"}
+              </h2>
 
-          <div className="mt-3 flex items-center gap-2 rounded-xl bg-white/10 p-3 backdrop-blur-xs border border-white/10">
-            <Building2 className="h-4 w-4 text-red-400 shrink-0" />
-            <div className="truncate">
-              <p className="text-xs font-bold text-white truncate">{outlet.name}</p>
-              <p className="text-[10px] text-slate-300 truncate">{outlet.city || outlet.address || "Physical Location"}</p>
-            </div>
-            {expiryDate && (
-              <div className="ml-auto text-right shrink-0">
-                <span className="text-[9px] uppercase tracking-wider text-slate-400 block font-semibold">Valid Till</span>
-                <span className="text-[11px] font-bold text-slate-200 flex items-center gap-1">
+              <div className="mt-4 flex items-center gap-3 rounded-xl border border-white/10 bg-white/5 p-3">
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-white/10 text-slate-200">
+                  <Building2 className="h-4 w-4" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-medium text-white">{outlet.name}</p>
+                  <p className="truncate text-xs text-slate-400">{locationLabel}</p>
+                </div>
+              </div>
+              {expiryDate && (
+                <p className="mt-2 flex items-center gap-1.5 text-xs text-slate-400">
                   <Calendar className="h-3 w-3 text-emerald-400" />
-                  {expiryDate}
-                </span>
-              </div>
-            )}
-          </div>
-        </div>
+                  Valid till <span className="font-medium text-slate-200">{expiryDate}</span>
+                </p>
+              )}
 
-        {/* Modal Body */}
-        <div className="p-6 sm:p-8 space-y-6">
-          {paymentStep === "success" ? (
-            <div className="py-6 text-center space-y-4">
-              <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-600 shadow-sm animate-bounce">
-                <CheckCircle2 className="h-8 w-8" />
-              </div>
-              <h3 className="text-xl font-extrabold text-zinc-900 font-serif">
-                Payment Confirmed & Subscription Active!
-              </h3>
-              <p className="text-xs text-zinc-500 max-w-sm mx-auto font-medium leading-relaxed">
-                Your subscription for <strong>{outlet.name}</strong> has been successfully renewed.{" "}
-                <span className="font-bold text-zinc-800">
-                  {months} {months === 1 ? "month" : "months"} ({daysDiff} calendar days, valid until {formattedEndDate})
-                </span>{" "}
-                of uninterrupted operations have been credited to this branch.
-              </p>
-              <div className="pt-4">
-                <button
-                  onClick={onClose}
-                  className="w-full rounded-2xl bg-[#D3232A] px-6 py-3.5 text-sm font-bold text-white shadow-lg hover:bg-[#b01e23] transition-all cursor-pointer"
-                >
-                  Close & Continue
-                </button>
-              </div>
-            </div>
-          ) : (
-            <>
+              <ul className="mt-4 space-y-2">
+                {includedFeatures.map((feature) => (
+                  <li key={feature} className="flex items-center gap-2.5 text-[13px] text-slate-300">
+                    <Check className="h-3.5 w-3.5 shrink-0 text-emerald-400" strokeWidth={2.5} />
+                    {feature}
+                  </li>
+                ))}
+              </ul>
+            </aside>
+
+            {/* Checkout panel */}
+            <section className="flex flex-col gap-4 p-6">
               {errorMessage && (
-                <div className="flex items-center gap-2 rounded-xl bg-red-50 p-3.5 text-xs font-semibold text-[#D3232A] border border-red-100">
+                <div role="alert" className="flex items-center gap-2 rounded-lg border border-red-100 bg-red-50 px-3 py-2 text-xs font-medium text-[#D3232A]">
                   <AlertCircle className="h-4 w-4 shrink-0" />
                   <span>{errorMessage}</span>
                 </div>
               )}
 
-              {/* Plan Perks */}
-              <div className="space-y-2.5">
-                <p className="text-[11px] font-bold uppercase tracking-wider text-zinc-500">
-                  Included In Your Monthly Plan
-                </p>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs font-medium text-zinc-700">
-                  <div className="flex items-center gap-2">
-                    <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0" />
-                    <span>Unlimited POS Counters</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0" />
-                    <span>Live Kitchen Display (KDS)</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0" />
-                    <span>Multi-batch Inventory</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0" />
-                    <span>AI Menu Costing Assistant</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0" />
-                    <span>Staff Geofence Attendance</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0" />
-                    <span>24/7 Priority Support</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Duration & Price Selector */}
               <SubscriptionMonthSelector
                 months={months}
                 onChange={setMonths}
                 currentPeriodEnd={outlet.subscription?.currentPeriodEnd}
-                disabled={paymentStep === "processing" || isInitiating || isVerifying || isApplyingCoupon}
+                disabled={isBusy || isApplyingCoupon}
                 coupon={appliedCoupon}
               />
 
-              {/* Dynamic Coupon Box */}
+              {/* Coupon */}
               {appliedCoupon ? (
-                <div className="rounded-2xl border border-emerald-300 bg-emerald-50/70 p-3.5 flex items-center justify-between animate-in fade-in-50 duration-200">
-                  <div className="flex items-center gap-2.5">
-                    <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-emerald-100 text-emerald-700">
-                      <Tag className="h-4 w-4" />
-                    </div>
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <span className="font-mono text-xs font-black text-emerald-900 tracking-wider uppercase">
-                          {appliedCoupon.code}
-                        </span>
-                        <span className="text-[10px] font-extrabold uppercase bg-emerald-200/80 text-emerald-900 px-2 py-0.5 rounded-full">
-                          {appliedCoupon.discountType === "PERCENTAGE"
-                            ? `${appliedCoupon.discountValue}% OFF`
-                            : `₹${appliedCoupon.discountValue} OFF`}
-                        </span>
-                      </div>
-                      <p className="text-[11px] text-emerald-700 mt-0.5">
-                        Discount applied to your subscription total
-                      </p>
-                    </div>
+                <div className="flex items-center justify-between rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2">
+                  <div className="flex items-center gap-2 text-xs text-emerald-800">
+                    <Tag className="h-3.5 w-3.5" />
+                    <span className="font-mono font-semibold uppercase tracking-wider">{appliedCoupon.code}</span>
+                    <span className="font-medium">
+                      {appliedCoupon.discountType === "PERCENTAGE"
+                        ? `${appliedCoupon.discountValue}% off`
+                        : `£${appliedCoupon.discountValue} off`}
+                    </span>
                   </div>
                   <button
                     type="button"
                     onClick={handleRemoveCoupon}
-                    className="text-xs font-bold text-red-600 hover:text-red-800 hover:underline px-2 py-1 cursor-pointer"
+                    className="cursor-pointer text-xs font-medium text-emerald-800 underline-offset-2 hover:underline"
                   >
                     Remove
                   </button>
                 </div>
-              ) : (
-                <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50/60 p-4 space-y-2.5">
-                  <div className="flex items-center gap-2">
-                    <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-red-100 text-[#D3232A]">
-                      <Tag className="h-3.5 w-3.5" />
-                    </div>
-                    <p className="text-xs font-bold text-zinc-900">Have a Promo or Coupon Code?</p>
-                  </div>
-
+              ) : showCoupon ? (
+                <div className="space-y-1.5">
                   <div className="flex gap-2">
                     <input
                       type="text"
@@ -382,65 +344,64 @@ export default function SubscriptionRenewModal({
                         setCouponInput(e.target.value.toUpperCase());
                         setCouponError("");
                       }}
-                      placeholder="Enter coupon code"
-                      className="block flex-1 rounded-xl border-0 py-2.5 px-3 text-xs font-mono font-bold tracking-wider text-gray-900 ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-[#D3232A] bg-white uppercase"
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") handleApplyCoupon();
+                      }}
+                      placeholder="Promo code"
+                      aria-label="Promo code"
+                      autoFocus
+                      className="block h-10 flex-1 rounded-lg border-0 bg-white px-3 font-mono text-xs font-semibold uppercase tracking-wider text-zinc-900 ring-1 ring-inset ring-slate-300 placeholder:font-sans placeholder:normal-case placeholder:tracking-normal placeholder:text-zinc-500 focus:ring-2 focus:ring-[#D3232A]"
                     />
                     <button
                       type="button"
                       onClick={handleApplyCoupon}
                       disabled={isApplyingCoupon || !couponInput.trim()}
-                      className="inline-flex items-center gap-1 rounded-xl bg-[#0B1221] hover:bg-black text-white px-4 py-2.5 text-xs font-bold transition-all disabled:opacity-50 cursor-pointer shadow-sm"
+                      className="inline-flex h-10 cursor-pointer items-center gap-1.5 rounded-lg bg-zinc-900 px-4 text-xs font-semibold text-white transition-colors hover:bg-black disabled:cursor-not-allowed disabled:opacity-50"
                     >
-                      {isApplyingCoupon ? (
-                        <Loader2 className="h-3 w-3 animate-spin" />
-                      ) : (
-                        <Sparkles className="h-3 w-3 text-amber-400" />
-                      )}
-                      Apply Code
+                      {isApplyingCoupon && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+                      Apply
                     </button>
                   </div>
-                  {couponError && (
-                    <p className="text-xs font-semibold text-[#D3232A]">{couponError}</p>
-                  )}
+                  {couponError && <p role="alert" className="text-xs font-medium text-[#D3232A]">{couponError}</p>}
                 </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setShowCoupon(true)}
+                  className="inline-flex w-fit cursor-pointer items-center gap-1.5 text-xs font-medium text-zinc-600 underline-offset-2 transition-colors hover:text-zinc-900 hover:underline"
+                >
+                  <Tag className="h-3.5 w-3.5" />
+                  Have a promo code?
+                </button>
               )}
 
-              {/* Pay Button */}
-              <button
-                onClick={handlePayNow}
-                disabled={paymentStep === "processing" || isInitiating || isVerifying}
-                className="w-full flex items-center justify-center gap-2 rounded-2xl bg-[#D3232A] px-6 py-4 text-sm font-bold text-white shadow-xl hover:bg-[#b01e23] transition-all duration-200 disabled:opacity-75 disabled:cursor-not-allowed cursor-pointer hover:-translate-y-[1px]"
-              >
-                {paymentStep === "processing" || isInitiating || isVerifying ? (
-                  <>
-                    <Loader2 className="h-5 w-5 animate-spin" />
-                    Connecting to Cashfree Payment Gateway...
-                  </>
-                ) : (
-                  <>
-                    <CreditCard className="h-4 w-4" />
-                    Pay ₹{pricing.grandTotal.toLocaleString("en-IN", { minimumFractionDigits: 2 })} via Cashfree PG
-                    <ArrowRight className="h-4 w-4 ml-1" />
-                  </>
-                )}
-              </button>
-
-              <div className="flex items-center justify-center gap-4 text-[11px] text-zinc-400 font-medium pt-1">
-                <span className="flex items-center gap-1">
+              {/* Pay */}
+              <div className="space-y-2.5">
+                <button
+                  onClick={handlePayNow}
+                  disabled={isBusy}
+                  className="flex h-12 w-full cursor-pointer items-center justify-center gap-2 rounded-xl bg-[#D3232A] px-6 text-sm font-semibold text-white transition-colors hover:bg-[#b01e23] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#D3232A] disabled:cursor-not-allowed disabled:opacity-70"
+                >
+                  {isBusy ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Connecting to Cashfree
+                    </>
+                  ) : (
+                    <>
+                      Pay {formatGBP(pricing.grandTotal)}
+                      <ArrowRight className="h-4 w-4" />
+                    </>
+                  )}
+                </button>
+                <p className="flex items-center justify-center gap-1.5 text-[11px] text-zinc-500">
                   <ShieldCheck className="h-3.5 w-3.5 text-emerald-600" />
-                  256-bit Encrypted
-                </span>
-                <span>•</span>
-                <span>UPI / QR / Cards / Netbanking</span>
-                <span>•</span>
-                <span className="flex items-center gap-1">
-                  <Lock className="h-3 w-3" />
-                  Cashfree Verified
-                </span>
+                  Secure checkout via Cashfree. UPI, cards and netbanking.
+                </p>
               </div>
-            </>
-          )}
-        </div>
+            </section>
+          </div>
+        )}
       </div>
     </div>
   );

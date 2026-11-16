@@ -7,6 +7,8 @@ import { cn } from "@/lib/utils";
 
 const tabs = [
   { name: "Inventory",               href: "/inventory" },
+  { name: "Recipes",                 href: "/inventory/recipes" },
+  { name: "Usage",                   href: "/inventory/usage" },
   { name: "Purchase Orders",         href: "/inventory/procurement" },
   { name: "Vendors",                 href: "/inventory/procurement?tab=suppliers" },
   { name: "Marketplace & Best Rates", href: "/inventory/procurement?tab=marketplace" },
@@ -26,7 +28,9 @@ export default function InventoryNavTabs() {
           const isPOsTab = tab.href === "/inventory/procurement" && !isVendorsTab && !isMarketplaceTab;
 
           let isActive = false;
-          if (isMarketplaceTab) {
+          if (tab.href === "/inventory/recipes" || tab.href === "/inventory/usage") {
+            isActive = pathname === tab.href;
+          } else if (isMarketplaceTab) {
             isActive = pathname === "/inventory/procurement" && activeTabParam === "marketplace";
           } else if (isVendorsTab) {
             isActive = pathname === "/inventory/procurement" && activeTabParam === "suppliers";

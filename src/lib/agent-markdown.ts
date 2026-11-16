@@ -5,12 +5,12 @@
 export const MARKDOWN_PAGES: Record<string, string> = {
   "/": `# Alayn AI — Restaurant Billing Software, POS & Operating System for Hospitality
 
-> GST billing, orders, kitchen display, inventory, waste tracking, and staffing—unified in one intelligent platform with real-time visibility across every location.
+> VAT billing, orders, kitchen display, inventory, waste tracking, and staffing—unified in one intelligent platform with real-time visibility across every location.
 
 Alayn AI is an enterprise-grade, multi-tenant restaurant billing software and operating system built for restaurant chains, hospitality groups, cloud kitchens, cafes, QSRs, and dining establishments. Backed by BRAHM Global Holdings.
 
 ## Core Capabilities
-1. **Counter & Table POS Billing Software**: Counter and table GST billing (CGST/SGST) with UPI, card and cash, plus printed KOTs and thermal receipts. Details: https://alaynai.com/billing-software
+1. **Counter & Table POS Billing Software**: Counter and table VAT billing with card, cash and digital payments, plus printed KOTs and thermal receipts. Details: https://alaynai.com/billing-software
 2. **Kitchen Display System (KDS)**: Orders appear on the kitchen board in real time; cancellations are flagged to the kitchen.
 3. **Smart Inventory**: Stock levels, minimum levels, FEFO batch expiry alerts, and one-click restock purchase orders.
 4. **Waste Management**: Waste logged per item with a reason, loss totals and trends, and high-waste alerts.
@@ -19,7 +19,7 @@ Alayn AI is an enterprise-grade, multi-tenant restaurant billing software and op
 7. **Ask Alayn AI**: Plain-language questions about sales, stock, staffing and menu performance.
 
 ## Pricing
-₹1,999 per outlet per month + 18% GST, with every feature included. Details: https://alaynai.com/pricing
+£79 per outlet per month (£600 per outlet per year if billed yearly) + 20% VAT, with every feature included. Details: https://alaynai.com/pricing
 
 - Restaurant Billing Software: https://alaynai.com/billing-software
 - Full feature list: https://alaynai.com/features
@@ -40,20 +40,20 @@ Alayn AI is an enterprise-grade, multi-tenant restaurant billing software and op
 `,
 
   // Keep in step with src/app/billing-software/page.tsx.
-  "/billing-software": `# Alayn AI — Restaurant Billing Software & GST POS System in India
+  "/billing-software": `# Alayn AI — Restaurant Billing Software & VAT POS System in the UK
 
-> Fast GST billing software and POS for restaurants, cafés, QSRs, and cloud kitchens in India—unified with live KDS, FEFO inventory, waste tracking, and staff rosters.
+> Fast VAT billing software and POS for restaurants, cafés, QSRs, and cloud kitchens in the UK—unified with live KDS, FEFO inventory, waste tracking, and staff rosters.
 
 ## Core Billing & POS Capabilities
 1. **Counter & Table POS Billing**: Switch between quick-service counter billing and dine-in table billing across unlimited POS terminals per outlet.
-2. **GST-Compliant Invoicing (CGST & SGST)**: Automated CGST and SGST tax invoices, thermal receipts with GSTIN/FSSAI headers, and GST sales summaries.
+2. **VAT-Compliant Invoicing**: Automated VAT tax invoices, thermal receipts with VAT registration headers, and VAT sales summaries.
 3. **Instant KOT Printing & Live Kitchen Display (KDS)**: Orders print at the prep station and land on the live KDS screen simultaneously; cancellations are flagged immediately.
-4. **UPI, Card & Cash Settlement**: Record UPI, card, and cash payments with shift-wise payment mode breakdowns, plus view-only digital QR table menus.
+4. **Card, Cash & Digital Settlement**: Record card, contactless, and cash payments with shift-wise payment mode breakdowns, plus view-only digital QR table menus.
 5. **Live Inventory & Waste Control**: FEFO batch expiry tracking, low-stock alerts, one-click vendor purchase orders, and item-level waste logging.
 6. **Multi-Outlet Billing & Ask Alayn AI**: Manage every location from one login and ask plain-language questions about daily billing, top sellers, and margins.
 
 ## Pricing
-₹1,999 per outlet per month + 18% GST (₹2,358.82 total per month). Every module included.
+£79 per outlet per month (£600 per outlet per year if billed yearly) + 20% VAT (£94.80 total per month). Every module included.
 
 - Pricing details: https://alaynai.com/pricing
 - Features: https://alaynai.com/features
@@ -68,7 +68,7 @@ Alayn AI is an enterprise-grade, multi-tenant restaurant billing software and op
 Alayn AI is a restaurant billing software and operating system for restaurants, cafés, cloud kitchens and multi-outlet hospitality groups in India. Every feature below is included in one per-outlet subscription (see https://alaynai.com/pricing).
 
 ## Point of Sale & GST Billing Software
-- Counter and table GST billing with UPI, card and cash.
+- Counter and table GST billing with card and cash.
 - Printed KOTs and thermal receipts.
 - Table QR codes that open the menu on the guest's phone.
 - Unlimited POS terminals per outlet.
@@ -115,7 +115,7 @@ Alayn AI is a restaurant billing software and operating system for restaurants, 
   // src/components/subscription/SubscriptionMonthSelector.tsx.
   "/pricing": `# Alayn AI Pricing
 
-> One plan, priced per outlet: ₹1,999 per month + 18% GST (₹2,358.82 per month in total).
+> One plan, priced per outlet: £79 per month or £600 per year + 20% VAT (£94.80 per month in total).
 
 ## What's Included
 Every feature, for every outlet on the plan:
@@ -157,7 +157,7 @@ Alayn AI is the dedicated hospitality technology company within **BRAHM Global H
 4. **Multi-Outlet Enterprise Scalability**: Multi-tenant architecture designed to scale seamlessly from single independent venues to multi-city restaurant groups.
 
 ## 3. Corporate Backing & Governance
-Alayn AI is built and operated by **BRAHM Global Holdings**, a sole proprietorship based in Mumbai, India.
+Alayn AI is built and operated by **BRAHM Global Holdings**, a sole proprietorship based in London, United Kingdom.
 
 - **Website**: https://alaynai.com
 - **Contact**: info@alaynai.com
@@ -187,7 +187,7 @@ For existing restaurant partners requiring technical or account assistance:
 
 ## Corporate Headquarters
 - **Entity**: Alayn AI (A BRAHM Global Holdings Company)
-- **Location**: Mumbai, India
+- **Location**: London, United Kingdom
 - **Primary Website**: https://alaynai.com
 `,
 

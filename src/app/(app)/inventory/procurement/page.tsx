@@ -30,7 +30,7 @@ import {
   Search,
   ChevronLeft,
   ChevronRight,
-  IndianRupee,
+  PoundSterling,
   RotateCcw,
   Eye,
   Pencil,
@@ -135,9 +135,9 @@ export default function ProcurementPage() {
     return purchaseOrders.filter((po) => po.status === "SENT" || po.status === "PARTIALLY_RECEIVED").length;
   }, [purchaseOrders]);
 
-  const totalSpendRupees = useMemo(() => {
+  const totalSpendPounds = useMemo(() => {
     const totalPaise = purchaseOrders.reduce((acc, po) => acc + (po.totalAmountPaise || 0), 0);
-    return (totalPaise / 100).toLocaleString("en-IN", { maximumFractionDigits: 2 });
+    return (totalPaise / 100).toLocaleString("en-GB", { maximumFractionDigits: 2 });
   }, [purchaseOrders]);
 
   // Filtered Purchase Orders
@@ -440,11 +440,11 @@ export default function ProcurementPage() {
             <div className="rounded-2xl border border-zinc-200/80 bg-white p-4 sm:p-5 shadow-2xs flex items-center justify-between">
               <div>
                 <span className="text-[11px] font-semibold text-zinc-500 uppercase tracking-wider">Total Restock Spend</span>
-                <h2 className="text-xl sm:text-2xl font-extrabold text-zinc-900 mt-0.5">₹{totalSpendRupees}</h2>
+                <h2 className="text-xl sm:text-2xl font-extrabold text-zinc-900 mt-0.5">£{totalSpendPounds}</h2>
                 <p className="text-xs text-zinc-500 mt-0.5">Total purchase order value</p>
               </div>
               <div className="rounded-xl bg-emerald-50 p-3 text-emerald-700 shrink-0">
-                <IndianRupee className="h-5 w-5" />
+                <PoundSterling className="h-5 w-5" />
               </div>
             </div>
 
@@ -590,7 +590,7 @@ export default function ProcurementPage() {
                               )}
                               <td className="px-4 py-3.5 text-center text-zinc-600 font-medium whitespace-nowrap">{po.items?.length || 0}</td>
                               <td className="px-4 py-3.5 text-right font-semibold text-zinc-900 tabular-nums whitespace-nowrap">
-                                ₹{(po.totalAmountPaise / 100).toFixed(2)}
+                                £{(po.totalAmountPaise / 100).toFixed(2)}
                               </td>
                               <td className="px-3 py-3 text-center whitespace-nowrap">
                                 <span
@@ -606,7 +606,7 @@ export default function ProcurementPage() {
                                 )}
                               </td>
                               <td className="px-4 py-3 text-center text-xs text-zinc-500 whitespace-nowrap">
-                                {po.createdAt ? new Date(po.createdAt).toLocaleDateString("en-IN", {
+                                {po.createdAt ? new Date(po.createdAt).toLocaleDateString("en-GB", {
                                   day: "2-digit",
                                   month: "short",
                                   hour: "2-digit",
@@ -1093,7 +1093,7 @@ export default function ProcurementPage() {
                       <input
                         required
                         type="text"
-                        placeholder="+91 9876543210"
+                        placeholder="+44 7700 900123"
                         value={supplierForm.phone}
                         onChange={(e) => setSupplierForm({ ...supplierForm, phone: e.target.value })}
                         className="w-full rounded-xl border border-zinc-300 px-3.5 py-2.5 text-xs text-zinc-900 focus:border-zinc-800 focus:outline-none shadow-xs"
@@ -1367,7 +1367,7 @@ export default function ProcurementPage() {
                     )}
                     {receivingPO.expectedNextDeliveryDate && (
                       <p className="text-purple-800 font-semibold">
-                        Expected Next Delivery: {new Date(receivingPO.expectedNextDeliveryDate).toLocaleDateString("en-IN")}
+                        Expected Next Delivery: {new Date(receivingPO.expectedNextDeliveryDate).toLocaleDateString("en-GB")}
                       </p>
                     )}
                     <p className="text-[11px] text-blue-700 italic pt-0.5">
@@ -1728,14 +1728,14 @@ export default function ProcurementPage() {
                       {supplierPOs.slice(0, 3).map((po) => (
                         <div key={po.id} className="p-3 bg-white flex items-center justify-between gap-3">
                           <div>
-                            <span className="font-semibold text-xs text-zinc-900">{po.createdAt ? new Date(po.createdAt).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }) : "Restock Order"}</span>
+                            <span className="font-semibold text-xs text-zinc-900">{po.createdAt ? new Date(po.createdAt).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" }) : "Restock Order"}</span>
                             <span className="text-zinc-400 text-[11px] ml-2 font-medium">({po.items?.length || 0} items)</span>
                             {formatPONumber(po) && (
                               <span className="block font-mono text-[11px] text-zinc-500">{formatPONumber(po)}</span>
                             )}
                           </div>
                           <div className="flex items-center gap-3">
-                            <span className="font-bold text-zinc-900 tabular-nums">₹{(po.totalAmountPaise / 100).toFixed(2)}</span>
+                            <span className="font-bold text-zinc-900 tabular-nums">£{(po.totalAmountPaise / 100).toFixed(2)}</span>
                             <span className="rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 px-2 py-0.5 text-[10px] font-bold">
                               {po.status}
                             </span>

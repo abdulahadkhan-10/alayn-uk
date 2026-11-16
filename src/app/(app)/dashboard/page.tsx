@@ -31,9 +31,10 @@ interface PageProps {
 
 type RangeType = "TODAY" | "YESTERDAY" | "7_DAY" | "CUSTOM" | "THIS_MONTH" | "LAST_MONTH";
 
-/** "YYYY-MM-DD" for India time, n days ago (toISOString would give the UTC date, a day behind before 5:30 AM) */
-const istDate = (daysAgo = 0) =>
-  new Date(Date.now() - daysAgo * 24 * 60 * 60 * 1000).toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" });
+/** "YYYY-MM-DD" for UK time, n days ago */
+const ukDate = (daysAgo = 0) =>
+  new Date(Date.now() - daysAgo * 24 * 60 * 60 * 1000).toLocaleDateString("en-CA", { timeZone: "Europe/London" });
+const istDate = ukDate;
 
 /** How the selected date range reads in card subtitles ("No dishes sold this month") */
 const RANGE_LABELS: Record<RangeType, string> = {
@@ -96,7 +97,7 @@ export default function MasterDashboardPage(props?: PageProps) {
   const [endDate, setEndDate] = useState<string>(istDate());
 
   const { data: kpiData, isLoading: isKpiLoading, isError: isKpiError, error: kpiError } = useGetKpisQuery({ outletId, range: dateRange, startDate, endDate });
-  // e.g. a custom range over 400 days: say so instead of showing ₹0 everywhere
+  // e.g. a custom range over 400 days: say so instead of showing £0 everywhere
   const kpiErrorMessage = isKpiError
     ? (kpiError as { data?: { error?: { message?: string } } } | undefined)?.data?.error?.message ||
       "Couldn't load figures for these dates."
@@ -140,16 +141,16 @@ export default function MasterDashboardPage(props?: PageProps) {
 
   const kpis = [
     {
-      // Settled orders only, before GST (GST and unpaid bills are shown underneath, not counted)
-      label: "Net sales (excl. GST)",
-      value: kpiData?.totalRevenue?.value || "₹0",
-      prev: kpiData?.totalRevenue?.prev || "₹0",
+      // Settled orders only, before VAT (VAT and unpaid bills are shown underneath, not counted)
+      label: "Net sales (excl. VAT)",
+      value: kpiData?.totalRevenue?.value || "£0",
+      prev: kpiData?.totalRevenue?.prev || "£0",
       // No percentage when there is nothing earlier to compare with (the API sends an empty change)
       trend: kpiData?.totalRevenue?.change ?? "",
       positive: kpiData?.totalRevenue?.isPositive ?? true,
       note: kpiData
-        ? `GST collected ${kpiData.taxCollected?.value || "₹0"}` +
-          (kpiData.serviceCharge?.value && kpiData.serviceCharge.value !== "₹0" ? ` · Service charge ${kpiData.serviceCharge.value}` : "") +
+        ? `VAT collected ${kpiData.taxCollected?.value || "£0"}` +
+          (kpiData.serviceCharge?.value && kpiData.serviceCharge.value !== "£0" ? ` · Service charge ${kpiData.serviceCharge.value}` : "") +
           (kpiData.openBills && kpiData.openBills.count > 0
             ? ` · ${kpiData.openBills.value} in ${kpiData.openBills.count} open bill${kpiData.openBills.count === 1 ? "" : "s"}`
             : "")
@@ -167,18 +168,18 @@ export default function MasterDashboardPage(props?: PageProps) {
     },
     {
       label: "Avg order value",
-      value: kpiData?.avgOrderValue?.value || "₹0",
-      prev: kpiData?.avgOrderValue?.prev || "₹0",
+      value: kpiData?.avgOrderValue?.value || "£0",
+      prev: kpiData?.avgOrderValue?.prev || "£0",
       trend: kpiData?.avgOrderValue?.change ?? "",
       positive: kpiData?.avgOrderValue?.isPositive ?? true,
-      note: "Settled orders, excl. GST",
+      note: "Settled orders, excl. VAT",
       route: "/orders/completed",
     },
     {
       // Menu items aren't linked to stock, so there's no food cost or margin; waste is what's known
       label: "Stock wasted",
-      value: kpiData?.waste?.value || "₹0",
-      prev: kpiData?.waste?.prev || "₹0",
+      value: kpiData?.waste?.value || "£0",
+      prev: kpiData?.waste?.prev || "£0",
       trend: kpiData?.waste?.change ?? "",
       positive: kpiData?.waste?.isPositive ?? true,
       note: "Value of stock logged as waste",

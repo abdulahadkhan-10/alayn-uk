@@ -27,7 +27,7 @@ const ALERTS: Alert[] = [
     id: "waste",
     category: "Waste",
     title: "High waste logged",
-    body: "4 kg cooked rice written off at the Bandra outlet.",
+    body: "4 kg cooked rice written off at the Shoreditch outlet.",
     time: "25m",
   },
   {

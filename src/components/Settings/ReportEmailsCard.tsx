@@ -96,7 +96,7 @@ function CardShell({ action, children }: { action?: React.ReactNode; children: R
             Report Emails
           </h3>
           <p className="text-xs text-gray-500 mt-1">
-            Get your sales report as a PDF in your inbox, compared with the period before. Times are India time.
+            Get your sales report as a PDF in your inbox, compared with the period before. Times are UK time (GMT/BST).
           </p>
         </div>
         {action}

@@ -24,15 +24,16 @@ import {
   ModifierItem,
 } from "@/redux/slices/menuApiSlice";
 import { useBranch } from "@/lib/BranchContext";
+import RecipeEditor, { RecipeEditorMenuItem } from "./RecipeEditor";
 
-// FSSAI Pack Food Icons
-const FssaiVegIcon = () => (
+// Dietary icons
+const VegIcon = () => (
   <span className="w-3.5 h-3.5 border border-emerald-600 rounded-[2px] p-[1.5px] inline-flex items-center justify-center shrink-0 bg-white" title="Vegetarian">
     <span className="w-1.5 h-1.5 rounded-full bg-emerald-600" />
   </span>
 );
 
-const FssaiNonVegIcon = () => (
+const NonVegIcon = () => (
   <span className="w-3.5 h-3.5 border border-rose-600 rounded-[2px] p-[1.5px] inline-flex items-center justify-center shrink-0 bg-white" title="Non-Vegetarian">
     <span className="w-1.5 h-1.5 rounded-full bg-rose-600" />
   </span>
@@ -56,6 +57,9 @@ export default function ModifierGroupManager() {
   const [deleteModifierGroup, { isLoading: isDeleting }] = useDeleteModifierGroupMutation();
 
   const [isModalOpen, setIsModalOpen] = useState(false);
+  // Recipes are per branch, so the recipe button is offered once a specific branch is chosen
+  const [recipeTarget, setRecipeTarget] = useState<RecipeEditorMenuItem | null>(null);
+  const [isRecipeOpen, setIsRecipeOpen] = useState(false);
   const [editingGroupId, setEditingGroupId] = useState<string | null>(null);
   const [groupToDelete, setGroupToDelete] = useState<{ id: string; name: string } | null>(null);
 
@@ -231,7 +235,7 @@ export default function ModifierGroupManager() {
           </div>
           <h2 className="text-xl font-bold tracking-tight">Add-ons & Variations Manager</h2>
           <p className="text-xs text-slate-300 max-w-2xl mt-1 leading-relaxed">
-            Create reusable customization groups (like <span className="text-amber-300 font-semibold">&ldquo;Extra Butter&rdquo; (+₹20)</span>, <span className="text-amber-300 font-semibold">&ldquo;Cheese Slice&rdquo; (+₹35)</span>, or <span className="text-amber-300 font-semibold">&ldquo;Half / Full&rdquo;</span> sizes). Attach them to any menu item to empower your POS cashiers and QR diners.
+            Create reusable customisation groups (like <span className="text-amber-300 font-semibold">&ldquo;Extra Butter&rdquo; (+£1.50)</span>, <span className="text-amber-300 font-semibold">&ldquo;Cheese Slice&rdquo; (+£2.00)</span>, or <span className="text-amber-300 font-semibold">&ldquo;Regular / Large&rdquo;</span> sizes). Attach them to any menu item to empower your POS cashiers and QR diners.
           </p>
         </div>
 
@@ -332,25 +336,40 @@ export default function ModifierGroupManager() {
 
                   {/* Options List Preview */}
                   <div className="space-y-1.5 pt-2 border-t border-slate-100">
-                    {(group.modifiers || []).slice(0, 5).map((m, idx) => (
+                    {(currentOutletId ? group.modifiers || [] : (group.modifiers || []).slice(0, 5)).map((m, idx) => (
                       <div
                         key={idx}
                         className="flex items-center justify-between text-xs py-1 px-2 rounded-lg bg-slate-50 border border-slate-100"
                       >
                         <div className="flex items-center gap-1.5">
-                          {m.isVeg ? <FssaiVegIcon /> : <FssaiNonVegIcon />}
+                          {m.isVeg ? <VegIcon /> : <NonVegIcon />}
                           <span className="font-medium text-slate-800">{m.name}</span>
                         </div>
-                        <span className="font-bold text-slate-900">
-                          {group.minSelection === 1 && group.maxSelection === 1
-                            ? `₹${Number(m.price).toFixed(2)}`
-                            : m.price > 0
-                            ? `+₹${Number(m.price).toFixed(2)}`
-                            : "Free"}
+                        <span className="flex items-center gap-2">
+                          <span className="font-bold text-slate-900">
+                            {group.minSelection === 1 && group.maxSelection === 1
+                              ? `£${Number(m.price).toFixed(2)}`
+                              : m.price > 0
+                              ? `+£${Number(m.price).toFixed(2)}`
+                              : "Free"}
+                          </span>
+                          {currentOutletId && m.id && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setRecipeTarget({ id: m.id as string, name: m.name, price: Number(m.price), kind: "addon" });
+                                setIsRecipeOpen(true);
+                              }}
+                              className="rounded-md border border-slate-200 bg-white px-1.5 py-0.5 text-[10px] font-bold text-slate-700 hover:bg-slate-100 cursor-pointer"
+                              title="Recipe: the raw materials this add-on uses"
+                            >
+                              Recipe
+                            </button>
+                          )}
                         </span>
                       </div>
                     ))}
-                    {(group.modifiers || []).length > 5 && (
+                    {!currentOutletId && (group.modifiers || []).length > 5 && (
                       <p className="text-[10px] text-slate-400 text-center pt-0.5">
                         +{group.modifiers.length - 5} more options
                       </p>
@@ -449,7 +468,7 @@ export default function ModifierGroupManager() {
                 >
                   <span className="block font-black text-xs text-indigo-950">Portion Sizes / Variants</span>
                   <span className="text-[11px] text-indigo-800/80 block font-normal mt-1 leading-tight">
-                    Must pick 1 (e.g. Half / Full). Enter the <strong>exact selling price</strong> for each size (e.g. Half: ₹250, Full: ₹500).
+                    Must pick 1 (e.g. Regular / Large). Enter the <strong>exact selling price</strong> for each size (e.g. Regular: £8.50, Large: £12.50).
                   </span>
                 </button>
 
@@ -464,7 +483,7 @@ export default function ModifierGroupManager() {
                 >
                   <span className="block font-black text-xs text-amber-950">Add-ons & Extras</span>
                   <span className="text-[11px] text-amber-800/80 block font-normal mt-1 leading-tight">
-                    Optional multi-choice. Enter the <strong>extra amount (+)</strong> added on top (e.g. Extra Butter: +₹20, Cheese: +₹35).
+                    Optional multi-choice. Enter the <strong>extra amount (+)</strong> added on top (e.g. Extra Butter: +£1.50, Cheese: +£2.00).
                   </span>
                 </button>
               </div>
@@ -506,7 +525,7 @@ export default function ModifierGroupManager() {
                       className="p-1 rounded bg-white border border-slate-200 shrink-0 hover:bg-slate-100 transition cursor-pointer"
                       title={opt.isVeg ? "Vegetarian (click to switch)" : "Non-Vegetarian (click to switch)"}
                     >
-                      {opt.isVeg ? <FssaiVegIcon /> : <FssaiNonVegIcon />}
+                      {opt.isVeg ? <VegIcon /> : <NonVegIcon />}
                     </button>
 
                     {/* Option Name */}
@@ -522,7 +541,7 @@ export default function ModifierGroupManager() {
                     {/* Extra / Selling Price */}
                     <div className="flex items-center gap-1 w-28 shrink-0 bg-white border border-slate-200 rounded-lg px-2 py-1.5">
                       <span className="text-xs font-bold text-slate-400">
-                        {selectionType === "MANDATORY_SINGLE" ? "₹" : "+₹"}
+                        {selectionType === "MANDATORY_SINGLE" ? "£" : "+£"}
                       </span>
                       <input
                         type="number"
@@ -530,7 +549,7 @@ export default function ModifierGroupManager() {
                         step="0.5"
                         value={opt.price}
                         onChange={(e) => handleOptionChange(idx, "price", e.target.value)}
-                        placeholder={selectionType === "MANDATORY_SINGLE" ? (idx === 0 ? "250" : "500") : "20"}
+                        placeholder={selectionType === "MANDATORY_SINGLE" ? (idx === 0 ? "8.50" : "12.50") : "1.50"}
                         className="w-full text-xs font-black text-slate-900 focus:outline-none"
                         required
                       />
@@ -573,6 +592,8 @@ export default function ModifierGroupManager() {
           </form>
         </div>
       </TModal>
+
+      <RecipeEditor open={isRecipeOpen} onClose={() => setIsRecipeOpen(false)} menuItem={recipeTarget} />
 
       {/* ── Modal: Delete Confirmation ── */}
       <TModal open={!!groupToDelete} onClose={() => setGroupToDelete(null)}>

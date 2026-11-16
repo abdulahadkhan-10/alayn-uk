@@ -13,18 +13,18 @@ const BY = { hour: "hour by hour", day: "day by day", week: "week by week", mont
 export const CURRENT = "#2563EB";
 export const PREVIOUS = "#94A3B8";
 
-// Axis labels in rupees: ₹1.2k, ₹15k, ₹1.5L
-export const compactInr = (rupees: number) => {
-  if (rupees >= 100000) return `₹${+(rupees / 100000).toFixed(1)}L`;
-  if (rupees >= 10000) return `₹${Math.round(rupees / 1000)}k`;
-  if (rupees >= 1000) return `₹${+(rupees / 1000).toFixed(1)}k`;
-  return `₹${Math.round(rupees)}`;
+// Axis labels in pounds: £1.2k, £15k, £1.5M
+export const compactGbp = (pounds: number) => {
+  if (pounds >= 1000000) return `£${+(pounds / 1000000).toFixed(1)}M`;
+  if (pounds >= 10000) return `£${Math.round(pounds / 1000)}k`;
+  if (pounds >= 1000) return `£${+(pounds / 1000).toFixed(1)}k`;
+  return `£${Math.round(pounds)}`;
 };
 
 interface Row {
   label: string;
   prevLabel: string | null;
-  current: number | null; // rupees, for the chart scale
+  current: number | null; // pounds, for the chart scale
   previous: number | null;
   currentPaise: number | null;
   previousPaise: number | null;
@@ -110,7 +110,7 @@ export default function TrendChart({ report, empty, params }: { report: ReportDa
                 axisLine={false}
                 tickLine={false}
                 tick={{ fill: "#64748B", fontSize: 11, fontWeight: 500 }}
-                tickFormatter={compactInr}
+                tickFormatter={compactGbp}
                 domain={[0, "auto"]}
                 allowDecimals={false}
               />

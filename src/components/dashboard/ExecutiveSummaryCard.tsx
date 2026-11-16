@@ -16,12 +16,12 @@ const BRIEFING_DATA: StructuredBriefing = {
     "Beverage & Specialty Coffee category sales grew 31% with high gross margins (81%).",
   ],
   warnings: [
-    "Food cost is 3.4% above target threshold in Outlet 3 (Bhendi Bazaar Express).",
-    "Supplier Verka Dairy delayed 3 consecutive purchase order deliveries this week.",
+    "Food cost is 3.4% above target threshold in Outlet 3 (Covent Garden Express).",
+    "Supplier Arla Foods Dairy delayed 3 consecutive purchase order deliveries this week.",
     "Inventory waste increased by 4% in dairy stock due to over-ordering buffer sizes.",
   ],
   recommendations: [
-    "Reduce weekly dairy order buffer by 8% to prevent spoilage and save ~₹14,000 monthly.",
+    "Reduce weekly dairy order buffer by 8% to prevent spoilage and save ~£1,400 monthly.",
     "Prepare +25 burger patties in advance for Friday evening peak demand spike.",
     "Feature high-margin Iced Caramel Latte on primary POS quick-keys across all branches.",
   ],

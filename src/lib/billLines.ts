@@ -13,15 +13,15 @@ import { store } from "@/redux/store/store";
 
 export interface BillAddonRow {
   name: string;
-  unitRupees: number;
-  amountRupees: number;
+  unitPounds: number;
+  amountPounds: number;
 }
 
 export interface BillItemRows {
   name: string;
   qty: number;
-  unitRupees: number;
-  amountRupees: number;
+  unitPounds: number;
+  amountPounds: number;
   addons: BillAddonRow[];
   notes?: string;
 }
@@ -62,7 +62,7 @@ export function billItemRows(item: any): BillItemRows {
 
   const addons: BillAddonRow[] = addonMods.map((m: any) => {
     const paise = modifierPaise(m);
-    return { name: m.name, unitRupees: paise / 100, amountRupees: (paise * qty) / 100 };
+    return { name: m.name, unitPounds: paise / 100, amountPounds: (paise * qty) / 100 };
   });
   const addonsPaisePerUnit = addonMods.reduce((sum: number, m: any) => sum + modifierPaise(m), 0);
 
@@ -73,8 +73,8 @@ export function billItemRows(item: any): BillItemRows {
   return {
     name: variant ? `${baseName} (${variant.name})` : baseName,
     qty,
-    unitRupees: dishUnitPaise / 100,
-    amountRupees: dishLinePaise / 100,
+    unitPounds: dishUnitPaise / 100,
+    amountPounds: dishLinePaise / 100,
     addons,
     notes: item.notes?.trim() || undefined,
   };

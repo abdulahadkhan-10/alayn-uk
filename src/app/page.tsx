@@ -18,7 +18,7 @@ import IntroReveal from "@/components/landing/IntroReveal";
 
 const title = "Alayn AI: Restaurant Billing Software, POS, Inventory & Workforce OS";
 const description =
-  "GST billing software, counter & table POS, instant KOT, kitchen display (KDS), FEFO inventory, waste tracking, and staff scheduling in one platform for restaurants, cafés & cloud kitchens.";
+  "VAT billing software, counter & table POS, instant KOT, kitchen display (KDS), FEFO inventory, waste tracking, and staff scheduling in one platform for restaurants, cafés & cloud kitchens.";
 
 export const metadata: Metadata = {
   title: {

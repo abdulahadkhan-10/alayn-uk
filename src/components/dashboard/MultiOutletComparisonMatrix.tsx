@@ -82,12 +82,12 @@ export const MultiOutletComparisonMatrix = memo(function MultiOutletComparisonMa
             {sortedOutlets.map((o) => (
               <tr key={o.id} className="hover:bg-zinc-50/60 transition-colors">
                 <td className="px-4 py-3 font-semibold text-zinc-900">{o.name}</td>
-                <td className="px-4 py-3 text-right font-bold text-zinc-900">₹{o.revenue.toLocaleString("en-IN")}</td>
+                <td className="px-4 py-3 text-right font-bold text-zinc-900">£{o.revenue.toLocaleString("en-GB")}</td>
                 <td className="px-4 py-3 text-center font-semibold text-emerald-700">+{o.growth}%</td>
                 <td className="px-4 py-3 text-center font-bold text-zinc-800">{o.orders}</td>
                 <td className="px-4 py-3 text-center font-medium text-zinc-800">{o.foodCostPct}%</td>
-                <td className="px-4 py-3 text-right font-semibold text-rose-600">₹{o.wasteCost.toLocaleString("en-IN")}</td>
-                <td className="px-4 py-3 text-right font-bold text-emerald-700">₹{o.grossProfit.toLocaleString("en-IN")}</td>
+                <td className="px-4 py-3 text-right font-semibold text-rose-600">£{o.wasteCost.toLocaleString("en-GB")}</td>
+                <td className="px-4 py-3 text-right font-bold text-emerald-700">£{o.grossProfit.toLocaleString("en-GB")}</td>
                 <td className="px-4 py-3 text-center font-bold text-amber-600">★ {o.rating.toFixed(1)}</td>
                 <td className="px-4 py-3 text-center font-bold text-zinc-900">{o.healthScore}/100</td>
               </tr>

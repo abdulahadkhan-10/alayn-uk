@@ -94,7 +94,7 @@ export const OutletPerformanceTable = memo(function OutletPerformanceTable({
 
                     {/* Revenue */}
                     <td className="px-4 py-3.5 text-right font-extrabold text-[#1B2A4A] tabular-nums text-sm">
-                      ₹{outlet.revenue.toLocaleString("en-IN")}
+                      £{outlet.revenue.toLocaleString("en-GB")}
                     </td>
 
                     {/* Inline Sparkline */}
@@ -137,7 +137,7 @@ export const OutletPerformanceTable = memo(function OutletPerformanceTable({
 
                     {/* Gross Profit */}
                     <td className="px-4 py-3.5 text-right font-bold text-emerald-700 tabular-nums">
-                      ₹{outlet.grossProfit.toLocaleString("en-IN")}
+                      £{outlet.grossProfit.toLocaleString("en-GB")}
                     </td>
 
                     {/* Food Cost % with Gauge Progress Bar */}
@@ -159,7 +159,7 @@ export const OutletPerformanceTable = memo(function OutletPerformanceTable({
 
                     {/* Waste Cost */}
                     <td className="px-4 py-3.5 text-right font-semibold text-[#D3232A] tabular-nums">
-                      ₹{outlet.wasteCost.toLocaleString("en-IN")}
+                      £{outlet.wasteCost.toLocaleString("en-GB")}
                     </td>
 
                     {/* Rating */}

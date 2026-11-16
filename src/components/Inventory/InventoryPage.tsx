@@ -9,7 +9,7 @@ import {
   Plus,
   AlertTriangle,
   RotateCcw,
-  IndianRupee,
+  PoundSterling,
   Building2,
   Loader2,
   RefreshCw,

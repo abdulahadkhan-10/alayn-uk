@@ -148,8 +148,8 @@ export default function ContactPage() {
         <address className="not-italic text-sm text-slate-400 font-light leading-relaxed">
           <span className="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-2">Business address</span>
           Alayn AI · BRAHM Global Holdings<br />
-          Shop No. 6, Veena Beena Shopping Centre, Guru Nanak Marg<br />
-          Bandra West, Mumbai, Maharashtra 400050, India<br />
+          42 Long Acre, Covent Garden<br />
+          London, Greater London WC2E 9JT, United Kingdom<br />
           <a href="mailto:info@alaynai.com" className="text-amber-400 hover:underline">info@alaynai.com</a>
         </address>
       </main>

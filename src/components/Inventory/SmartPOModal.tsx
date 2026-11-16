@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useMemo } from "react";
-import { X, CheckCircle2, AlertTriangle, Package, IndianRupee, Loader2, ChevronDown } from "lucide-react";
+import { X, CheckCircle2, AlertTriangle, Package, PoundSterling, Loader2, ChevronDown } from "lucide-react";
 import { InventoryItemApi } from "@/redux/slices/inventoryApiSlice";
 import NumberInput from "@/components/ui/NumberInput";
 import {
@@ -308,8 +308,8 @@ export default function SmartPOModal({
           <div>
             <p className="text-[11px] font-semibold uppercase tracking-wider text-zinc-400 mb-1">Estimated Total</p>
             <p className="text-2xl font-bold text-zinc-900 flex items-center gap-1">
-              <IndianRupee className="h-5 w-5 text-zinc-500" />
-              {(totalEstimatedPaise / 100).toLocaleString("en-IN", {
+              <PoundSterling className="h-5 w-5 text-zinc-500" />
+              {(totalEstimatedPaise / 100).toLocaleString("en-GB", {
                 minimumFractionDigits: 2,
                 maximumFractionDigits: 2,
               })}

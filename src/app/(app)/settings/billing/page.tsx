@@ -35,7 +35,7 @@ export default function BillingPage() {
   const outlets = Array.isArray(outletsData) ? outletsData : (outletsData as any)?.data || [];
 
   const isPromoPlan = (planCode?: string) => planCode?.startsWith("COUPON_");
-  const totalMonthlySpend = outlets.filter((o: any) => o.subscription?.status === "ACTIVE" && !isPromoPlan(o.subscription?.planCode)).length * 2358.82;
+  const totalMonthlySpend = outlets.filter((o: any) => o.subscription?.status === "ACTIVE" && !isPromoPlan(o.subscription?.planCode)).length * 94.8;
   const promoOutletsCount = outlets.filter((o: any) => o.subscription?.status === "ACTIVE" && isPromoPlan(o.subscription?.planCode)).length;
 
   return (
@@ -56,7 +56,7 @@ export default function BillingPage() {
                 Billing & Branch Subscriptions
               </h1>
               <p className="mt-1 text-xs sm:text-sm text-slate-400 max-w-2xl font-medium">
-                Review your active monthly outlet subscriptions, payment receipts, and GST breakdown.
+                Review your active monthly outlet subscriptions, payment receipts, and VAT breakdown.
               </p>
             </div>
 
@@ -97,9 +97,9 @@ export default function BillingPage() {
                 </div>
               </div>
               <p className="mt-2 text-2xl font-extrabold text-zinc-900 font-mono">
-                ₹{totalMonthlySpend.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                £{totalMonthlySpend.toLocaleString("en-GB", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               </p>
-              <p className="mt-1 text-[11px] text-zinc-400 font-medium">₹1,999 + 18% GST per branch / mo</p>
+              <p className="mt-1 text-[11px] text-zinc-400 font-medium">£79 per branch / mo, VAT included</p>
             </div>
 
             <div className="rounded-3xl bg-white p-6 border border-gray-100 shadow-xs">
@@ -140,7 +140,7 @@ export default function BillingPage() {
                   const sub = outlet.subscription;
                   const isActive = sub?.status === "ACTIVE";
                   const expiry = sub?.currentPeriodEnd 
-                    ? new Date(sub.currentPeriodEnd).toLocaleDateString("en-IN", {
+                    ? new Date(sub.currentPeriodEnd).toLocaleDateString("en-GB", {
                         day: "numeric",
                         month: "short",
                         year: "numeric"
@@ -196,7 +196,7 @@ export default function BillingPage() {
                               {sub?.planName || "Free VIP License"}
                             </span>
                           ) : (
-                            "₹2,358.82 / mo"
+                            "£94.80 / mo"
                           )}
                         </span>
                         <button
@@ -240,7 +240,7 @@ export default function BillingPage() {
                       <th className="py-3.5 px-6">Method</th>
                       <th className="py-3.5 px-6">Date</th>
                       <th className="py-3.5 px-6">Status</th>
-                      <th className="py-3.5 px-6 text-right">Amount (Incl. GST)</th>
+                      <th className="py-3.5 px-6 text-right">Amount (Incl. VAT)</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100 font-medium text-gray-700">
@@ -253,11 +253,11 @@ export default function BillingPage() {
                         <td className="py-4 px-6">
                           <span className="inline-flex items-center gap-1 rounded-md bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-slate-700">
                             <CreditCard className="h-3 w-3 text-slate-500" />
-                            {item.paymentMethod || "UPI"}
+                            {item.paymentMethod || "CARD"}
                           </span>
                         </td>
                         <td className="py-4 px-6 text-zinc-500">
-                          {new Date(item.paidAt || item.createdAt).toLocaleDateString("en-IN", {
+                          {new Date(item.paidAt || item.createdAt).toLocaleDateString("en-GB", {
                             day: "numeric",
                             month: "short",
                             year: "numeric"
@@ -282,7 +282,7 @@ export default function BillingPage() {
                           )}
                         </td>
                         <td className="py-4 px-6 text-right font-mono font-bold text-zinc-900">
-                          ₹{item.amountRupees.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          £{item.amountPounds.toLocaleString("en-GB", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                         </td>
                       </tr>
                     ))}

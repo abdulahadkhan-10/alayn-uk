@@ -76,8 +76,8 @@ export default function AddItemModal({
 
     const initialStockNum = Number(currentQty) || 0;
     const reorderNum = Number(notifyBelow) || 0;
-    const costRupeesNum = Number(costText) || 0;
-    const unitCostPaise = Math.round(costRupeesNum * 100);
+    const costPoundsNum = Number(costText) || 0;
+    const unitCostPaise = Math.round(costPoundsNum * 100);
 
     setBusy(true);
 
@@ -274,7 +274,7 @@ export default function AddItemModal({
             {/* Unit Cost */}
             <div>
               <label htmlFor="item-cost" className="block text-xs font-semibold uppercase tracking-wider text-zinc-700 mb-1.5">
-                Estimated Unit Cost (₹)
+                Estimated Unit Cost (£)
               </label>
               <input
                 id="item-cost"

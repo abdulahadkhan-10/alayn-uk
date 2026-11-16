@@ -1,7 +1,7 @@
 "use client";
 
 import React, { memo } from "react";
-import { X, TrendingUp, TrendingDown, Info, ArrowUpRight, ChevronRight, IndianRupee } from "lucide-react";
+import { X, TrendingUp, TrendingDown, Info, ArrowUpRight, ChevronRight, PoundSterling } from "lucide-react";
 import { ExecutiveKpiMetric } from "@/types/dashboard";
 
 interface KpiDrillDownDrawerProps {

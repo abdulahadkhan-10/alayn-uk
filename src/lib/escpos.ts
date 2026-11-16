@@ -72,12 +72,13 @@ export class ESCPOSBuilder {
 
   /** Append raw text string encoded in ASCII / UTF-8 */
   text(str: string): this {
-    // Replace rupee symbol with 'Rs.' for thermal printers without Unicode Rupee glyph
-    const sanitized = str.replace(/₹/g, "Rs.");
-    for (let i = 0; i < sanitized.length; i++) {
-      const charCode = sanitized.charCodeAt(i);
+    for (let i = 0; i < str.length; i++) {
+      const charCode = str.charCodeAt(i);
       if (charCode < 128) {
         this.buffer.push(charCode);
+      } else if (charCode === 163) {
+        // '£' symbol in CP437 thermal code page
+        this.buffer.push(0x9c);
       } else {
         // Safe fallback for non-ASCII characters
         this.buffer.push(0x3f); // '?'
@@ -106,10 +107,10 @@ export class ESCPOSBuilder {
     return this;
   }
 
-  /** Double-column left / right justification (e.g. "Subtotal         Rs.450.00") */
+  /** Double-column left / right justification (e.g. "Subtotal         £450.00") */
   twoColumns(left: string, right: string, padChar: string = " "): this {
-    const l = left.replace(/₹/g, "Rs.");
-    const r = right.replace(/₹/g, "Rs.");
+    const l = left;
+    const r = right;
     const spaceCount = Math.max(1, this.cols - l.length - r.length);
     const line = l + padChar.repeat(spaceCount) + r;
     this.textLine(line);
@@ -119,9 +120,9 @@ export class ESCPOSBuilder {
   /** Three-column layout (e.g. "Item Name         Qty     Price") */
   threeColumns(col1: string, col2: string, col3: string, col2Width = 6, col3Width = 10): this {
     const col1Width = Math.max(10, this.cols - col2Width - col3Width - 2);
-    const c1 = col1.replace(/₹/g, "Rs.").slice(0, col1Width).padEnd(col1Width, " ");
+    const c1 = col1.slice(0, col1Width).padEnd(col1Width, " ");
     const c2 = col2.padStart(col2Width, " ");
-    const c3 = col3.replace(/₹/g, "Rs.").padStart(col3Width, " ");
+    const c3 = col3.padStart(col3Width, " ");
     this.textLine(`${c1} ${c2} ${c3}`);
     return this;
   }
@@ -298,8 +299,8 @@ export function buildReceiptBytes(order: any, paperWidth: "80mm" | "58mm" = "80m
   );
 
   const orderDate = actualOrder.createdAt ? new Date(actualOrder.createdAt) : new Date();
-  const dateStr = orderDate.toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" });
-  const timeStr = orderDate.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", hour12: true });
+  const dateStr = orderDate.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
+  const timeStr = orderDate.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", hour12: true });
 
   const subtotal = actualOrder.subtotalPaise !== undefined
     ? actualOrder.subtotalPaise / 100
@@ -406,14 +407,14 @@ export function buildReceiptBytes(order: any, paperWidth: "80mm" | "58mm" = "80m
     const qty = String(line.qty);
 
     if (is80mm) {
-      builder.threeColumns(line.name, qty, `Rs.${line.amountRupees.toFixed(2)}`, 6, 10);
+      builder.threeColumns(line.name, qty, `£${line.amountPounds.toFixed(2)}`, 6, 10);
       for (const addon of line.addons) {
-        builder.threeColumns(`  + ${addon.name}`, qty, `Rs.${addon.amountRupees.toFixed(2)}`, 6, 10);
+        builder.threeColumns(`  + ${addon.name}`, qty, `£${addon.amountPounds.toFixed(2)}`, 6, 10);
       }
     } else {
-      builder.twoColumns(`${line.name} x${qty}`, `Rs.${line.amountRupees.toFixed(2)}`);
+      builder.twoColumns(`${line.name} x${qty}`, `£${line.amountPounds.toFixed(2)}`);
       for (const addon of line.addons) {
-        builder.twoColumns(`  + ${addon.name}`, `Rs.${addon.amountRupees.toFixed(2)}`);
+        builder.twoColumns(`  + ${addon.name}`, `£${addon.amountPounds.toFixed(2)}`);
       }
     }
   }
@@ -422,31 +423,31 @@ export function buildReceiptBytes(order: any, paperWidth: "80mm" | "58mm" = "80m
 
   // ── TOTALS ──
   builder.align("left");
-  builder.twoColumns("Subtotal:", `Rs.${Number(subtotal).toFixed(2)}`);
+  builder.twoColumns("Subtotal:", `£${Number(subtotal).toFixed(2)}`);
 
   if (discount > 0) {
     builder.twoColumns(
       `Discount ${actualOrder.couponCode ? `(${actualOrder.couponCode})` : ""}:`,
-      `-Rs.${Number(discount).toFixed(2)}`
+      `-£${Number(discount).toFixed(2)}`
     );
-    builder.twoColumns("Taxable Value:", `Rs.${Number(taxable).toFixed(2)}`);
+    builder.twoColumns("Taxable Value:", `£${Number(taxable).toFixed(2)}`);
   }
   if (serviceCharge > 0) {
-    builder.twoColumns("Service Charge:", `Rs.${Number(serviceCharge).toFixed(2)}`);
+    builder.twoColumns("Service Charge:", `£${Number(serviceCharge).toFixed(2)}`);
   }
   if (cgst > 0 || sgst > 0) {
-    builder.twoColumns(`CGST (${cgstRate}%):`, `Rs.${Number(cgst).toFixed(2)}`);
-    builder.twoColumns(`SGST (${sgstRate}%):`, `Rs.${Number(sgst).toFixed(2)}`);
+    builder.twoColumns(`CGST (${cgstRate}%):`, `£${Number(cgst).toFixed(2)}`);
+    builder.twoColumns(`SGST (${sgstRate}%):`, `£${Number(sgst).toFixed(2)}`);
   }
   if (roundOff !== 0) {
-    builder.twoColumns("Round off:", `${roundOff > 0 ? "+" : ""}Rs.${Number(roundOff).toFixed(2)}`);
+    builder.twoColumns("Round off:", `${roundOff > 0 ? "+" : ""}£${Number(roundOff).toFixed(2)}`);
   }
 
   builder.divider("-");
 
   // Grand Total (Large & Bold)
   builder.bold(true).textSize(2, 2);
-  builder.twoColumns("TOTAL:", `Rs.${Number(finalTotal).toFixed(2)}`);
+  builder.twoColumns("TOTAL:", `£${Number(finalTotal).toFixed(2)}`);
   builder.textSize(1, 1).bold(false);
 
   builder.divider("=");
@@ -458,7 +459,7 @@ export function buildReceiptBytes(order: any, paperWidth: "80mm" | "58mm" = "80m
     builder.align("left");
     for (const line of paymentLines) {
       const label = line.reference ? `${line.label} (Ref ${line.reference})` : line.label;
-      builder.twoColumns(`  ${label}`, `Rs.${(line.amountPaise / 100).toFixed(2)}`);
+      builder.twoColumns(`  ${label}`, `£${(line.amountPaise / 100).toFixed(2)}`);
     }
     builder.align("center");
   }

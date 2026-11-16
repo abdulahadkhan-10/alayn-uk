@@ -21,7 +21,7 @@ const TICKETS: Ticket[] = [
   {
     name: "Orders & POS",
     time: "18:02",
-    items: ["Counter & table billing", "UPI · card · cash", "Ticket to kitchen display", "KOT printed for the pass"],
+    items: ["Counter & table billing", "Card · cash", "Ticket to kitchen display", "KOT printed for the pass"],
   },
   {
     name: "Inventory",

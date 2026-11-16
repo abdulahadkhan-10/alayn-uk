@@ -18,7 +18,7 @@ interface RightNowCardProps {
   orders: OpenOrder[];
 }
 
-const inr = (n: number) => `₹${Math.round(n).toLocaleString("en-IN")}`;
+const gbp = (n: number) => `£${Math.round(n).toLocaleString("en-GB")}`;
 
 /** "THE202610080001" → "#0001" (the full number is in the title) */
 const shortTicket = (ticket: string) => {
@@ -91,7 +91,7 @@ export default function RightNowCard({ orders }: RightNowCardProps) {
         </div>
         <div>
           <dt className="text-xs text-slate-500">Unsettled</dt>
-          <dd className="text-xl font-bold text-slate-900 tabular-nums">{inr(total)}</dd>
+          <dd className="text-xl font-bold text-slate-900 tabular-nums">{gbp(total)}</dd>
         </div>
         <div>
           <dt className="text-xs text-slate-500">Oldest</dt>
@@ -119,7 +119,7 @@ export default function RightNowCard({ orders }: RightNowCardProps) {
                   {age(o.createdAt) && <span>{age(o.createdAt)} ago</span>}
                 </p>
               </div>
-              <span className="shrink-0 text-sm font-semibold text-slate-900 tabular-nums">{inr(o.totalAmount)}</span>
+              <span className="shrink-0 text-sm font-semibold text-slate-900 tabular-nums">{gbp(o.totalAmount)}</span>
             </li>
           ))}
         </ul>

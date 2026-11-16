@@ -37,7 +37,7 @@ const PILLARS = [
   {
     number: "04",
     title: "Multi-Outlet Enterprise Scalability",
-    desc: "Centralized menu and operational control with dynamic outlet-level tax scoping (CGST/SGST) and localized inventory management.",
+    desc: "Centralised menu and operational control with dynamic outlet-level tax scoping (UK VAT) and localised inventory management.",
   },
 ];
 
@@ -143,7 +143,7 @@ export default function AboutPage() {
             </h2>
             <h3 className="text-2xl font-bold text-white">Built and operated by BRAHM Global Holdings</h3>
             <p className="text-sm text-slate-400 font-light leading-relaxed max-w-xl">
-              Alayn AI is built and operated by BRAHM Global Holdings, based in Mumbai, India. Our registration details, GSTIN and policies are published on the{" "}
+              Alayn AI is built and operated by BRAHM Global Holdings, based in London, United Kingdom. Our registration details, VAT registration and policies are published on the{" "}
               <Link href="/legal/corporate" className="text-amber-400 hover:text-amber-300 underline underline-offset-2">
                 corporate information
               </Link>{" "}

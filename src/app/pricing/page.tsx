@@ -5,11 +5,11 @@ import LandingNav from "@/components/landing/LandingNav";
 import LandingFooter from "@/components/landing/LandingFooter";
 
 const siteUrl = "https://alaynai.com";
-const title = "Pricing — ₹1,999 per Outlet per Month | Restaurant Billing & POS | Alayn AI";
-const description = "Alayn AI restaurant billing software and POS costs ₹1,999 per outlet per month + 18% GST, with POS billing, kitchen display, inventory, waste tracking, workforce and analytics all included.";
+const title = "Pricing — £79 per Outlet per Month | Restaurant Billing & POS | Alayn AI";
+const description = "Alayn AI restaurant billing software and POS costs £79 per outlet per month, or £600 per outlet per year, + 20% VAT, with POS billing, kitchen display, inventory, waste tracking, workforce and analytics all included.";
 
 export const metadata: Metadata = {
-  title: "Pricing — ₹1,999/mo Restaurant Billing & POS",
+  title: "Pricing — £79/mo Restaurant Billing & POS",
   description,
   alternates: {
     canonical: `${siteUrl}/pricing`,
@@ -21,9 +21,12 @@ export const metadata: Metadata = {
 // Keep in step with the fee in
 // src/components/subscription/SubscriptionMonthSelector.tsx and the
 // "/pricing" entry in src/lib/agent-markdown.ts.
-const MONTHLY_FEE = 1999;
-const GST_PERCENT = 18;
-const MONTHLY_TOTAL = (MONTHLY_FEE * (100 + GST_PERCENT)) / 100;
+const MONTHLY_FEE = 79;
+const YEARLY_FEE = 600;
+const VAT_PERCENT = 20;
+const MONTHLY_TOTAL = (MONTHLY_FEE * (100 + VAT_PERCENT)) / 100;
+const YEARLY_TOTAL = (YEARLY_FEE * (100 + VAT_PERCENT)) / 100;
+const YEARLY_SAVING = MONTHLY_FEE * 12 - YEARLY_FEE;
 
 const INCLUDED = [
   "Unlimited POS billing terminals and table QR menus",
@@ -37,12 +40,12 @@ const INCLUDED = [
 
 const BILLING = [
   "Each outlet has its own subscription.",
-  "Pay for 1 to 36 months at a time.",
+  "Pay monthly, or yearly for £600 and save £348 against twelve months.",
   "Payments are processed by Cashfree.",
 ];
 
-const formatRupees = (amount: number) =>
-  `₹${amount.toLocaleString("en-IN", { maximumFractionDigits: 2 })}`;
+const formatGBP = (amount: number) =>
+  `£${amount.toLocaleString("en-GB", { maximumFractionDigits: 2 })}`;
 
 export default function PricingPage() {
   const jsonLd = {
@@ -67,7 +70,7 @@ export default function PricingPage() {
         "priceSpecification": {
           "@type": "UnitPriceSpecification",
           "price": MONTHLY_FEE,
-          "priceCurrency": "INR",
+          "priceCurrency": "GBP",
           "valueAddedTaxIncluded": false,
           "billingDuration": "P1M",
           "unitText": "per outlet per month"
@@ -111,11 +114,15 @@ export default function PricingPage() {
               PER OUTLET
             </span>
             <p className="text-5xl font-extrabold text-white tracking-tight">
-              {formatRupees(MONTHLY_FEE)}
+              {formatGBP(MONTHLY_FEE)}
               <span className="text-base font-light text-slate-400"> / month</span>
             </p>
             <p className="mt-2 text-sm text-slate-400 font-light">
-              + {GST_PERCENT}% GST ({formatRupees(MONTHLY_TOTAL)} per month in total)
+              + {VAT_PERCENT}% VAT ({formatGBP(MONTHLY_TOTAL)} per month in total)
+            </p>
+            <p className="mt-5 text-sm text-slate-300 font-light">
+              <span className="font-bold text-white">{formatGBP(YEARLY_FEE)} / year</span> if billed yearly — save {formatGBP(YEARLY_SAVING)}
+              <span className="block text-slate-400 mt-1">+ {VAT_PERCENT}% VAT ({formatGBP(YEARLY_TOTAL)} per year in total)</span>
             </p>
             <div className="mt-8 flex flex-wrap gap-3">
               <Link

@@ -115,7 +115,7 @@ export default function PerformanceRevenueChart({
               />
               <Tooltip
                 contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
-                formatter={(value) => [value ? `₹${Number(value).toLocaleString()}` : "₹0", "Sales"]}
+                formatter={(value) => [value ? `£${Number(value).toLocaleString("en-GB")}` : "£0", "Sales"]}
               />
               <Bar
                 dataKey="sales"

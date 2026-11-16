@@ -1,20 +1,15 @@
 "use client";
 
 import React, { useState } from "react";
-import { 
-  Store, 
-  CreditCard, 
-  Lock, 
-  ShieldCheck, 
-  CheckCircle2, 
-  Sparkles, 
-  Loader2, 
-  ArrowRight, 
-  AlertTriangle,
-  Building2,
+import {
+  Store,
+  Lock,
+  ShieldCheck,
+  Check,
+  Loader2,
+  ArrowRight,
   ChevronRight,
   Tag,
-  Gift
 } from "lucide-react";
 import { useBranch, Branch } from "@/lib/BranchContext";
 import { 
@@ -24,7 +19,7 @@ import {
 } from "@/redux/slices/subscriptionApiSlice";
 import { openCashfreeCheckout } from "@/lib/cashfree";
 import Link from "next/link";
-import SubscriptionMonthSelector, { calculateSubscriptionPricing } from "./SubscriptionMonthSelector";
+import SubscriptionMonthSelector, { calculateSubscriptionPricing, formatGBP } from "./SubscriptionMonthSelector";
 
 interface SubscriptionPaywallProps {
   targetBranch?: Branch | null;
@@ -39,6 +34,7 @@ export default function SubscriptionPaywall({ targetBranch }: SubscriptionPaywal
   const [months, setMonths] = useState<number>(1);
   const [isProcessing, setIsProcessing] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
+  const [showCoupon, setShowCoupon] = useState(false);
   const [couponInput, setCouponInput] = useState("");
   const [couponError, setCouponError] = useState("");
   const [couponSuccess, setCouponSuccess] = useState(false);
@@ -54,7 +50,7 @@ export default function SubscriptionPaywall({ targetBranch }: SubscriptionPaywal
   const branchToPay = targetBranch || (activeBranch?.id !== "all" ? activeBranch : null) || branches.find(b => b.id !== "all") || null;
 
   const hasOutlets = branches.filter(b => b.id !== "all").length > 0;
-  const pricing = calculateSubscriptionPricing(months, 1999, 18, appliedCoupon);
+  const pricing = calculateSubscriptionPricing(months, undefined, undefined, appliedCoupon);
 
   const handlePayNow = async () => {
     if (!branchToPay) return;
@@ -187,143 +183,110 @@ export default function SubscriptionPaywall({ targetBranch }: SubscriptionPaywal
 
   // State B: User has registered outlet(s), but the active/selected one requires payment
   const isExpired = branchToPay?.subscription?.status === "EXPIRED";
+  const isBusy = isProcessing || isInitiating || isVerifying;
+  const branchAddress = [branchToPay?.address, branchToPay?.city].filter(Boolean).join(", ");
+
+  const unlockedFeatures = [
+    "Unlimited POS terminals and table QR",
+    "Live kitchen display (KDS)",
+    "Multi-batch inventory and expiry tracking",
+    "AI menu and wastage insights",
+    "Geofenced staff attendance and rostering",
+    "Sales velocity and P&L analytics",
+  ];
 
   return (
-    <div className="max-w-3xl mx-auto py-6 sm:py-10 px-4">
-      <div className="bg-white rounded-3xl shadow-xl border border-gray-100 overflow-hidden">
-        {/* Banner Header */}
-        <div className="bg-gradient-to-br from-[#0B1221] via-[#111A2E] to-[#1E293B] p-8 sm:p-10 text-white relative">
-          <div className="flex flex-wrap items-center gap-2 mb-3">
-            <span className="inline-flex items-center gap-1.5 rounded-md bg-[#D3232A]/20 px-2.5 py-0.5 text-[11px] font-bold text-red-400 border border-[#D3232A]/30">
-              <Lock className="h-3.5 w-3.5" />
-              Subscription Required · Features Locked
-            </span>
-            {branchToPay && (
-              <span className="text-xs text-slate-400 font-medium">
-                Outlet: <strong className="text-white">{branchToPay.name}</strong>
-              </span>
-            )}
-          </div>
+    <div className="mx-auto w-full max-w-4xl px-4 py-4 sm:py-6">
+      <div className="grid overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm lg:grid-cols-[minmax(0,5fr)_minmax(0,6fr)]">
+        {/* Context panel */}
+        <aside className="flex flex-col bg-[#0B1221] p-6 text-white lg:p-8">
+          <span className="inline-flex w-fit items-center gap-1.5 rounded-md bg-white/10 px-2 py-1 text-[11px] font-medium text-slate-200">
+            <Lock className="h-3 w-3" />
+            Subscription required
+          </span>
 
-          <h1 className="text-2xl sm:text-3xl font-extrabold text-white font-serif tracking-tight">
-            {isExpired ? "Renew Your Branch Subscription" : "Activate Branch Subscription"}
+          <h1 className="mt-4 text-2xl font-semibold tracking-tight">
+            {isExpired ? "Renew branch subscription" : "Activate branch subscription"}
           </h1>
-          <p className="mt-2 text-xs sm:text-sm text-slate-300 max-w-xl font-medium leading-relaxed">
-            This outlet requires an active monthly subscription before POS billing counters, live kitchen displays, and inventory telemetry can be unlocked.
+          <p className="mt-2 text-sm leading-relaxed text-slate-400">
+            Unlock POS billing, kitchen display and inventory for this outlet.
           </p>
-        </div>
 
-        <div className="p-8 sm:p-10 space-y-6">
+          {branchToPay && (
+            <div className="mt-5 flex items-center gap-3 rounded-xl border border-white/10 bg-white/5 p-3">
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-white/10 text-slate-200">
+                <Store className="h-4 w-4" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-sm font-medium text-white">{branchToPay.name}</p>
+                {branchAddress && <p className="truncate text-xs text-slate-400">{branchAddress}</p>}
+              </div>
+              <span
+                className={`shrink-0 rounded-md px-2 py-0.5 text-[11px] font-medium ${
+                  isExpired ? "bg-red-500/15 text-red-300" : "bg-amber-400/15 text-amber-300"
+                }`}
+              >
+                {isExpired ? "Expired" : "Pending"}
+              </span>
+            </div>
+          )}
+
+          <ul className="mt-5 space-y-2.5">
+            {unlockedFeatures.map((feature) => (
+              <li key={feature} className="flex items-start gap-2.5 text-[13px] leading-snug text-slate-300">
+                <Check className="mt-0.5 h-3.5 w-3.5 shrink-0 text-emerald-400" strokeWidth={2.5} />
+                <span>{feature}</span>
+              </li>
+            ))}
+          </ul>
+
+          <Link
+            href="/outlets"
+            className="mt-6 inline-flex w-fit items-center gap-1 text-xs font-medium text-slate-400 transition-colors hover:text-white lg:mt-auto lg:pt-6"
+          >
+            Manage all outlets
+            <ChevronRight className="h-3.5 w-3.5" />
+          </Link>
+        </aside>
+
+        {/* Checkout panel */}
+        <section className="flex flex-col gap-4 p-6 lg:p-8">
           {errorMessage && (
-            <div className="rounded-2xl bg-red-50 p-4 text-xs font-semibold text-[#D3232A] border border-red-100">
+            <div role="alert" className="rounded-lg border border-red-100 bg-red-50 px-3 py-2 text-xs font-medium text-[#D3232A]">
               {errorMessage}
             </div>
           )}
 
-          {/* Targeted Branch Details */}
-          {branchToPay && (
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 rounded-2xl bg-slate-50 p-4 border border-slate-200/80">
-              <div className="flex items-center gap-3.5">
-                <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-red-50 text-[#D3232A] shrink-0 shadow-2xs">
-                  <Store className="h-5 w-5" />
-                </div>
-                <div>
-                  <h2 className="text-sm font-bold text-zinc-900">{branchToPay.name}</h2>
-                  <p className="text-xs text-zinc-500">{branchToPay.address}, {branchToPay.city || "India"}</p>
-                </div>
-              </div>
-              <span className={`self-start sm:self-auto rounded-full px-3 py-1 text-[11px] font-bold border ${
-                isExpired
-                  ? "bg-red-50 text-red-700 border-red-200"
-                  : "bg-amber-50 text-amber-700 border-amber-200"
-              }`}>
-                {isExpired ? "Subscription Expired" : "Pending Activation"}
-              </span>
-            </div>
-          )}
-
-          {/* What unlocks */}
-          <div className="space-y-3">
-            <h3 className="text-xs font-bold uppercase tracking-wider text-zinc-500">
-              Features unlocked with monthly subscription:
-            </h3>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-xs font-medium text-zinc-700">
-              <div className="flex items-center gap-2">
-                <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0" />
-                <span>Unlimited POS Terminals & Table QR</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0" />
-                <span>Live Kitchen Display System (KDS)</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0" />
-                <span>Multi-batch Inventory & Expiry Tracking</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0" />
-                <span>AI Menu & Wastage Insights</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0" />
-                <span>Staff Geofenced Attendance & Rostering</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0" />
-                <span>Sales Velocity & P&L Analytics</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Duration & Pricing Breakdown */}
           <SubscriptionMonthSelector
             months={months}
             onChange={setMonths}
             currentPeriodEnd={branchToPay?.subscription?.currentPeriodEnd}
-            disabled={isProcessing || isInitiating || isVerifying || isApplyingCoupon}
+            disabled={isBusy || isApplyingCoupon}
             coupon={appliedCoupon}
           />
 
-          {/* Dynamic Coupon Box */}
+          {/* Coupon */}
           {appliedCoupon ? (
-            <div className="rounded-2xl border border-emerald-300 bg-emerald-50/70 p-4 flex items-center justify-between animate-in fade-in-50 duration-200">
-              <div className="flex items-center gap-3">
-                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-100 text-emerald-700">
-                  <Tag className="h-4.5 w-4.5" />
-                </div>
-                <div>
-                  <div className="flex items-center gap-2">
-                    <span className="font-mono text-sm font-black text-emerald-900 tracking-wider uppercase">
-                      {appliedCoupon.code}
-                    </span>
-                    <span className="text-[10px] font-extrabold uppercase bg-emerald-200/80 text-emerald-900 px-2 py-0.5 rounded-full">
-                      {appliedCoupon.discountType === "PERCENTAGE"
-                        ? `${appliedCoupon.discountValue}% OFF`
-                        : `₹${appliedCoupon.discountValue} OFF`}
-                    </span>
-                  </div>
-                  <p className="text-xs text-emerald-700 mt-0.5">
-                    Discount applied to your subscription fee
-                  </p>
-                </div>
+            <div className="flex items-center justify-between rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2">
+              <div className="flex items-center gap-2 text-xs text-emerald-800">
+                <Tag className="h-3.5 w-3.5" />
+                <span className="font-mono font-semibold uppercase tracking-wider">{appliedCoupon.code}</span>
+                <span className="font-medium">
+                  {appliedCoupon.discountType === "PERCENTAGE"
+                    ? `${appliedCoupon.discountValue}% off`
+                    : `£${appliedCoupon.discountValue} off`}
+                </span>
               </div>
               <button
                 type="button"
                 onClick={handleRemoveCoupon}
-                className="text-xs font-bold text-red-600 hover:text-red-800 hover:underline px-2.5 py-1.5 cursor-pointer"
+                className="cursor-pointer text-xs font-medium text-emerald-800 underline-offset-2 hover:underline"
               >
                 Remove
               </button>
             </div>
-          ) : (
-            <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50/60 p-4 space-y-2.5">
-              <div className="flex items-center gap-2">
-                <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-red-100 text-[#D3232A]">
-                  <Tag className="h-3.5 w-3.5" />
-                </div>
-                <p className="text-xs font-bold text-zinc-900">Have a Promo or Coupon Code?</p>
-              </div>
-
+          ) : showCoupon ? (
+            <div className="space-y-1.5">
               <div className="flex gap-2">
                 <input
                   type="text"
@@ -332,70 +295,63 @@ export default function SubscriptionPaywall({ targetBranch }: SubscriptionPaywal
                     setCouponInput(e.target.value.toUpperCase());
                     setCouponError("");
                   }}
-                  placeholder="Enter coupon code"
-                  className="block flex-1 rounded-xl border-0 py-2.5 px-3.5 text-xs font-mono font-bold tracking-wider text-gray-900 ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-[#D3232A] bg-white uppercase"
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") handleApplyCoupon();
+                  }}
+                  placeholder="Promo code"
+                  aria-label="Promo code"
+                  autoFocus
+                  className="block h-10 flex-1 rounded-lg border-0 bg-white px-3 font-mono text-xs font-semibold uppercase tracking-wider text-zinc-900 ring-1 ring-inset ring-slate-300 placeholder:font-sans placeholder:normal-case placeholder:tracking-normal placeholder:text-zinc-500 focus:ring-2 focus:ring-[#D3232A]"
                 />
                 <button
                   type="button"
                   onClick={handleApplyCoupon}
                   disabled={isApplyingCoupon || !couponInput.trim()}
-                  className="inline-flex items-center gap-1.5 rounded-xl bg-[#0B1221] hover:bg-black text-white px-4 py-2.5 text-xs font-bold transition-all disabled:opacity-50 cursor-pointer shadow-sm"
+                  className="inline-flex h-10 cursor-pointer items-center gap-1.5 rounded-lg bg-zinc-900 px-4 text-xs font-semibold text-white transition-colors hover:bg-black disabled:cursor-not-allowed disabled:opacity-50"
                 >
-                  {isApplyingCoupon ? (
-                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                  ) : (
-                    <Sparkles className="h-3.5 w-3.5 text-amber-400" />
-                  )}
-                  Apply Code
+                  {isApplyingCoupon && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+                  Apply
                 </button>
               </div>
-              {couponError && (
-                <p className="text-xs font-semibold text-[#D3232A]">{couponError}</p>
-              )}
+              {couponError && <p role="alert" className="text-xs font-medium text-[#D3232A]">{couponError}</p>}
             </div>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setShowCoupon(true)}
+              className="inline-flex w-fit cursor-pointer items-center gap-1.5 text-xs font-medium text-zinc-600 underline-offset-2 transition-colors hover:text-zinc-900 hover:underline"
+            >
+              <Tag className="h-3.5 w-3.5" />
+              Have a promo code?
+            </button>
           )}
 
-          {/* Action Button */}
-          <div className="space-y-3 pt-2">
+          {/* Pay */}
+          <div className="space-y-2.5">
             <button
               type="button"
               onClick={handlePayNow}
-              disabled={isProcessing || isInitiating || isVerifying || !branchToPay}
-              className="flex w-full items-center justify-center gap-2 rounded-2xl bg-[#D3232A] px-6 py-4 text-base font-bold text-white shadow-xl hover:bg-[#b01e23] transition-all duration-200 disabled:opacity-75 disabled:cursor-not-allowed hover:-translate-y-[1px] cursor-pointer"
+              disabled={isBusy || !branchToPay}
+              className="flex h-12 w-full cursor-pointer items-center justify-center gap-2 rounded-xl bg-[#D3232A] px-6 text-sm font-semibold text-white transition-colors hover:bg-[#b01e23] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#D3232A] disabled:cursor-not-allowed disabled:opacity-70"
             >
-              {isProcessing || isInitiating || isVerifying ? (
+              {isBusy ? (
                 <>
-                  <Loader2 className="h-5 w-5 animate-spin" />
-                  Connecting to Cashfree Payment Gateway...
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Connecting to Cashfree
                 </>
               ) : (
                 <>
-                  <CreditCard className="h-5 w-5" />
-                  Pay ₹{pricing.grandTotal.toLocaleString("en-IN", { minimumFractionDigits: 2 })} via Cashfree & Unlock Now
-                  <ArrowRight className="h-5 w-5 ml-1" />
+                  Pay {formatGBP(pricing.grandTotal)}
+                  <ArrowRight className="h-4 w-4" />
                 </>
               )}
             </button>
-
-            <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-2">
-              <Link
-                href="/outlets"
-                className="text-xs font-semibold text-zinc-500 hover:text-zinc-900 transition-colors inline-flex items-center gap-1"
-              >
-                Manage all outlets in Location Manager
-                <ChevronRight className="h-3.5 w-3.5" />
-              </Link>
-              <div className="flex items-center gap-3 text-[11px] text-zinc-400 font-medium">
-                <span className="flex items-center gap-1">
-                  <ShieldCheck className="h-3.5 w-3.5 text-emerald-600" />
-                  256-bit Secure PG
-                </span>
-                <span>•</span>
-                <span>UPI / Cards / Netbanking</span>
-              </div>
-            </div>
+            <p className="flex items-center justify-center gap-1.5 text-[11px] text-zinc-500">
+              <ShieldCheck className="h-3.5 w-3.5 text-emerald-600" />
+              Secure checkout via Cashfree. UPI, cards and netbanking.
+            </p>
           </div>
-        </div>
+        </section>
       </div>
     </div>
   );

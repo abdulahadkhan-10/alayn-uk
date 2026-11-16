@@ -79,9 +79,9 @@ export default function AttendanceTerminalPage() {
 
   const logs = logsApiData?.data || (isLogsLoading ? [] : DEMO_LOGS);
   const employees = empApiData?.data || [
-    { id: "demo-1", name: "Rohan Sharma" },
-    { id: "demo-2", name: "Priya Patel" },
-    { id: "demo-3", name: "Amit Kumar" },
+    { id: "demo-1", name: "Oliver Smith" },
+    { id: "demo-2", name: "Emma Taylor" },
+    { id: "demo-3", name: "James Wilson" },
   ];
 
   const [selectedEmployeeId, setSelectedEmployeeId] = useState("");
@@ -95,14 +95,20 @@ export default function AttendanceTerminalPage() {
     const updateTime = () => {
       const now = new Date();
       setTimeString(
-        now.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", second: "2-digit" })
+        now.toLocaleTimeString("en-GB", {
+          hour: "2-digit",
+          minute: "2-digit",
+          second: "2-digit",
+          timeZone: "Europe/London",
+        })
       );
       setDateString(
-        now.toLocaleDateString("en-IN", {
+        now.toLocaleDateString("en-GB", {
           weekday: "long",
           day: "numeric",
           month: "long",
           year: "numeric",
+          timeZone: "Europe/London",
         })
       );
     };
@@ -357,16 +363,18 @@ export default function AttendanceTerminalPage() {
                         {log.employee?.name || "Staff Member"}
                       </td>
                       <td className="px-6 py-4 text-emerald-600 font-medium">
-                        {new Date(log.checkInTime).toLocaleTimeString("en-IN", {
+                        {new Date(log.checkInTime).toLocaleTimeString("en-GB", {
                           hour: "2-digit",
                           minute: "2-digit",
+                          timeZone: "Europe/London",
                         })}
                       </td>
                       <td className="px-6 py-4 text-gray-600 font-medium">
                         {log.checkOutTime
-                          ? new Date(log.checkOutTime).toLocaleTimeString("en-IN", {
+                          ? new Date(log.checkOutTime).toLocaleTimeString("en-GB", {
                               hour: "2-digit",
                               minute: "2-digit",
+                              timeZone: "Europe/London",
                             })
                           : "-- Active On Shift --"}
                       </td>

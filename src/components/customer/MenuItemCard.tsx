@@ -6,7 +6,7 @@ import type { CustomerMenuItem } from "@/lib/api";
 import { resolveUploadUrl } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import { DietaryMark, QuantityStepper } from "./MenuBits";
-import { dietaryTypeOf, formatRupees } from "./menuFormat";
+import { dietaryTypeOf, formatPounds } from "./menuFormat";
 
 interface MenuItemCardProps {
   item: CustomerMenuItem;
@@ -51,7 +51,7 @@ export default function MenuItemCard({ item, quantity, canOrder, onAdd, onRemove
       <div className="min-w-0 flex-1">
         <DietaryMark type={dietaryTypeOf(item)} />
         <h3 className="mt-1.5 text-[16px] font-semibold leading-snug text-(--espresso)">{item.name}</h3>
-        <p className="mt-1 text-[15px] font-semibold text-(--espresso) tabular-nums">{formatRupees(item.pricePaise)}</p>
+        <p className="mt-1 text-[15px] font-semibold text-(--espresso) tabular-nums">{formatPounds(item.pricePaise)}</p>
         {item.description && (
           <p className="mt-1.5 line-clamp-2 text-sm leading-relaxed text-(--muted)">{item.description}</p>
         )}

@@ -37,13 +37,13 @@ export const metadata: Metadata = {
     default: "Alayn AI: Restaurant Billing Software, POS, Inventory & Workforce OS",
     template: "%s | Alayn AI",
   },
-  description: "GST billing software, restaurant POS, kitchen display (KDS), FEFO inventory, waste tracking, and staff scheduling in one unified platform for restaurants, cafés, and cloud kitchens.",
+  description: "VAT billing software, restaurant POS, kitchen display (KDS), FEFO inventory, waste tracking, and staff scheduling in one unified platform for restaurants, cafés, and cloud kitchens.",
   keywords: [
     "Billing Software",
     "Restaurant Billing Software",
     "POS Billing Software",
-    "GST Billing Software",
-    "Billing Software India",
+    "VAT Billing Software",
+    "Billing Software UK",
     "Cafe Billing Software",
     "KOT Billing Software",
     "Alayn",
@@ -64,9 +64,9 @@ export const metadata: Metadata = {
   },
   openGraph: {
     title: "Alayn AI: Restaurant Billing Software, POS, Inventory & Workforce OS",
-    description: "GST billing software, restaurant POS, kitchen display (KDS), FEFO inventory, waste tracking, and staff scheduling in one unified platform for restaurants, cafés, and cloud kitchens.",
+    description: "VAT billing software, restaurant POS, kitchen display (KDS), FEFO inventory, waste tracking, and staff scheduling in one unified platform for restaurants, cafés, and cloud kitchens.",
     siteName: "Alayn AI",
-    locale: "en_IN",
+    locale: "en_GB",
     type: "website",
     images: [
       {
@@ -80,7 +80,7 @@ export const metadata: Metadata = {
   twitter: {
     card: "summary_large_image",
     title: "Alayn AI: Restaurant Billing Software, POS, Inventory & Workforce OS",
-    description: "GST billing software, restaurant POS, kitchen display (KDS), FEFO inventory, waste tracking, and staff scheduling in one unified platform for restaurants, cafés, and cloud kitchens.",
+    description: "VAT billing software, restaurant POS, kitchen display (KDS), FEFO inventory, waste tracking, and staff scheduling in one unified platform for restaurants, cafés, and cloud kitchens.",
     images: ["/alaynlogo.png"],
   },
   icons: {
@@ -117,7 +117,7 @@ export default function RootLayout({
         "publisher": {
           "@id": `${siteUrl}/#organization`
         },
-        "inLanguage": "en-IN"
+        "inLanguage": "en-GB"
       },
       {
         "@type": "Brand",
@@ -135,10 +135,10 @@ export default function RootLayout({
         "operatingSystem": "Web, iOS, Android, Windows, macOS",
         "applicationCategory": "BusinessApplication",
         "applicationSubCategory": "Billing Software, Restaurant POS & Hospitality Operating System",
-        "description": "Alayn AI is an enterprise billing software and operating system unifying GST counter & table POS billing, instant KOT printing, kitchen display (KDS), FEFO inventory, waste tracking, and workforce matrix scheduling for restaurants, cafés, and cloud kitchens.",
+        "description": "Alayn AI is an enterprise billing software and operating system unifying VAT counter & table POS billing, instant KOT printing, kitchen display (KDS), FEFO inventory, waste tracking, and workforce matrix scheduling for restaurants, cafés, and cloud kitchens.",
         "featureList": [
-          "GST Billing Software (CGST & SGST Invoicing)",
-          "Counter & Table POS Billing with UPI, Card & Cash",
+          "VAT Billing Software (UK VAT Invoicing)",
+          "Counter & Table POS Billing with Card, Cash & Mobile Payments",
           "Instant KOT Printing & Thermal Receipts",
           "QR Code Digital Table Menus",
           "Live Kitchen Display System (KDS)",
@@ -153,12 +153,12 @@ export default function RootLayout({
           "@id": `${siteUrl}/pricing#offer`,
           "name": "Alayn AI All-Inclusive Per-Outlet Plan",
           "url": `${siteUrl}/pricing`,
-          "price": "1999",
-          "priceCurrency": "INR",
+          "price": "79",
+          "priceCurrency": "GBP",
           "priceSpecification": {
             "@type": "UnitPriceSpecification",
-            "price": 1999,
-            "priceCurrency": "INR",
+            "price": 79,
+            "priceCurrency": "GBP",
             "valueAddedTaxIncluded": false,
             "billingDuration": "P1M",
             "unitText": "per outlet per month"
@@ -188,24 +188,24 @@ export default function RootLayout({
         "disambiguatingDescription": "Alayn AI (alaynai.com) is the official enterprise billing software and operating system for modern hospitality, restaurants, and cafes, developed under BRAHM Global Holdings. Distinct from regional boutique consultancies.",
         "address": {
           "@type": "PostalAddress",
-          "streetAddress": "Shop No. 6, Veena Beena Shopping Centre, Guru Nanak Marg, Bandra West",
-          "addressLocality": "Mumbai",
-          "addressRegion": "Maharashtra",
-          "postalCode": "400050",
-          "addressCountry": "IN"
+          "streetAddress": "42 Long Acre, Covent Garden",
+          "addressLocality": "London",
+          "addressRegion": "Greater London",
+          "postalCode": "WC2E 9JT",
+          "addressCountry": "GB"
         },
         "contactPoint": [
           {
             "@type": "ContactPoint",
             "contactType": "sales",
             "email": "info@alaynai.com",
-            "availableLanguage": ["English", "Hindi"]
+            "availableLanguage": ["English"]
           },
           {
             "@type": "ContactPoint",
             "contactType": "customer support",
             "email": "info@alaynai.com",
-            "availableLanguage": ["English", "Hindi"]
+            "availableLanguage": ["English"]
           }
         ],
         // Add every official profile here (LinkedIn, Google Business Profile,
@@ -221,7 +221,7 @@ export default function RootLayout({
 
   return (
     <html
-      lang="en"
+      lang="en-GB"
       className={`${inter.variable} ${plusJakarta.variable} ${geistMono.variable} ${playfair.variable} h-full antialiased`}
       suppressHydrationWarning
     >

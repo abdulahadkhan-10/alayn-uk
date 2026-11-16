@@ -23,8 +23,8 @@ const ROLE_LABELS: Record<string, string> = {
 };
 
 const when = (iso: string) =>
-  new Date(iso).toLocaleString("en-IN", {
-    timeZone: "Asia/Kolkata",
+  new Date(iso).toLocaleString("en-GB", {
+    timeZone: "Europe/London",
     day: "2-digit",
     month: "short",
     hour: "2-digit",

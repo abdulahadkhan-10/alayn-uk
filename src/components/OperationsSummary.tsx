@@ -16,7 +16,7 @@ export default function OperationsSummary() {
         </div>
         <div className="flex justify-between items-center py-2 border-b border-gray-100 last:border-0">
           <span className="text-sm font-medium text-gray-600">Average Shift Cost</span>
-          <span className="text-sm font-bold text-gray-900">₹112</span>
+          <span className="text-sm font-bold text-gray-900">£112</span>
         </div>
         <div className="flex justify-between items-center py-2 border-b border-gray-100 last:border-0">
           <span className="text-sm font-medium text-gray-600">Food Waste</span>

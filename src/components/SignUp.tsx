@@ -365,7 +365,7 @@ export default function SignupComponent() {
                                         required
                                         value={formData.phone}
                                         onChange={handleChange("phone")}
-                                        placeholder="+91 98765 43210"
+                                        placeholder="+44 7700 900123"
                                         aria-invalid={!!fieldErrors.phone}
                                         aria-describedby={fieldErrors.phone ? "phone-error" : undefined}
                                         className={fieldErrors.phone ? errorInputClasses : inputClasses}
@@ -521,7 +521,7 @@ export default function SignupComponent() {
                                         required
                                         value={formData.contactDetail}
                                         onChange={handleChange("contactDetail")}
-                                        placeholder="contact@company.com or +91 98765 43210"
+                                        placeholder="contact@company.com or +44 7700 900123"
                                         aria-invalid={!!fieldErrors.contactDetail}
                                         aria-describedby={fieldErrors.contactDetail ? "contactDetail-error" : undefined}
                                         className={fieldErrors.contactDetail ? errorInputClasses : inputClasses}

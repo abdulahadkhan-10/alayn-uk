@@ -56,11 +56,12 @@ const titleFrom = (q: string) => {
   const oneLine = q.replace(/\s+/g, " ").trim();
   return oneLine.length > 60 ? `${oneLine.slice(0, 59)}…` : oneLine;
 };
-const istDay = (d: Date) => d.toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" });
+const istDay = (d: Date) => d.toLocaleDateString("en-CA", { timeZone: "Europe/London" });
+const ukDay = istDay;
 
-/** "Good morning" by India time */
+/** "Good morning" by UK time */
 function greeting() {
-  const hour = Number(new Date().toLocaleString("en-US", { hour: "numeric", hourCycle: "h23", timeZone: "Asia/Kolkata" }));
+  const hour = Number(new Date().toLocaleString("en-US", { hour: "numeric", hourCycle: "h23", timeZone: "Europe/London" }));
   return hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
 }
 
@@ -422,7 +423,7 @@ function AlaynAIWorkspace() {
             <div className="mx-auto w-full max-w-3xl px-4 pb-6 pt-6 sm:pt-10">
               {staleSince && (
                 <p className="mb-6 rounded-xl border border-white/[0.08] bg-white/[0.03] px-4 py-2.5 text-xs text-slate-300">
-                  From {staleSince.toLocaleDateString("en-IN", { day: "numeric", month: "short", timeZone: "Asia/Kolkata" })}. The numbers may have
+                  From {staleSince.toLocaleDateString("en-GB", { day: "numeric", month: "short", timeZone: "Europe/London" })}. The numbers may have
                   changed since then; ask again for today&apos;s figures.
                 </p>
               )}

@@ -31,7 +31,7 @@ export const SalesDistributionCard = memo(function SalesDistributionCard() {
             <p className="text-xs text-zinc-400 font-medium truncate">Order source breakdown</p>
           </div>
           <span className="text-xs font-extrabold text-[#1B2A4A] bg-zinc-100/90 px-3 py-1 rounded-xl border border-zinc-200/80 shrink-0 whitespace-nowrap tabular-nums">
-            ₹{totalRev.toLocaleString("en-IN")}
+            £{totalRev.toLocaleString("en-GB")}
           </span>
         </div>
 
@@ -53,7 +53,7 @@ export const SalesDistributionCard = memo(function SalesDistributionCard() {
                 ))}
               </Pie>
               <Tooltip
-                formatter={(value: any) => [`₹${Number(value).toLocaleString("en-IN")}`, "Revenue"]}
+                formatter={(value: any) => [`£${Number(value).toLocaleString("en-GB")}`, "Revenue"]}
                 contentStyle={{ backgroundColor: "#1B2A4A", borderRadius: "12px", color: "#fff", fontSize: "12px", border: "none", boxShadow: "0 10px 25px -5px rgba(0, 0, 0, 0.3)" }}
               />
             </PieChart>

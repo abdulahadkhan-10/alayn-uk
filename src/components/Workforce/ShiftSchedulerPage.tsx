@@ -50,11 +50,11 @@ const DEMO_SHIFTS = [
     name: "Morning Rush",
     startTime: "08:00",
     endTime: "16:00",
-    outlet: { id: "o1", name: "Spice & Dine - MG Road" },
+    outlet: { id: "o1", name: "The Crown & Anchor - Oxford Street" },
     assignments: [
-      { id: "a1", date: "2026-07-27T00:00:00.000Z", employee: { id: "demo-1", name: "Priya Verma", role: "STAFF" } },
-      { id: "a2", date: "2026-07-27T00:00:00.000Z", employee: { id: "demo-2", name: "Rahul Verma", role: "KITCHEN" } },
-      { id: "a3", date: "2026-07-27T00:00:00.000Z", employee: { id: "demo-3", name: "Chef (Spice & Dine)", role: "CHEF" } },
+      { id: "a1", date: "2026-07-27T00:00:00.000Z", employee: { id: "demo-1", name: "Oliver Smith", role: "STAFF" } },
+      { id: "a2", date: "2026-07-27T00:00:00.000Z", employee: { id: "demo-2", name: "Emma Taylor", role: "KITCHEN" } },
+      { id: "a3", date: "2026-07-27T00:00:00.000Z", employee: { id: "demo-3", name: "Chef (Covent Garden)", role: "CHEF" } },
     ],
     swapRequests: [],
   },
@@ -63,9 +63,9 @@ const DEMO_SHIFTS = [
     name: "Evening Shift",
     startTime: "16:00",
     endTime: "00:00",
-    outlet: { id: "o2", name: "Ocean Breeze - Juhu Beach" },
+    outlet: { id: "o2", name: "Ocean Breeze - Covent Garden" },
     assignments: [
-      { id: "a4", date: "2026-07-27T00:00:00.000Z", employee: { id: "demo-4", name: "Head Waiter (Mumbai)", role: "HEAD WAITER" } },
+      { id: "a4", date: "2026-07-27T00:00:00.000Z", employee: { id: "demo-4", name: "Head Waiter (London)", role: "HEAD WAITER" } },
     ],
     swapRequests: [
       {
@@ -110,7 +110,7 @@ function formatDateNice(dateStr: string): string {
     if (isNaN(d.getTime())) return dateStr;
     const now = new Date();
     if (d.toDateString() === now.toDateString()) return "Today";
-    return d.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
+    return d.toLocaleDateString("en-GB", { weekday: "short", month: "short", day: "numeric", timeZone: "Europe/London" });
   } catch {
     return dateStr;
   }
@@ -159,11 +159,11 @@ export default function ShiftSchedulerPage() {
 
   const shifts = shiftApiData?.data || (isShiftsLoading ? [] : DEMO_SHIFTS);
   const employees = empApiData?.data || [
-    { id: "demo-1", name: "Priya Verma", role: "STAFF" },
-    { id: "demo-2", name: "Rahul Verma", role: "KITCHEN" },
-    { id: "demo-3", name: "Chef (Spice & Dine)", role: "CHEF" },
-    { id: "demo-4", name: "Head Waiter (Mumbai)", role: "HEAD WAITER" },
-    { id: "demo-5", name: "Order Captain (Mumbai)", role: "CAPTAIN" },
+    { id: "demo-1", name: "Oliver Smith", role: "STAFF" },
+    { id: "demo-2", name: "Emma Taylor", role: "KITCHEN" },
+    { id: "demo-3", name: "Chef (Covent Garden)", role: "CHEF" },
+    { id: "demo-4", name: "Head Waiter (London)", role: "HEAD WAITER" },
+    { id: "demo-5", name: "Order Captain (London)", role: "CAPTAIN" },
   ];
 
   const leaveRequests = leaveApiData?.data || [];

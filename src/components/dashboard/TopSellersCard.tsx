@@ -10,7 +10,7 @@ interface TopSellersCardProps {
   rangeLabel: string; // "this month"
 }
 
-const inr = (n: number) => `₹${Math.round(n).toLocaleString("en-IN")}`;
+const gbp = (n: number) => `£${Math.round(n).toLocaleString("en-GB")}`;
 
 /**
  * Best-selling dishes as a ranked list with a bar per row (long dish names read better across than
@@ -35,7 +35,7 @@ export default function TopSellersCard({ items, rangeLabel }: TopSellersCardProp
               Top sellers
             </h2>
             <p className="text-xs text-slate-500">
-              {items.length ? `Top ${items.length} brought in ${inr(totalSales)} ${rangeLabel}` : `Units sold ${rangeLabel}`}
+              {items.length ? `Top ${items.length} brought in ${gbp(totalSales)} ${rangeLabel}` : `Units sold ${rangeLabel}`}
             </p>
           </div>
         </div>
@@ -66,7 +66,7 @@ export default function TopSellersCard({ items, rangeLabel }: TopSellersCardProp
               <div className="h-2 rounded-full bg-slate-100" aria-hidden="true">
                 <div className="h-2 rounded-full bg-emerald-500" style={{ width: `${Math.max(4, (item.volume / max) * 100)}%` }} />
               </div>
-              <p className="text-right text-xs text-slate-500 tabular-nums">{inr(item.revenue)}</p>
+              <p className="text-right text-xs text-slate-500 tabular-nums">{gbp(item.revenue)}</p>
             </li>
           ))}
         </ol>

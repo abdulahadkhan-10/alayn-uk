@@ -24,7 +24,7 @@ const SNAPSHOT = [
   { label: "Orders", value: "128", detail: "synced today", state: "ok" as const },
   { label: "Stock", value: "Low", detail: "1 item flagged before it runs out", state: "attention" as const },
   { label: "Staff", value: "6", detail: "on shift now", state: "ok" as const },
-  { label: "Waste", value: "₹340", detail: "tracked this week", state: "ok" as const },
+  { label: "Waste", value: "£340", detail: "tracked this week", state: "ok" as const },
 ];
 
 function MagneticLink({

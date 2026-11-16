@@ -135,13 +135,13 @@ export function paramsToSearch(p: ReportParams): string {
 
 // ---------- formatting ----------
 
-/** Integer paise as "₹12,345" (en-IN grouping, no decimals). */
+/** Integer pence/paise as "£12,345" (en-GB grouping, no decimals). */
 export function formatPaise(paise: number): string {
   const sign = paise < 0 ? "-" : "";
-  return `${sign}₹${Math.round(Math.abs(paise) / 100).toLocaleString("en-IN")}`;
+  return `${sign}£${Math.round(Math.abs(paise) / 100).toLocaleString("en-GB")}`;
 }
 
-export const formatCount = (n: number) => n.toLocaleString("en-IN");
+export const formatCount = (n: number) => n.toLocaleString("en-GB");
 
 /** "+12.3%", "-4.0%", or "—" when there is nothing to compare with. */
 export function formatChange(pct: number | null | undefined): string {
@@ -158,6 +158,7 @@ export function changeTone(pct: number | null | undefined, lowerIsBetter = false
   return pct < 0 === lowerIsBetter ? "text-emerald-700" : "text-rose-600";
 }
 
-/** "YYYY-MM-DD" in India time, `daysAgo` days back. */
+/** "YYYY-MM-DD" in UK time, `daysAgo` days back. */
 export const istDay = (daysAgo = 0) =>
-  new Date(Date.now() - daysAgo * 24 * 60 * 60 * 1000).toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" });
+  new Date(Date.now() - daysAgo * 24 * 60 * 60 * 1000).toLocaleDateString("en-CA", { timeZone: "Europe/London" });
+export const ukDay = istDay;

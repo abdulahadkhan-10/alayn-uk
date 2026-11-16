@@ -15,8 +15,8 @@ interface ForecastWidgetData {
 const FORECAST_WIDGETS: ForecastWidgetData[] = [
   {
     dimension: "Weekend Sales Projection",
-    projection: "₹2,45,000",
-    expectedImpact: "+₹38,000 Revenue",
+    projection: "£24,500",
+    expectedImpact: "+£3,800 Revenue",
     trendPct: "+18.4%",
     confidencePct: 94,
     recommendation: "Increase dining room floor staff by 2 servers for Saturday dinner peak.",
@@ -31,7 +31,7 @@ const FORECAST_WIDGETS: ForecastWidgetData[] = [
   },
   {
     dimension: "Suggested Purchasing PO",
-    projection: "₹42,000 PO",
+    projection: "£4,200 PO",
     expectedImpact: "Prevents Stockout",
     trendPct: "Optimized",
     confidencePct: 96,

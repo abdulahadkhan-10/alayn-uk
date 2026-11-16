@@ -31,7 +31,7 @@ export default function InsightsPanel() {
             <TrendingUp className="h-5 w-5 text-emerald-400 shrink-0 mt-0.5" />
             <div>
               <p className="text-sm text-gray-200 leading-snug mb-3">
-                Birmingham Bullring outperforming sales forecast by ₹4,280
+                Birmingham Bullring outperforming sales forecast by £4,280
               </p>
               <a href="#" className="text-sm font-medium text-emerald-400 flex items-center gap-1 group-hover:gap-2 transition-all">
                 View Performance <ArrowRight className="h-4 w-4" />

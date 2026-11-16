@@ -27,13 +27,13 @@ const ACTUAL = "#2563EB";
 const FORECAST = "#D97706";
 const RANGES: SalesForecastRange[] = ["7d", "30d", "90d"];
 
-const inr = (value: number) => `₹${Math.round(value).toLocaleString("en-IN")}`;
-// Axis labels: one decimal below ₹10k so nearby ticks (₹1.2k, ₹1.5k) don't both print as "₹1k"
-const compactInr = (value: number) => {
-  if (value >= 100000) return `₹${+(value / 100000).toFixed(1)}L`;
-  if (value >= 10000) return `₹${Math.round(value / 1000)}k`;
-  if (value >= 1000) return `₹${+(value / 1000).toFixed(1)}k`;
-  return `₹${Math.round(value)}`;
+const gbp = (value: number) => `£${Math.round(value).toLocaleString("en-GB")}`;
+// Axis labels: one decimal below £10k so nearby ticks (£1.2k, £1.5k) don't both print as "£1k"
+const compactGbp = (value: number) => {
+  if (value >= 1000000) return `£${+(value / 1000000).toFixed(1)}M`;
+  if (value >= 10000) return `£${Math.round(value / 1000)}k`;
+  if (value >= 1000) return `£${+(value / 1000).toFixed(1)}k`;
+  return `£${Math.round(value)}`;
 };
 
 // actualLine leaves out today: a half-finished day would look like a sudden drop
@@ -51,17 +51,17 @@ function ForecastTooltip({ active, payload }: { active?: boolean; payload?: { pa
         <>
           {p.actual !== null && (
             <p>
-              {p.isToday ? "So far" : "Actual"}: <span className="font-semibold text-white">{inr(p.actual)}</span>
+              {p.isToday ? "So far" : "Actual"}: <span className="font-semibold text-white">{gbp(p.actual)}</span>
             </p>
           )}
           {p.projected !== null && (
             <p>
-              Forecast: <span className="font-semibold text-white">{inr(p.projected)}</span>
+              Forecast: <span className="font-semibold text-white">{gbp(p.projected)}</span>
             </p>
           )}
           {p.low !== null && p.high !== null && (
             <p className="text-slate-400">
-              Likely {inr(Math.max(0, p.low))} – {inr(p.high)}
+              Likely {gbp(Math.max(0, p.low))} – {gbp(p.high)}
             </p>
           )}
         </>
@@ -79,7 +79,7 @@ export default function SalesForecastChart({ outletId }: SalesForecastChartProps
     () =>
       (data?.points ?? []).map((p) => ({
         ...p,
-        // Sales can't go below zero, so the likely range is cut off at ₹0
+        // Sales can't go below zero, so the likely range is cut off at £0
         band: p.low !== null && p.high !== null ? [Math.max(0, p.low), Math.max(0, p.high)] : null,
         actualLine: p.isToday ? null : p.actual,
       })),
@@ -168,7 +168,7 @@ export default function SalesForecastChart({ outletId }: SalesForecastChartProps
       {forecasting && summary && (
         <div className="mb-4 flex flex-wrap items-baseline gap-x-3 gap-y-1">
           <span className="text-xs font-medium text-slate-500">Next 7 days</span>
-          <span className="text-2xl font-bold text-slate-900 tabular-nums">{inr(summary.next7DaysProjected)}</span>
+          <span className="text-2xl font-bold text-slate-900 tabular-nums">{gbp(summary.next7DaysProjected)}</span>
           {summary.vsLast7DaysPct !== null && (
             <span
               className={`text-xs font-semibold ${summary.vsLast7DaysPct >= 0 ? "text-emerald-600" : "text-rose-600"}`}
@@ -230,7 +230,7 @@ export default function SalesForecastChart({ outletId }: SalesForecastChartProps
                 axisLine={false}
                 tickLine={false}
                 tick={{ fill: "#64748B", fontSize: 11, fontWeight: 500 }}
-                tickFormatter={compactInr}
+                tickFormatter={compactGbp}
                 domain={[0, "auto"]}
                 allowDecimals={false}
               />

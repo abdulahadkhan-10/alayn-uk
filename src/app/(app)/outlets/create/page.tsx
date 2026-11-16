@@ -85,7 +85,7 @@ export default function CreateOutletPage() {
     address: "",
     city: "",
     state: "",
-    country: "India",
+    country: "United Kingdom",
     kitchenMode: "HYBRID" as "KOT" | "KDS" | "HYBRID",
   });
   
@@ -94,10 +94,10 @@ export default function CreateOutletPage() {
   const [paymentError, setPaymentError] = useState("");
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
 
-  const pricing = calculateSubscriptionPricing(months, 1999, 18, appliedCoupon);
+  const pricing = calculateSubscriptionPricing(months, undefined, undefined, appliedCoupon);
   const projectedEnd = calculateProjectedEndDate(months);
   const daysDiff = Math.max(1, Math.round((projectedEnd.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)));
-  const formattedEndDate = projectedEnd.toLocaleDateString("en-IN", {
+  const formattedEndDate = projectedEnd.toLocaleDateString("en-GB", {
     day: "numeric",
     month: "short",
     year: "numeric",
@@ -426,7 +426,7 @@ export default function CreateOutletPage() {
                     type="text"
                     value={formData.name}
                     onChange={handleChange("name")}
-                    placeholder="e.g. Alayn Cafe — Bandra West Branch"
+                    placeholder="e.g. Alayn Cafe — Shoreditch Branch"
                     className="block w-full rounded-xl border-0 py-3.5 pl-11 pr-4 text-gray-900 ring-1 ring-inset ring-gray-200 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-[#D3232A] sm:text-sm bg-gray-50/50 focus:bg-white transition-all duration-200"
                   />
                 </div>
@@ -446,7 +446,7 @@ export default function CreateOutletPage() {
                     rows={3}
                     value={formData.address}
                     onChange={handleChange("address")}
-                    placeholder="Shop No. 4, Hill Road, Bandra West"
+                    placeholder="42 Long Acre, Covent Garden"
                     className="block w-full rounded-xl border-0 py-3.5 pl-11 pr-4 text-gray-900 ring-1 ring-inset ring-gray-200 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-[#D3232A] sm:text-sm bg-gray-50/50 focus:bg-white transition-all duration-200 resize-none"
                   />
                 </div>
@@ -467,7 +467,7 @@ export default function CreateOutletPage() {
                       type="text"
                       value={formData.city}
                       onChange={handleChange("city")}
-                      placeholder="Mumbai"
+                      placeholder="London"
                       className="block w-full rounded-xl border-0 py-3.5 pl-11 pr-4 text-gray-900 ring-1 ring-inset ring-gray-200 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-[#D3232A] sm:text-sm bg-gray-50/50 focus:bg-white transition-all duration-200"
                     />
                   </div>
@@ -487,7 +487,7 @@ export default function CreateOutletPage() {
                       type="text"
                       value={formData.state}
                       onChange={handleChange("state")}
-                      placeholder="Maharashtra"
+                      placeholder="Greater London"
                       className="block w-full rounded-xl border-0 py-3.5 pl-11 pr-4 text-gray-900 ring-1 ring-inset ring-gray-200 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-[#D3232A] sm:text-sm bg-gray-50/50 focus:bg-white transition-all duration-200"
                     />
                   </div>
@@ -508,7 +508,7 @@ export default function CreateOutletPage() {
                     type="text"
                     value={formData.country}
                     onChange={handleChange("country")}
-                    placeholder="India"
+                    placeholder="United Kingdom"
                     className="block w-full rounded-xl border-0 py-3.5 pl-11 pr-4 text-gray-900 ring-1 ring-inset ring-gray-200 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-[#D3232A] sm:text-sm bg-gray-50/50 focus:bg-white transition-all duration-200"
                   />
                 </div>
@@ -640,13 +640,13 @@ export default function CreateOutletPage() {
                               ? "100% Free VIP License"
                               : appliedCoupon.discountType === "PERCENTAGE"
                               ? `${appliedCoupon.discountValue}% OFF`
-                              : `₹${appliedCoupon.discountValue} OFF`}
+                              : `£${appliedCoupon.discountValue} OFF`}
                           </span>
                         </p>
                         <p className="text-[11px] text-emerald-700 leading-tight mt-0.5">
                           {appliedCoupon.discountValue >= 100
                             ? appliedCoupon.validUntil
-                              ? `Zero subscription fees through ${new Date(appliedCoupon.validUntil).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}.`
+                              ? `Zero subscription fees through ${new Date(appliedCoupon.validUntil).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}.`
                               : `Zero subscription fees (Active 100% Free VIP access).`
                             : `Discount will be applied at payment checkout.`}
                         </p>
@@ -836,7 +836,7 @@ export default function CreateOutletPage() {
                         <span className="text-[10px] font-extrabold uppercase bg-emerald-200/80 text-emerald-900 px-2 py-0.5 rounded-full">
                           {appliedCoupon.discountType === "PERCENTAGE"
                             ? `${appliedCoupon.discountValue}% OFF`
-                            : `₹${appliedCoupon.discountValue} OFF`}
+                            : `£${appliedCoupon.discountValue} OFF`}
                         </span>
                       </div>
                       <p className="text-xs text-emerald-700 mt-0.5">
@@ -908,7 +908,7 @@ export default function CreateOutletPage() {
                   ) : (
                     <>
                       <CreditCard className="h-5 w-5" />
-                      Pay ₹{pricing.grandTotal.toLocaleString("en-IN", { minimumFractionDigits: 2 })} & Activate Branch
+                      Pay £{pricing.grandTotal.toLocaleString("en-GB", { minimumFractionDigits: 2 })} & Activate Branch
                       <ArrowRight className="h-5 w-5 ml-1" />
                     </>
                   )}

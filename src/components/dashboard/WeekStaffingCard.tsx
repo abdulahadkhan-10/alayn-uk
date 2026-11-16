@@ -10,19 +10,19 @@ interface WeekStaffingCardProps {
   className?: string;
 }
 
-const compactInr = (n: number) => (n >= 1000 ? `₹${+(n / 1000).toFixed(1)}k` : `₹${Math.round(n)}`);
+const compactGbp = (n: number) => (n >= 1000 ? `£${+(n / 1000).toFixed(1)}k` : `£${Math.round(n)}`);
 const plural = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;
 
 type Day = StaffingWeekResponse["days"][number];
 
-/** "Sat 24: forecast ₹24k, the busiest day, with 4 staff (a usual day has 4)." */
+/** "Sat 24: forecast £24k, the busiest day, with 4 staff (a usual day has 4)." */
 function flagSentence(d: Day, avgForecast: number, avgStaff: number) {
   const times = avgForecast > 0 && d.forecast ? d.forecast / avgForecast : 1;
   const usual = Math.round(avgStaff * 10) / 10;
   if (d.flag === "understaffed") {
-    return `${d.label} ${d.dayOfMonth}: forecast ${compactInr(d.forecast ?? 0)} (${times.toFixed(1)}× a usual day) but only ${plural(d.staff, "person", "people")} rostered (usual ${usual}).`;
+    return `${d.label} ${d.dayOfMonth}: forecast ${compactGbp(d.forecast ?? 0)} (${times.toFixed(1)}× a usual day) but only ${plural(d.staff, "person", "people")} rostered (usual ${usual}).`;
   }
-  return `${d.label} ${d.dayOfMonth}: a quiet day (forecast ${compactInr(d.forecast ?? 0)}) with ${plural(d.staff, "person", "people")} rostered (usual ${usual}).`;
+  return `${d.label} ${d.dayOfMonth}: a quiet day (forecast ${compactGbp(d.forecast ?? 0)}) with ${plural(d.staff, "person", "people")} rostered (usual ${usual}).`;
 }
 
 /** The next 7 days: forecast sales next to people rostered, flagging days where the two don't match. */
@@ -72,14 +72,14 @@ export default function WeekStaffingCard({ outletId, className = "" }: WeekStaff
                   <div
                     className={`w-3/5 max-w-7 rounded-t-md ${tone}`}
                     style={{ height: `${height}%` }}
-                    title={`Forecast ${compactInr(d.forecast)}`}
+                    title={`Forecast ${compactGbp(d.forecast)}`}
                   />
                 ) : null}
               </div>
               <span className="text-xs font-semibold text-slate-800">{d.label}</span>
               <span className="text-[11px] text-slate-500 tabular-nums">{d.dayOfMonth}</span>
               {forecasting && !d.closed && d.forecast !== null && (
-                <span className="text-[11px] text-slate-600 tabular-nums">{compactInr(d.forecast)}</span>
+                <span className="text-[11px] text-slate-600 tabular-nums">{compactGbp(d.forecast)}</span>
               )}
               <span
                 className={`rounded-md px-1.5 py-0.5 text-xs font-semibold tabular-nums ${

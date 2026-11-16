@@ -12,7 +12,7 @@
 
 /**
  * UTF-8 safe Base64 encoder for browser environments.
- * Handles Unicode, ₹ currency symbol, em-dashes, and special characters cleanly.
+ * Handles Unicode, £ currency symbol, em-dashes, and special characters cleanly.
  */
 export function toBase64Utf8(str: string): string {
   return btoa(

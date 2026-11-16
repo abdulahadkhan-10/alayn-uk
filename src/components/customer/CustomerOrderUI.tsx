@@ -13,7 +13,6 @@ import {
   type CustomerMenuItem,
   type TableMenuResponse,
 } from "@/lib/api";
-import { buildUpiPayUrl, isValidUpiId } from "@/lib/upi";
 import { showToast } from "@/lib/toast";
 import { cn } from "@/lib/utils";
 import BottomSheet from "./BottomSheet";
@@ -23,7 +22,7 @@ import { DietaryMark, QuantityStepper } from "./MenuBits";
 import MenuItemCard from "./MenuItemCard";
 import PayBillSheet from "./PayBillSheet";
 import TableBillSheet from "./TableBillSheet";
-import { ORDER_STEPS, dietaryTypeOf, formatRupees, orderStepIndex, tableBillStatus, type BillPaymentMethod, type DietaryType } from "./menuFormat";
+import { ORDER_STEPS, dietaryTypeOf, formatPounds, orderStepIndex, tableBillStatus, type BillPaymentMethod, type DietaryType } from "./menuFormat";
 
 export type { CartModifierItem };
 
@@ -72,9 +71,6 @@ export default function CustomerOrderUI({ token }: { token: string }) {
   const businessName = menu?.businessName || "Menu";
   const tableNumber = menu?.tableNumber;
   const canOrder = menu?.tableOrderMode === "ORDER_AND_PAY";
-  const upiId = menu?.upiId || "";
-  const upiAvailable = isValidUpiId(upiId);
-  const counterAvailable = (menu?.allowPayAtCounter ?? true) || !upiAvailable;
   const billStatus = tableBillStatus(activeOrder);
   const orderInProgress = !!activeOrder && !["COMPLETED", "CANCELLED"].includes(activeOrder.status);
 
@@ -248,13 +244,6 @@ export default function CustomerOrderUI({ token }: { token: string }) {
   // Taxes are worked out once on the table's whole bill, not on each round
   const itemTotalPaise = cart.reduce((sum, l) => sum + l.unitPricePaise * l.quantity, 0);
 
-  const upiUrl = buildUpiPayUrl({
-    upiId,
-    payeeName: businessName,
-    amountPaise: billStatus.duePaise,
-    note: `Table ${tableNumber || ""} - ${businessName}`,
-  });
-
   const placeOrder = async () => {
     if (cart.length === 0 || isPlacingOrder) return;
     setIsPlacingOrder(true);
@@ -289,8 +278,8 @@ export default function CustomerOrderUI({ token }: { token: string }) {
     setIsPayOpen(true);
   };
 
-  const requestBill = async (method: BillPaymentMethod, upiReference: string) => {
-    const res = await requestTableBill(token, { paymentMethod: method, paymentRef: method === "UPI" && upiReference ? upiReference : undefined });
+  const requestBill = async (method: BillPaymentMethod) => {
+    const res = await requestTableBill(token, { paymentMethod: method });
     if (!res.ok) {
       showToast.error("Couldn't reach the restaurant", res.error || "Please try again, or ask a member of staff.");
       return false;
@@ -501,7 +490,7 @@ export default function CustomerOrderUI({ token }: { token: string }) {
                     <span className="block text-[13px] text-white/85">
                       {itemCount} item{itemCount === 1 ? "" : "s"}
                     </span>
-                    <span className="block text-base font-semibold tabular-nums">{formatRupees(itemTotalPaise, { exact: true })}</span>
+                    <span className="block text-base font-semibold tabular-nums">{formatPounds(itemTotalPaise, { exact: true })}</span>
                   </span>
                   <span className="flex items-center gap-1 text-[15px] font-semibold">
                     View order <ChevronRight className="h-5 w-5" aria-hidden="true" />
@@ -517,7 +506,7 @@ export default function CustomerOrderUI({ token }: { token: string }) {
                     <span className="h-2.5 w-2.5 shrink-0 rounded-full bg-[#15803D] motion-safe:animate-pulse" aria-hidden="true" />
                     <span className="min-w-0 leading-tight">
                       <span className="block truncate text-[15px] font-semibold">
-                        Your bill · <span className="tabular-nums">{formatRupees(billStatus.duePaise || billStatus.totalPaise, { exact: true })}</span>
+                        Your bill · <span className="tabular-nums">{formatPounds(billStatus.duePaise || billStatus.totalPaise, { exact: true })}</span>
                       </span>
                       <span className="block truncate text-[13px] text-(--muted)">
                         {billStatus.request && !billStatus.requestOutdated ? "Bill requested · collect it at the counter" : ORDER_STEPS[Math.max(0, step)].label}
@@ -581,10 +570,6 @@ export default function CustomerOrderUI({ token }: { token: string }) {
           amountDuePaise={billStatus.duePaise}
           tableNumber={tableNumber}
           orderNumber={activeOrder?.orderNumber}
-          upiAvailable={upiAvailable}
-          counterAvailable={counterAvailable}
-          upiUrl={upiUrl}
-          upiId={upiId}
           onRequestBill={requestBill}
         />
       </div>
@@ -625,7 +610,7 @@ function DishDetailSheet({
           <span>{dish?.name}</span>
         </span>
       }
-      description={dish ? <span className="font-semibold tabular-nums text-(--espresso)">{formatRupees(dish.pricePaise)}</span> : null}
+      description={dish ? <span className="font-semibold tabular-nums text-(--espresso)">{formatPounds(dish.pricePaise)}</span> : null}
       media={
         photo ? (
           <div className="mx-4 mt-3 aspect-[4/3] overflow-hidden rounded-2xl bg-zinc-100 sm:mx-6 sm:mt-6">

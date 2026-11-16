@@ -5,7 +5,7 @@
  */
 
 const time = (value: string | number | Date) =>
-  new Date(value).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", hour12: true });
+  new Date(value).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", hour12: true });
 
 export interface KotHeader {
   kotNo: number;

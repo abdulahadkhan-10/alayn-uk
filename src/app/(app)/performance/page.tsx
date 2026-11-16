@@ -30,7 +30,7 @@ export default function PerformancePage() {
     isError: locationsError,
   } = useGetOutletComparisonQuery();
 
-  const today = new Date().toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
+  const today = new Date().toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
   const placeholder = kpisLoading ? "…" : "—";
   const compareNote = kpis?.comparison?.label ?? "";
 

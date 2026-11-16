@@ -15,7 +15,7 @@ import { CustomDatePicker } from "@/components/ui/custom-date-picker";
 import {
   Trash2,
   AlertTriangle,
-  IndianRupee,
+  PoundSterling,
   Loader2,
   CheckCircle2,
   ArrowUpDown,
@@ -123,7 +123,7 @@ export default function WasteManagementPage() {
 
   const selectedItem = items.find((i) => i.id === selectedItemId);
   const numQty = Number(quantity) || 0;
-  const calculatedCostRupees =
+  const calculatedCostPounds =
     selectedItem && numQty ? (numQty * (selectedItem.unitCostPaise / 100)).toFixed(2) : "0.00";
   const remainingStock = selectedItem ? selectedItem.currentStock - numQty : 0;
 
@@ -182,12 +182,12 @@ export default function WasteManagementPage() {
   }, [logs, selectedPeriod, currentYear, currentMonth, startDate, endDate]);
 
   // Analytics Metrics
-  const periodTotalLossRupees = useMemo(() => {
+  const periodTotalLossPounds = useMemo(() => {
     const paise = periodFilteredLogs.reduce((acc, log) => acc + (log.costAtLoggingPaise || 0), 0);
     return paise / 100;
   }, [periodFilteredLogs]);
 
-  const yearToDateLossRupees = useMemo(() => {
+  const yearToDateLossPounds = useMemo(() => {
     const paise = logs
       .filter((l) => new Date(l.createdAt).getFullYear() === currentYear)
       .reduce((acc, l) => acc + (l.costAtLoggingPaise || 0), 0);
@@ -199,7 +199,7 @@ export default function WasteManagementPage() {
     const map: Record<string, { date: string; loss: number; count: number }> = {};
 
     periodFilteredLogs.forEach((log) => {
-      const dateKey = new Date(log.createdAt).toLocaleDateString("en-IN", { month: "short", day: "2-digit" });
+      const dateKey = new Date(log.createdAt).toLocaleDateString("en-GB", { month: "short", day: "2-digit" });
       if (!map[dateKey]) {
         map[dateKey] = { date: dateKey, loss: 0, count: 0 };
       }
@@ -244,7 +244,7 @@ export default function WasteManagementPage() {
       }
     });
 
-    const totalPaise = periodTotalLossRupees * 100;
+    const totalPaise = periodTotalLossPounds * 100;
 
     return [
       { key: "SPOILAGE", label: "Spoiled / Expired", color: "bg-[#D3232A]", textCls: "text-red-700" },
@@ -257,11 +257,11 @@ export default function WasteManagementPage() {
       return {
         ...item,
         count: stat.count,
-        costRupees: (stat.totalCostPaise / 100).toFixed(2),
+        costPounds: (stat.totalCostPaise / 100).toFixed(2),
         percentage: Number(percentage),
       };
     });
-  }, [periodFilteredLogs, periodTotalLossRupees]);
+  }, [periodFilteredLogs, periodTotalLossPounds]);
 
   const availableOutlets = useMemo(() => {
     const map = new Map<string, string>();
@@ -362,13 +362,13 @@ export default function WasteManagementPage() {
       "Category",
       "Quantity",
       "Unit",
-      "Unit Rate (INR)",
-      "Loss Value (INR)",
+      "Unit Rate (GBP)",
+      "Loss Value (GBP)",
       "Reason",
       "Notes",
     ];
     const rows = processedLogs.map((log) => [
-      new Date(log.createdAt).toLocaleString("en-IN"),
+      new Date(log.createdAt).toLocaleString("en-GB"),
       `"${(log.item?.name || 'Item').replace(/"/g, '""')}"`,
       `"${(log.item?.sku || '').replace(/"/g, '""')}"`,
       `"${(log.item?.category || '').replace(/"/g, '""')}"`,
@@ -495,11 +495,11 @@ export default function WasteManagementPage() {
                     : "Selected Period Loss"}
                 </span>
                 <div className="h-8 w-8 rounded-xl bg-red-50 text-[#D3232A] flex items-center justify-center border border-red-100">
-                  <IndianRupee className="h-4 w-4" />
+                  <PoundSterling className="h-4 w-4" />
                 </div>
               </div>
               <h2 className="text-2xl sm:text-3xl font-black text-zinc-900 mt-2 tracking-tight">
-                ₹{periodTotalLossRupees.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+                £{periodTotalLossPounds.toLocaleString("en-GB", { minimumFractionDigits: 2 })}
               </h2>
             </div>
             
@@ -521,12 +521,12 @@ export default function WasteManagementPage() {
                 </div>
               </div>
               <h2 className="text-2xl sm:text-3xl font-black text-zinc-900 mt-2 tracking-tight">
-                ₹{yearToDateLossRupees.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+                £{yearToDateLossPounds.toLocaleString("en-GB", { minimumFractionDigits: 2 })}
               </h2>
             </div>
 
             <div className="mt-3 pt-2.5 border-t border-zinc-100 text-xs text-zinc-500 font-medium">
-              Daily Avg: <strong className="text-zinc-900 font-bold">₹{(yearToDateLossRupees / (now.getDate() || 1)).toFixed(0)}/day</strong> this month
+              Daily Avg: <strong className="text-zinc-900 font-bold">£{(yearToDateLossPounds / (now.getDate() || 1)).toFixed(0)}/day</strong> this month
             </div>
           </div>
 
@@ -545,7 +545,7 @@ export default function WasteManagementPage() {
                     {topWastedIngredient.name}
                   </h3>
                   <p className="text-xs font-bold text-red-600 mt-0.5">
-                    ₹{(topWastedIngredient.totalCostPaise / 100).toFixed(2)} total loss
+                    £{(topWastedIngredient.totalCostPaise / 100).toFixed(2)} total loss
                   </p>
                 </>
               ) : (
@@ -575,7 +575,7 @@ export default function WasteManagementPage() {
                       {topReason.label}
                     </h3>
                     <p className="text-xs font-bold text-indigo-600 mt-0.5">
-                      {topReason.percentage}% of total period loss (₹{topReason.costRupees})
+                      {topReason.percentage}% of total period loss (£{topReason.costPounds})
                     </p>
                   </>
                 ) : (
@@ -600,7 +600,7 @@ export default function WasteManagementPage() {
               </div>
               <div>
                 <h3 className="text-base font-bold text-zinc-900 tracking-tight">Waste &amp; Spoilage Loss Trend</h3>
-                <p className="text-xs text-zinc-500 font-medium">Daily loss accumulation (₹) for selected timeframe</p>
+                <p className="text-xs text-zinc-500 font-medium">Daily loss accumulation (£) for selected timeframe</p>
               </div>
             </div>
           </div>
@@ -623,10 +623,10 @@ export default function WasteManagementPage() {
                   </defs>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f4f4f5" />
                   <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: "#71717a", fontWeight: 600 }} />
-                  <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: "#71717a", fontWeight: 500 }} tickFormatter={(val) => `₹${val}`} />
+                  <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: "#71717a", fontWeight: 500 }} tickFormatter={(val) => `£${val}`} />
                   <Tooltip
                     contentStyle={{ borderRadius: '12px', border: '1px solid #e4e4e7', fontSize: '12px', fontWeight: 'bold' }}
-                    formatter={(val: any) => [`₹${Number(val).toFixed(2)}`, 'Loss Value']}
+                    formatter={(val: any) => [`£${Number(val).toFixed(2)}`, 'Loss Value']}
                   />
                   <Area type="monotone" dataKey="loss" stroke="#D3232A" strokeWidth={2.5} fillOpacity={1} fill="url(#wasteGrad)" />
                 </AreaChart>
@@ -640,7 +640,7 @@ export default function WasteManagementPage() {
           <div className="flex items-center justify-between mb-4">
             <div>
               <h3 className="text-sm font-bold text-zinc-900">Waste Breakdown by Cause</h3>
-              <p className="text-xs text-zinc-500 font-medium">Rupee and percentage contribution for the selected period</p>
+              <p className="text-xs text-zinc-500 font-medium">Pound and percentage contribution for the selected period</p>
             </div>
             {filterReason !== "ALL" && (
               <button
@@ -679,7 +679,7 @@ export default function WasteManagementPage() {
                   </div>
 
                   <div className="flex items-center justify-between mt-2 text-[11px] text-zinc-500 font-semibold">
-                    <span>₹{item.costRupees}</span>
+                    <span>£{item.costPounds}</span>
                     <span>{item.count} log(s)</span>
                   </div>
                 </div>
@@ -823,7 +823,7 @@ export default function WasteManagementPage() {
                           className="px-4 py-3.5 text-right cursor-pointer select-none hover:text-zinc-900"
                           onClick={() => toggleSort("costAtLoggingPaise")}
                         >
-                          Loss Value (₹)
+                          Loss Value (£)
                         </th>
                         <th className="px-4 py-3.5 text-center">Waste Reason</th>
                       </tr>
@@ -847,7 +847,7 @@ export default function WasteManagementPage() {
                             </td>
 
                             <td className="px-4 py-4 text-zinc-600 whitespace-nowrap" suppressHydrationWarning>
-                              {mounted ? new Date(log.createdAt).toLocaleDateString("en-IN", {
+                              {mounted ? new Date(log.createdAt).toLocaleDateString("en-GB", {
                                 day: "2-digit",
                                 month: "short",
                                 year: "numeric",
@@ -880,12 +880,12 @@ export default function WasteManagementPage() {
                             </td>
 
                             <td className="px-4 py-4 text-right font-medium text-zinc-600 whitespace-nowrap text-xs">
-                              ₹{(unitRatePaise / 100).toFixed(2)}
+                              £{(unitRatePaise / 100).toFixed(2)}
                               <span className="text-[10px] text-zinc-400 block font-normal">/{log.item?.unit || "unit"}</span>
                             </td>
 
                             <td className="px-4 py-4 text-right font-black text-red-600 tabular-nums text-sm whitespace-nowrap">
-                              ₹{(log.costAtLoggingPaise / 100).toFixed(2)}
+                              £{(log.costAtLoggingPaise / 100).toFixed(2)}
                             </td>
 
                             <td className="px-4 py-4 text-center whitespace-nowrap">
@@ -989,7 +989,7 @@ export default function WasteManagementPage() {
                         <div className="mt-1.5 flex items-center justify-between text-[11px] bg-zinc-50 border border-zinc-200/80 rounded-lg px-3 py-1.5 text-zinc-600">
                           <span className="font-medium">Live Moving Weighted Avg Rate:</span>
                           <span className="font-extrabold text-zinc-900">
-                            ₹{(selectedItem.unitCostPaise / 100).toFixed(2)} / {selectedItem.unit}
+                            £{(selectedItem.unitCostPaise / 100).toFixed(2)} / {selectedItem.unit}
                           </span>
                         </div>
                       )}
@@ -1049,10 +1049,10 @@ export default function WasteManagementPage() {
                       <div className="rounded-xl bg-red-50/80 border border-red-200 p-3.5 space-y-2 text-xs text-red-950 shadow-2xs">
                         <div className="flex items-center justify-between">
                           <span className="font-bold">Calculated Loss (WAC):</span>
-                          <strong className="text-red-700 text-sm font-black">₹{calculatedCostRupees}</strong>
+                          <strong className="text-red-700 text-sm font-black">£{calculatedCostPounds}</strong>
                         </div>
                         <p className="text-[11px] text-zinc-600 font-medium">
-                          {numQty} {selectedItem.unit} × ₹{(selectedItem.unitCostPaise / 100).toFixed(2)} / {selectedItem.unit}
+                          {numQty} {selectedItem.unit} × £{(selectedItem.unitCostPaise / 100).toFixed(2)} / {selectedItem.unit}
                         </p>
                         <div className="grid grid-cols-2 gap-2 pt-1 border-t border-red-200/60 text-center">
                           <div className="bg-white p-1.5 rounded-lg border border-red-100">
@@ -1065,7 +1065,7 @@ export default function WasteManagementPage() {
                               {Number(remainingStock.toFixed(2))} {selectedItem.unit}
                             </strong>
                             <span className="block text-[10px] text-zinc-500 font-medium">
-                              Val: ₹{((Math.max(0, remainingStock) * selectedItem.unitCostPaise) / 100).toFixed(2)}
+                              Val: £{((Math.max(0, remainingStock) * selectedItem.unitCostPaise) / 100).toFixed(2)}
                             </span>
                           </div>
                         </div>
@@ -1074,9 +1074,9 @@ export default function WasteManagementPage() {
                             <AlertTriangle className="h-3.5 w-3.5 shrink-0" /> Remaining stock will drop below min threshold!
                           </p>
                         )}
-                        {Number(calculatedCostRupees) >= 500 && (
+                        {Number(calculatedCostPounds) >= 500 && (
                           <p className="text-[11px] text-amber-900 bg-amber-50 border border-amber-200 rounded p-1.5 font-bold flex items-center gap-1.5">
-                            <AlertTriangle className="h-3.5 w-3.5 text-amber-600 shrink-0" /> High-Waste Alert: Loss exceeds ₹500. Automatic notification will be dispatched to branch management.
+                            <AlertTriangle className="h-3.5 w-3.5 text-amber-600 shrink-0" /> High-Waste Alert: Loss exceeds £500. Automatic notification will be dispatched to branch management.
                           </p>
                         )}
                       </div>

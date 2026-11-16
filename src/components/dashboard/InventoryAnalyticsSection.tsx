@@ -24,9 +24,9 @@ const DEFAULT_SUMMARY: InventorySummary = {
 };
 
 const PREDICTED_STOCKOUTS = [
-  { item: "Amul Full Cream Milk", currentStock: "14 L", predictedOutDate: "Tomorrow 2:00 PM", suggestedPOQty: "50 L", supplier: "Amul Dairy", riskLevel: "HIGH" },
-  { item: "Espresso Beans (Arabica)", currentStock: "3.5 kg", predictedOutDate: "30 Jul (2 Days)", suggestedPOQty: "15 kg", supplier: "Blue Tokai", riskLevel: "MEDIUM" },
-  { item: "Mozzarella Cheese Blocks", currentStock: "2.1 kg", predictedOutDate: "31 Jul (3 Days)", suggestedPOQty: "20 kg", supplier: "Verka Dairy", riskLevel: "MEDIUM" },
+  { item: "Cravendale Whole Milk", currentStock: "14 L", predictedOutDate: "Tomorrow 2:00 PM", suggestedPOQty: "50 L", supplier: "Arla Foods Dairy", riskLevel: "HIGH" },
+  { item: "Espresso Beans (Arabica)", currentStock: "3.5 kg", predictedOutDate: "30 Jul (2 Days)", suggestedPOQty: "15 kg", supplier: "Origin Coffee Roasters", riskLevel: "MEDIUM" },
+  { item: "Mozzarella Cheese Blocks", currentStock: "2.1 kg", predictedOutDate: "31 Jul (3 Days)", suggestedPOQty: "20 kg", supplier: "British Dairy Co", riskLevel: "MEDIUM" },
 ];
 
 export const InventoryAnalyticsSection = memo(function InventoryAnalyticsSection() {
@@ -45,7 +45,7 @@ export const InventoryAnalyticsSection = memo(function InventoryAnalyticsSection
         </div>
         <div className="flex items-center gap-3">
           <span className="text-xs font-bold text-[#0B1221] bg-zinc-100 px-3 py-1.5 rounded-xl border border-zinc-200/80">
-            Valuation: ₹{DEFAULT_SUMMARY.totalValue.toLocaleString("en-IN")}
+            Valuation: £{DEFAULT_SUMMARY.totalValue.toLocaleString("en-GB")}
           </span>
           <span className="text-xs font-bold text-emerald-700 bg-emerald-50 px-3 py-1.5 rounded-xl border border-emerald-200">
             Inventory Score: {DEFAULT_SUMMARY.healthScore}/100
@@ -77,7 +77,7 @@ export const InventoryAnalyticsSection = memo(function InventoryAnalyticsSection
         </div>
         <div className="p-4 rounded-xl bg-zinc-50/70 border border-zinc-200/80">
           <span className="text-[10.5px] font-bold uppercase text-zinc-400 block">Ageing / Dead Stock</span>
-          <span className="text-lg font-extrabold text-zinc-700 mt-0.5 block">₹14,200</span>
+          <span className="text-lg font-extrabold text-zinc-700 mt-0.5 block">£1,420</span>
         </div>
       </div>
 

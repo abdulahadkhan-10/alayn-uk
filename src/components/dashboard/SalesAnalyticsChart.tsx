@@ -149,7 +149,7 @@ export const SalesAnalyticsChart = memo(function SalesAnalyticsChart({
               <XAxis dataKey="label" tickLine={false} axisLine={false} tick={{ fontSize: 11, fill: "#a1a1aa", fontWeight: 600 }} />
               <YAxis tickLine={false} axisLine={false} tick={{ fontSize: 11, fill: "#a1a1aa" }} />
               <Tooltip
-                formatter={(val: any) => [`₹${Number(val).toLocaleString("en-IN")}`, activeMetric === "REVENUE" ? "Revenue" : "Value"]}
+                formatter={(val: any) => [`£${Number(val).toLocaleString("en-GB")}`, activeMetric === "REVENUE" ? "Revenue" : "Value"]}
                 contentStyle={{ backgroundColor: "#1B2A4A", borderRadius: "12px", color: "#fff", fontSize: "12px", border: "none", boxShadow: "0 10px 25px -5px rgba(0, 0, 0, 0.3)" }}
               />
               {showComparison && (
@@ -181,7 +181,7 @@ export const SalesAnalyticsChart = memo(function SalesAnalyticsChart({
             <Clock className="h-3.5 w-3.5 text-zinc-400" />
             <span>Peak Rush Hours: <strong className="text-zinc-800">1:00 PM – 3:00 PM &amp; 8:30 PM – 10:30 PM</strong></span>
           </div>
-          <span className="text-[11px] font-bold text-[#1B2A4A] hidden sm:inline">Highest Day: Saturday (₹95,000)</span>
+          <span className="text-[11px] font-bold text-[#1B2A4A] hidden sm:inline">Highest Day: Saturday (£9,500)</span>
         </div>
 
       </div>

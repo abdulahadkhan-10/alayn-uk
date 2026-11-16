@@ -25,7 +25,7 @@ export interface BillOptions {
   /** Service charge only applies to dine-in (TABLE/QR) orders */
   dineIn: boolean;
   serviceChargeWaived?: boolean;
-  /** Discount in Rupees */
+  /** Discount in Pounds */
   discount?: number;
   gstRegistrationType?: GstRegistrationType;
 }

@@ -46,7 +46,7 @@ export const MenuAnalyticsSection = memo(function MenuAnalyticsSection() {
               viewMetric === "revenue" ? "bg-[#0B1221] text-white shadow-2xs font-bold" : "text-zinc-600 hover:text-zinc-900"
             }`}
           >
-            Revenue (₹)
+            Revenue (£)
           </button>
           <button
             type="button"
@@ -81,7 +81,7 @@ export const MenuAnalyticsSection = memo(function MenuAnalyticsSection() {
             <YAxis dataKey="name" type="category" tickLine={false} axisLine={false} tick={{ fontSize: 12, fill: "#0B1221", fontWeight: 600 }} width={100} />
             <Tooltip
               formatter={(val: any) => [
-                viewMetric === "revenue" ? `₹${Number(val).toLocaleString("en-IN")}` : viewMetric === "margin" ? `${val}%` : `${val} units`,
+                viewMetric === "revenue" ? `£${Number(val).toLocaleString("en-GB")}` : viewMetric === "margin" ? `${val}%` : `${val} units`,
                 viewMetric.toUpperCase(),
               ]}
               contentStyle={{ backgroundColor: "#0B1221", borderRadius: "12px", color: "#fff", fontSize: "12px" }}

@@ -16,7 +16,6 @@ export interface Outlet {
   gstin?: string;
   receiptTagline?: string;
   receiptFooter?: string;
-  upiId?: string;
   latitude?: number;
   longitude?: number;
   geofenceRadius?: number;
@@ -83,11 +82,11 @@ export const outletApi = baseApi.injectEndpoints({
       invalidatesTags: ["Outlet"],
     }),
 
-    updateReceiptDetails: builder.mutation<any, { outletId?: string; phone?: string; gstin?: string; receiptTagline?: string; receiptFooter?: string; upiId?: string }>({
-      query: ({ outletId, phone, gstin, receiptTagline, receiptFooter, upiId }) => ({
+    updateReceiptDetails: builder.mutation<any, { outletId?: string; phone?: string; gstin?: string; receiptTagline?: string; receiptFooter?: string }>({
+      query: ({ outletId, phone, gstin, receiptTagline, receiptFooter }) => ({
         url: "/outlets/receipt-details",
         method: "PATCH",
-        body: { phone, gstin, receiptTagline, receiptFooter, upiId },
+        body: { phone, gstin, receiptTagline, receiptFooter },
         headers: outletId ? { "x-outlet-id": outletId } : undefined,
       }),
       invalidatesTags: ["Outlet"],

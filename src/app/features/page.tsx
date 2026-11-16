@@ -22,9 +22,9 @@ export const metadata: Metadata = {
 const MODULES = [
   {
     number: "01",
-    title: "Point of Sale & GST Billing Software",
+    title: "Point of Sale & VAT Billing Software",
     items: [
-      "Counter and table GST billing with UPI, card and cash",
+      "Counter and table VAT billing with contactless, card and cash",
       "Printed KOTs and thermal receipts",
       "Table QR codes that open the menu on the guest's phone",
       "Unlimited POS terminals per outlet",
@@ -72,7 +72,7 @@ const MODULES = [
     title: "Multi-Outlet Management",
     items: [
       "Every outlet from one login, each with its own orders, stock and staff",
-      "Outlet-level prices and GST (CGST/SGST) settings",
+      "Outlet-level prices and UK VAT settings",
     ],
   },
   {

@@ -22,8 +22,8 @@ import {
   ArrowLeft,
   ChevronLeft,
   ChevronRight,
-  IndianRupee,
-  ReceiptIndianRupeeIcon,
+  PoundSterling,
+  ReceiptPoundSterlingIcon,
   Eye,
   FileSpreadsheet,
   Clock,
@@ -223,7 +223,6 @@ export default function CompletedOrdersPage() {
   const collectionsByMethod = useMemo(() => {
     const totals: Record<string, { paise: number; bills: number }> = {
       CASH: { paise: 0, bills: 0 },
-      UPI: { paise: 0, bills: 0 },
       CARD: { paise: 0, bills: 0 },
     };
     let splitBills = 0;
@@ -333,13 +332,13 @@ export default function CompletedOrdersPage() {
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <div className="bg-gradient-to-br from-emerald-600 to-teal-700 text-white p-4 sm:p-5 rounded-2xl shadow-sm relative overflow-hidden">
             <div className="absolute right-3 top-3 bg-white/10 p-2.5 rounded-xl">
-              <IndianRupee className="w-6 h-6 text-emerald-100" />
+              <PoundSterling className="w-6 h-6 text-emerald-100" />
             </div>
             <p className="text-xs font-bold text-emerald-100 uppercase tracking-wider">
               Total Revenue (Completed)
             </p>
             <h3 className="text-2xl sm:text-3xl font-bold mt-1">
-              ₹{totalRevenue.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+              £{totalRevenue.toLocaleString("en-GB", { minimumFractionDigits: 2 })}
             </h3>
             <p className="text-[11px] text-emerald-200 mt-1 font-medium">
               Across {filteredCompletedOrders.length} orders
@@ -348,7 +347,7 @@ export default function CompletedOrdersPage() {
 
           <div className="bg-white p-4 sm:p-5 rounded-2xl border border-gray-200 shadow-xs relative">
             <div className="absolute right-3 top-3 bg-blue-50 p-2.5 rounded-xl text-blue-600">
-              <ReceiptIndianRupeeIcon className="w-6 h-6" />
+              <ReceiptPoundSterlingIcon className="w-6 h-6" />
             </div>
             <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">
               Total Completed Tickets
@@ -369,7 +368,7 @@ export default function CompletedOrdersPage() {
               Average Order Value
             </p>
             <h3 className="text-2xl sm:text-3xl font-bold text-[#1B2A4A] mt-1">
-              ₹{avgOrderValue.toFixed(2)}
+              £{avgOrderValue.toFixed(2)}
             </h3>
             <p className="text-[11px] text-gray-500 mt-1 font-medium">
               Per ticket average
@@ -391,8 +390,9 @@ export default function CompletedOrdersPage() {
             )}
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            {(["CASH", "UPI", "CARD", "SWIGGY", "ZOMATO", "EAZYDINER"] as const)
-              .filter((method) => collectionsByMethod.totals[method]?.bills > 0 || !["SWIGGY", "ZOMATO", "EAZYDINER"].includes(method))
+            {(["CASH", "CARD", "DELIVEROO", "UBER_EATS", "JUST_EAT", "UPI", "SWIGGY", "ZOMATO", "EAZYDINER"] as const)
+              // Partner apps and the pre-UK-launch methods only show once something was collected through them
+              .filter((method) => collectionsByMethod.totals[method]?.bills > 0 || ["CASH", "CARD"].includes(method))
               .map((method) => {
               const entry = collectionsByMethod.totals[method];
               return (
@@ -488,10 +488,9 @@ export default function CompletedOrdersPage() {
                 <option value="ALL">All Payment Methods</option>
                 <option value="CASH">Cash</option>
                 <option value="CARD">Card</option>
-                <option value="UPI">UPI</option>
-                <option value="SWIGGY">Swiggy</option>
-                <option value="ZOMATO">Zomato</option>
-                <option value="EAZYDINER">EazyDiner</option>
+                <option value="DELIVEROO">Deliveroo</option>
+                <option value="UBER_EATS">Uber Eats</option>
+                <option value="JUST_EAT">Just Eat</option>
               </select>
             </div>
 
@@ -568,7 +567,7 @@ export default function CompletedOrdersPage() {
             </div>
           ) : paginatedOrders.length === 0 ? (
             <div className="py-16 text-center text-gray-400">
-              <ReceiptIndianRupeeIcon className="w-12 h-12 mx-auto text-gray-300 mb-3" />
+              <ReceiptPoundSterlingIcon className="w-12 h-12 mx-auto text-gray-300 mb-3" />
               <h3 className="text-base font-bold text-gray-700">No completed orders found</h3>
               <p className="text-xs text-gray-400 mt-1 max-w-sm mx-auto">
                 No completed orders match your current filters or search criteria. Try adjusting the filters above.
@@ -611,7 +610,7 @@ export default function CompletedOrdersPage() {
                           </div>
                           <div className="text-[10px] font-medium text-gray-400 flex items-center gap-1 mt-0.5">
                             <Clock className="w-3 h-3 text-gray-400" />
-                            {new Date(order.createdAt).toLocaleString("en-IN", {
+                            {new Date(order.createdAt).toLocaleString("en-GB", {
                               day: "2-digit",
                               month: "short",
                               hour: "2-digit",
@@ -676,7 +675,7 @@ export default function CompletedOrdersPage() {
 
                         <td className="py-3.5 px-4 text-right">
                           <span className="text-sm font-bold text-[#1B2A4A]">
-                            ₹{order.totalAmount.toFixed(2)}
+                            £{order.totalAmount.toFixed(2)}
                           </span>
                         </td>
 
@@ -777,13 +776,13 @@ export default function CompletedOrdersPage() {
               <div className="bg-[#1B2A4A] text-white p-5 flex items-center justify-between">
                 <div>
                   <div className="flex items-center gap-2">
-                    <ReceiptIndianRupeeIcon className="w-5 h-5 text-emerald-400" />
+                    <ReceiptPoundSterlingIcon className="w-5 h-5 text-emerald-400" />
                     <h3 className="text-lg font-bold">
                       Order {selectedOrder.orderNo || (selectedOrder as any).orderNumber || selectedOrder.id.slice(0, 8)}
                     </h3>
                   </div>
                   <p className="text-xs text-gray-300 mt-0.5">
-                    {new Date(selectedOrder.createdAt).toLocaleString("en-IN", {
+                    {new Date(selectedOrder.createdAt).toLocaleString("en-GB", {
                       dateStyle: "medium",
                       timeStyle: "short",
                     })}
@@ -862,7 +861,7 @@ export default function CompletedOrdersPage() {
                             </span>
                           ) : (
                             <span className="font-bold text-gray-800">
-                              ₹{getItemPrice(item).toFixed(2)}
+                              £{getItemPrice(item).toFixed(2)}
                             </span>
                           )}
                         </div>
@@ -880,23 +879,23 @@ export default function CompletedOrdersPage() {
                 <div className="p-4 bg-gray-50 rounded-2xl space-y-2 text-xs">
                   <div className="flex justify-between text-gray-600">
                     <span>Subtotal</span>
-                    <span>₹{selectedOrder.subtotal?.toFixed(2) || selectedOrder.totalAmount.toFixed(2)}</span>
+                    <span>£{selectedOrder.subtotal?.toFixed(2) || selectedOrder.totalAmount.toFixed(2)}</span>
                   </div>
                   {selectedOrder.taxAmount > 0 && (
                     <div className="flex justify-between text-gray-600">
                       <span>Taxes & Charges</span>
-                      <span>₹{selectedOrder.taxAmount.toFixed(2)}</span>
+                      <span>£{selectedOrder.taxAmount.toFixed(2)}</span>
                     </div>
                   )}
                   {selectedOrder.discountAmount > 0 && (
                     <div className="flex justify-between text-emerald-600 font-medium">
                       <span>Discount</span>
-                      <span>-₹{selectedOrder.discountAmount.toFixed(2)}</span>
+                      <span>-£{selectedOrder.discountAmount.toFixed(2)}</span>
                     </div>
                   )}
                   <div className="flex justify-between text-sm font-bold text-[#1B2A4A] pt-2 border-t border-gray-200">
                     <span>Total Paid</span>
-                    <span>₹{selectedOrder.totalAmount.toFixed(2)}</span>
+                    <span>£{selectedOrder.totalAmount.toFixed(2)}</span>
                   </div>
                 </div>
               </div>

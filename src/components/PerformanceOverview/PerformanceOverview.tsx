@@ -3,7 +3,7 @@
 import React from "react";
 import type { OutletComparisonRow } from "@/redux/slices/dashboardApiSlice";
 
-const inr = (paise: number) => `₹${Math.round(paise / 100).toLocaleString("en-IN")}`;
+const gbp = (pence: number) => `£${Math.round(pence / 100).toLocaleString("en-GB")}`;
 
 interface PerformanceOverviewProps {
   locations: OutletComparisonRow[];
@@ -53,9 +53,9 @@ export default function PerformanceOverview({ locations, loading, error }: Perfo
                   return (
                     <tr key={loc.outletId} className="hover:bg-gray-50/50 transition-colors">
                       <td className="px-6 py-4 font-bold text-gray-900 text-sm">{loc.outletName}</td>
-                      <td className="px-6 py-4 text-sm text-gray-900 font-medium tabular-nums">{inr(loc.totalSalesPaise)}</td>
+                      <td className="px-6 py-4 text-sm text-gray-900 font-medium tabular-nums">{gbp(loc.totalSalesPaise)}</td>
                       <td className="px-6 py-4 text-sm font-semibold text-gray-600 tabular-nums">
-                        {loc.totalCompletedOrders.toLocaleString("en-IN")}
+                        {loc.totalCompletedOrders.toLocaleString("en-GB")}
                       </td>
                       <td className="px-6 py-4 text-sm">
                         <div className="flex items-center gap-3">

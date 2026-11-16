@@ -27,9 +27,9 @@ interface ConversationRailProps {
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
-/** "Today", "Last 7 days", "Older" by India time */
+/** "Today", "Last 7 days", "Older" by UK time */
 function groupOf(iso: string) {
-  const day = (d: Date) => d.toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" });
+  const day = (d: Date) => d.toLocaleDateString("en-CA", { timeZone: "Europe/London" });
   if (day(new Date(iso)) === day(new Date())) return "Today";
   return Date.now() - new Date(iso).getTime() < 7 * DAY_MS ? "Last 7 days" : "Older";
 }

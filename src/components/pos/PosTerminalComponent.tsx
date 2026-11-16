@@ -19,7 +19,6 @@ import {
   Minus,
   Trash2,
   CreditCard,
-  QrCode,
   Receipt,
   CheckCircle2,
   Utensils,
@@ -78,7 +77,7 @@ export interface CartItem {
 
 type DietaryType = "VEG" | "NON_VEG" | "VEGAN";
 
-const formatMoney = (amount: number) => `₹${Number(amount).toFixed(2)}`;
+const formatMoney = (amount: number) => `£${Number(amount).toFixed(2)}`;
 
 const getDietaryType = (item: MenuItem): DietaryType =>
   (item.dietaryType as DietaryType) || (item.isVeg !== false ? "VEG" : "NON_VEG");
@@ -235,7 +234,7 @@ export default function PosTerminalComponent() {
   // Cart & Order Configuration States
   const [cart, setCart] = useState<CartItem[]>([]);
   const [discount, setDiscount] = useState<number>(0);
-  const [paymentMethod, setPaymentMethod] = useState<"CASH" | "CARD" | "UPI">("UPI");
+  const [paymentMethod, setPaymentMethod] = useState<"CASH" | "CARD">("CARD");
   const [editingNoteCartItemId, setEditingNoteCartItemId] = useState<string | null>(null);
 
   // Petpooja-Style Customization Modal State
@@ -1840,10 +1839,9 @@ export default function PosTerminalComponent() {
                 {/* Payment method */}
                 <section className="space-y-2">
                   <FieldLabel>Payment method</FieldLabel>
-                  <div className="grid grid-cols-3 gap-2" role="radiogroup" aria-label="Payment method">
+                  <div className="grid grid-cols-2 gap-2" role="radiogroup" aria-label="Payment method">
                     {(
                       [
-                        { key: "UPI", label: "UPI", icon: QrCode },
                         { key: "CARD", label: "Card", icon: CreditCard },
                         { key: "CASH", label: "Cash", icon: Banknote },
                       ] as const

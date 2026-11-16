@@ -29,7 +29,7 @@ export const WasteAnalyticsSection = memo(function WasteAnalyticsSection() {
           <p className="text-xs text-zinc-400 font-medium">Visual waste attribution by operational reason</p>
         </div>
         <span className="text-xs font-bold text-[#D3232A] bg-red-50 border border-red-200 px-3 py-1 rounded-xl">
-          Total Waste: ₹{totalWaste.toLocaleString("en-IN")}
+          Total Waste: £{totalWaste.toLocaleString("en-GB")}
         </span>
       </div>
 
@@ -52,7 +52,7 @@ export const WasteAnalyticsSection = memo(function WasteAnalyticsSection() {
                 ))}
               </Pie>
               <Tooltip
-                formatter={(val: any) => [`₹${Number(val).toLocaleString("en-IN")}`, "Cost Impact"]}
+                formatter={(val: any) => [`£${Number(val).toLocaleString("en-GB")}`, "Cost Impact"]}
                 contentStyle={{ backgroundColor: "#0B1221", borderRadius: "12px", color: "#fff", fontSize: "12px" }}
               />
             </PieChart>
@@ -72,7 +72,7 @@ export const WasteAnalyticsSection = memo(function WasteAnalyticsSection() {
                 <span className="text-xs font-bold text-[#0B1221]">{item.name}</span>
               </div>
               <div className="text-right">
-                <span className="text-xs font-bold text-[#0B1221]">₹{item.value.toLocaleString("en-IN")}</span>
+                <span className="text-xs font-bold text-[#0B1221]">£{item.value.toLocaleString("en-GB")}</span>
                 <span className="text-[11px] text-zinc-400 font-medium ml-2">({item.percentage}%)</span>
               </div>
             </div>

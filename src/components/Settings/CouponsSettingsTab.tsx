@@ -352,12 +352,12 @@ export default function CouponsSettingsTab() {
                         </span>
                       ) : (
                         <span className="inline-flex items-center gap-0.5 text-blue-700 font-extrabold bg-blue-50 px-2 py-0.5 rounded-md border border-blue-200">
-                          ₹{coupon.discountValue.toFixed(0)} FLAT OFF
+                          £{coupon.discountValue.toFixed(0)} FLAT OFF
                         </span>
                       )}
                       {coupon.discountType === "PERCENTAGE" && coupon.maxDiscountAmount && (
                         <div className="text-[10px] font-medium text-gray-500 mt-0.5">
-                          Up to ₹{coupon.maxDiscountAmount.toFixed(0)}
+                          Up to £{coupon.maxDiscountAmount.toFixed(0)}
                         </div>
                       )}
                     </td>
@@ -365,7 +365,7 @@ export default function CouponsSettingsTab() {
                     <td className="py-3.5 px-4">
                       {coupon.minOrderAmount ? (
                         <span className="text-[11px] text-gray-700 font-medium">
-                          Min bill: <strong>₹{coupon.minOrderAmount.toFixed(0)}</strong>
+                          Min bill: <strong>£{coupon.minOrderAmount.toFixed(0)}</strong>
                         </span>
                       ) : (
                         <span className="text-[11px] text-gray-400 italic">No minimum</span>
@@ -381,7 +381,7 @@ export default function CouponsSettingsTab() {
                       {coupon.expiresAt ? (
                         <span className="inline-flex items-center gap-1 text-[11px] text-gray-600">
                           <Calendar className="w-3 h-3 text-gray-400" />
-                          {new Date(coupon.expiresAt).toLocaleDateString("en-IN", {
+                          {new Date(coupon.expiresAt).toLocaleDateString("en-GB", {
                             day: "2-digit",
                             month: "short",
                             year: "numeric",
@@ -526,7 +526,7 @@ export default function CouponsSettingsTab() {
                       : "text-gray-600 hover:text-gray-900"
                   }`}
                 >
-                  Flat Amount (₹)
+                  Flat Amount (£)
                 </button>
               </div>
             </div>
@@ -540,13 +540,13 @@ export default function CouponsSettingsTab() {
                   type="number"
                   step="0.01"
                   required
-                  placeholder={discountType === "PERCENTAGE" ? "10 (for 10%)" : "100 (for ₹100)"}
+                  placeholder={discountType === "PERCENTAGE" ? "10 (for 10%)" : "10 (for £10)"}
                   value={discountValue}
                   onChange={(e) => setDiscountValue(e.target.value)}
                   className="w-full px-3.5 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs font-bold text-gray-900 focus:outline-none focus:border-[#1B2A4A] focus:ring-1 focus:ring-[#1B2A4A]"
                 />
                 <span className="absolute right-3 top-2 text-xs font-bold text-gray-400">
-                  {discountType === "PERCENTAGE" ? "%" : "₹"}
+                  {discountType === "PERCENTAGE" ? "%" : "£"}
                 </span>
               </div>
             </div>
@@ -558,10 +558,10 @@ export default function CouponsSettingsTab() {
                 Minimum Bill Amount (Optional)
               </label>
               <div className="relative">
-                <span className="absolute left-3 top-2 text-xs font-bold text-gray-400">₹</span>
+                <span className="absolute left-3 top-2 text-xs font-bold text-gray-400">£</span>
                 <input
                   type="number"
-                  placeholder="e.g. 500"
+                  placeholder="e.g. 50"
                   value={minOrderAmount}
                   onChange={(e) => setMinOrderAmount(e.target.value)}
                   className="w-full pl-7 pr-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs font-medium text-gray-900 focus:outline-none focus:border-[#1B2A4A]"
@@ -575,10 +575,10 @@ export default function CouponsSettingsTab() {
                   Maximum Discount Cap (Optional)
                 </label>
                 <div className="relative">
-                  <span className="absolute left-3 top-2 text-xs font-bold text-gray-400">₹</span>
+                  <span className="absolute left-3 top-2 text-xs font-bold text-gray-400">£</span>
                   <input
                     type="number"
-                    placeholder="e.g. 200 (max cap)"
+                    placeholder="e.g. 20 (max cap)"
                     value={maxDiscountAmount}
                     onChange={(e) => setMaxDiscountAmount(e.target.value)}
                     className="w-full pl-7 pr-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs font-medium text-gray-900 focus:outline-none focus:border-[#1B2A4A]"

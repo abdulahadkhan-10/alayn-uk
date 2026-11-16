@@ -5,11 +5,11 @@ import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxi
 import type { ReportBreakdownRow, ReportData } from "@/redux/slices/reportsApiSlice";
 import { changeTone, formatChange, formatCount, formatPaise, type ReportParams } from "@/lib/reportQuery";
 import { CsvButton } from "./ExportMenu";
-import { compactInr, CURRENT, PREVIOUS } from "./TrendChart";
+import { compactGbp, CURRENT, PREVIOUS } from "./TrendChart";
 
 interface Point {
   label: string;
-  current: number; // rupees, for the chart scale
+  current: number; // pounds, for the chart scale
   previous: number | null;
   row: ReportBreakdownRow;
 }
@@ -55,7 +55,7 @@ function SalesBars({ title, rows, compareLabel, params, section }: { title: stri
           <BarChart data={data} margin={{ top: 8, right: 4, left: -14, bottom: 0 }} barGap={2} barCategoryGap="20%">
             <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F1F5F9" />
             <XAxis dataKey="label" axisLine={false} tickLine={false} interval="preserveStartEnd" minTickGap={8} tick={{ fill: "#64748B", fontSize: 11, fontWeight: 500 }} dy={6} />
-            <YAxis axisLine={false} tickLine={false} tick={{ fill: "#64748B", fontSize: 11, fontWeight: 500 }} tickFormatter={compactInr} allowDecimals={false} />
+            <YAxis axisLine={false} tickLine={false} tick={{ fill: "#64748B", fontSize: 11, fontWeight: 500 }} tickFormatter={compactGbp} allowDecimals={false} />
             <Tooltip content={<BuyTooltip compareLabel={compareLabel} />} cursor={{ fill: "#F8FAFC" }} />
             <Bar dataKey="current" name="This period" fill={CURRENT} radius={[3, 3, 0, 0]} />
             {compareLabel && <Bar dataKey="previous" name={compareLabel} fill={PREVIOUS} fillOpacity={0.5} radius={[3, 3, 0, 0]} />}

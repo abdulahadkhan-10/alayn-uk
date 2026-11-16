@@ -25,11 +25,11 @@ export interface OrderItem {
 
 /** One part of a payment or split payment. Amounts are whole paise. */
 export interface SplitPaymentPart {
-  method: "CASH" | "CARD" | "UPI" | "SWIGGY" | "ZOMATO" | "EAZYDINER";
+  method: "CASH" | "CARD" | "DELIVEROO" | "UBER_EATS" | "JUST_EAT";
   amountPaise: number;
-  /** UPI UTR / card approval code / partner order ref */
+  /** Card approval code / partner order ref */
   reference?: string;
-  /** Cashier confirmed an online payment was received (required for UPI / card / partner at settlement) */
+  /** Cashier confirmed an online payment was received (required for card / partner at settlement) */
   verified?: boolean;
 }
 
@@ -46,7 +46,7 @@ export interface CreateOrderPayload {
     // The server prices each option from the menu by id; the rest is ignored
     modifiers?: OrderItemModifier[];
   }[];
-  paymentMethod: "CASH" | "CARD" | "UPI";
+  paymentMethod: "CASH" | "CARD";
   discountAmount?: number;
   couponCode?: string;
   couponId?: string;
@@ -82,7 +82,7 @@ export interface Order {
   couponCode?: string | null;
   couponId?: string | null;
   /** "SPLIT" when the bill was paid with more than one method */
-  paymentMethod: "CASH" | "CARD" | "UPI" | "SWIGGY" | "ZOMATO" | "EAZYDINER" | "SPLIT";
+  paymentMethod: "CASH" | "CARD" | "DELIVEROO" | "UBER_EATS" | "JUST_EAT" | "UPI" | "SWIGGY" | "ZOMATO" | "EAZYDINER" | "SPLIT";
   paymentStatus: "PENDING" | "CONFIRMED" | "FAILED";
   isSplitPayment?: boolean;
   /** Confirmed payments on the bill, one per part of a split */
@@ -107,7 +107,6 @@ export interface Order {
     gstin?: string;
     receiptTagline?: string;
     receiptFooter?: string;
-    upiId?: string;
   };
 }
 
@@ -160,12 +159,12 @@ export const orderApi = baseApi.injectEndpoints({
         id: string;
         status: Order["status"];
         comment?: string;
-        paymentMethod?: "CASH" | "CARD" | "UPI" | "SWIGGY" | "ZOMATO" | "EAZYDINER";
+        paymentMethod?: "CASH" | "CARD" | "DELIVEROO" | "UBER_EATS" | "JUST_EAT";
         /** Settle with a split instead of one paymentMethod */
         payments?: SplitPaymentPart[];
         /** Same key for retries of one settle attempt — the server never settles twice */
         idempotencyKey?: string;
-        /** Settle even though a UTR / approval code was already used on another bill */
+        /** Settle even though an approval code was already used on another bill */
         allowDuplicateReference?: boolean;
         customerName?: string;
         customerPhone?: string;

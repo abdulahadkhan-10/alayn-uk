@@ -30,15 +30,15 @@ export default function RevenueChart() {
         <div className="flex gap-6 sm:gap-8 text-right">
           <div>
             <div className="text-sm text-gray-500">Actual</div>
-            <div className="text-lg font-bold text-gray-900">284.6k</div>
+            <div className="text-lg font-bold text-gray-900">£284.6k</div>
           </div>
           <div>
             <div className="text-sm text-gray-500">Forecast</div>
-            <div className="text-lg font-bold text-gray-900">₹276.2k</div>
+            <div className="text-lg font-bold text-gray-900">£276.2k</div>
           </div>
           <div>
             <div className="text-sm text-gray-500">Variance</div>
-            <div className="text-lg font-bold text-emerald-500">+₹8.4k</div>
+            <div className="text-lg font-bold text-emerald-500">+£8.4k</div>
           </div>
         </div>
       </div>

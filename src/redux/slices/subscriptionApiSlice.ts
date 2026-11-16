@@ -7,9 +7,9 @@ export interface SubscriptionPlan {
   monthlyFeePaise: number;
   gstRatePercent: number;
   features: string[];
-  basePriceRupees: number;
-  gstRupees: number;
-  totalPayableRupees: number;
+  basePricePounds: number;
+  gstPounds: number;
+  totalPayablePounds: number;
   totalPayablePaise: number;
 }
 
@@ -19,9 +19,9 @@ export interface InitiateSubscriptionResponse {
   paymentSessionId: string | null;
   /** True when a coupon covered the whole amount and the server activated the branch directly. */
   paidWithoutGateway?: boolean;
-  orderAmountRupees: number;
-  baseAmountRupees: number;
-  gstAmountRupees: number;
+  orderAmountPounds: number;
+  baseAmountPounds: number;
+  gstAmountPounds: number;
   currency: string;
   plan: {
     code: string;
@@ -38,7 +38,7 @@ export interface OutletSubscriptionStatusResponse {
   daysRemaining: number;
   planCode?: string;
   planName?: string;
-  monthlyFeeRupees?: number;
+  monthlyFeePounds?: number;
   currentPeriodStart?: string;
   currentPeriodEnd?: string;
   recentPayments?: any[];
@@ -51,8 +51,8 @@ export interface BillingHistoryItem {
   outletId: string;
   outletName: string;
   outletCity: string;
-  amountRupees: number;
-  taxRupees: number;
+  amountPounds: number;
+  taxPounds: number;
   status: "PENDING" | "SUCCESS" | "FAILED" | "USER_DROPPED";
   paymentMethod: string;
   paidAt: string;

@@ -508,7 +508,6 @@ export function buildReceiptHtml(order: any, paperWidth: "80mm" | "58mm" = "80mm
   const outletAddress = outlet.address || "";
   const outletPhone = outlet.phone || "";
   const gstin = outlet.gstin || "";
-  const fssai = outlet.fssai || "";
 
   const orderNumber = actualOrder.orderNumber || actualOrder.orderNo || (actualOrder.id ? String(actualOrder.id).slice(0, 8).toUpperCase() : "BILL-1");
   const tableDisplay = actualOrder.tableNumber || actualOrder.tableNo
@@ -523,7 +522,7 @@ export function buildReceiptHtml(order: any, paperWidth: "80mm" | "58mm" = "80mm
   const printWidth = paperWidth === "80mm" ? "70mm" : "48mm";
 
   const timestamp = actualOrder.createdAt
-    ? new Date(actualOrder.createdAt).toLocaleString("en-IN", {
+    ? new Date(actualOrder.createdAt).toLocaleString("en-GB", {
         day: "2-digit",
         month: "short",
         year: "2-digit",
@@ -531,51 +530,51 @@ export function buildReceiptHtml(order: any, paperWidth: "80mm" | "58mm" = "80mm
         minute: "2-digit",
         hour12: true,
       })
-    : new Date().toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", hour12: true });
+    : new Date().toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", hour12: true });
 
   // Items removed from the bill are not charged, so they don't print
   const itemsList = (actualOrder.items || actualOrder.orderItems || []).filter(
     (item: any) => item.status !== "CANCELLED"
   );
 
-  // Financial math (in Rupees)
-  const subtotalRupees = actualOrder.subtotalPaise !== undefined
+  // Financial math (in Pounds)
+  const subtotalPounds = actualOrder.subtotalPaise !== undefined
     ? actualOrder.subtotalPaise / 100
     : actualOrder.subtotal !== undefined
     ? Number(actualOrder.subtotal)
     : 0;
 
-  const discountRupees = actualOrder.discountPaise !== undefined
+  const discountPounds = actualOrder.discountPaise !== undefined
     ? actualOrder.discountPaise / 100
     : actualOrder.discountAmount !== undefined
     ? Number(actualOrder.discountAmount)
     : 0;
 
-  const grandTotalRupees = actualOrder.totalPaise !== undefined
+  const grandTotalPounds = actualOrder.totalPaise !== undefined
     ? actualOrder.totalPaise / 100
     : actualOrder.totalAmount !== undefined
     ? Number(actualOrder.totalAmount)
     : 0;
 
-  const cgstRupees = actualOrder.cgstPaise !== undefined
+  const cgstPounds = actualOrder.cgstPaise !== undefined
     ? actualOrder.cgstPaise / 100
     : actualOrder.cgstAmount !== undefined
     ? Number(actualOrder.cgstAmount)
     : 0;
 
-  const sgstRupees = actualOrder.sgstPaise !== undefined
+  const sgstPounds = actualOrder.sgstPaise !== undefined
     ? actualOrder.sgstPaise / 100
     : actualOrder.sgstAmount !== undefined
     ? Number(actualOrder.sgstAmount)
     : 0;
 
-  const serviceTaxRupees = actualOrder.serviceTaxPaise !== undefined
+  const serviceTaxPounds = actualOrder.serviceTaxPaise !== undefined
     ? actualOrder.serviceTaxPaise / 100
     : actualOrder.serviceTaxAmount !== undefined
     ? Number(actualOrder.serviceTaxAmount)
     : 0;
 
-  const roundOffRupees = actualOrder.roundOffPaise !== undefined
+  const roundOffPounds = actualOrder.roundOffPaise !== undefined
     ? actualOrder.roundOffPaise / 100
     : actualOrder.roundOffAmount !== undefined
     ? Number(actualOrder.roundOffAmount)
@@ -594,7 +593,7 @@ export function buildReceiptHtml(order: any, paperWidth: "80mm" | "58mm" = "80mm
     : (actualOrder.paymentMethod || actualOrder.payments?.[0]?.method || "PAID").toUpperCase();
   const splitRows = paymentLines.length > 1
     ? paymentLines.map((line) =>
-        `<div class="summary-row"><span>${escapeHtml(line.label)}${line.reference ? ` (Ref ${escapeHtml(line.reference)})` : ""}</span><span>₹${(line.amountPaise / 100).toFixed(2)}</span></div>`
+        `<div class="summary-row"><span>${escapeHtml(line.label)}${line.reference ? ` (Ref ${escapeHtml(line.reference)})` : ""}</span><span>£${(line.amountPaise / 100).toFixed(2)}</span></div>`
       ).join("")
     : "";
 
@@ -646,7 +645,6 @@ export function buildReceiptHtml(order: any, paperWidth: "80mm" | "58mm" = "80mm
         ${outletAddress ? `<div class="center" style="font-size: 10px; margin-top: 2px;">${outletAddress}</div>` : ""}
         ${outletPhone ? `<div class="center" style="font-size: 10px;">Ph: ${outletPhone}</div>` : ""}
         ${gstin ? `<div class="center" style="font-size: 10px; font-weight: bold; margin-top: 2px;">GSTIN: ${gstin}</div>` : ""}
-        ${fssai ? `<div class="center" style="font-size: 10px;">FSSAI: ${fssai}</div>` : ""}
 
         <div class="center bold" style="font-size: 12px; border: 1px solid #000; padding: 3px 6px; margin: 6px auto; display: inline-block;">
           ${invoiceTitle}
@@ -674,8 +672,8 @@ export function buildReceiptHtml(order: any, paperWidth: "80mm" | "58mm" = "80mm
             <div class="addon-row">
               <span style="flex: 2; padding-left: 8px;">+ ${a.name}</span>
               <span style="flex: 1; text-align: center;">${line.qty}</span>
-              <span style="flex: 1; text-align: right;">${a.unitRupees.toFixed(2)}</span>
-              <span style="flex: 1; text-align: right;">${a.amountRupees.toFixed(2)}</span>
+              <span style="flex: 1; text-align: right;">${a.unitPounds.toFixed(2)}</span>
+              <span style="flex: 1; text-align: right;">${a.amountPounds.toFixed(2)}</span>
             </div>
           `).join("");
           return `
@@ -683,8 +681,8 @@ export function buildReceiptHtml(order: any, paperWidth: "80mm" | "58mm" = "80mm
               <div class="item-row">
                 <span style="flex: 2; font-weight: bold;">${line.name}</span>
                 <span style="flex: 1; text-align: center;">${line.qty}</span>
-                <span style="flex: 1; text-align: right;">${line.unitRupees.toFixed(2)}</span>
-                <span style="flex: 1; text-align: right; font-weight: bold;">${line.amountRupees.toFixed(2)}</span>
+                <span style="flex: 1; text-align: right;">${line.unitPounds.toFixed(2)}</span>
+                <span style="flex: 1; text-align: right; font-weight: bold;">${line.amountPounds.toFixed(2)}</span>
               </div>
               ${addonRows}
             </div>
@@ -692,17 +690,17 @@ export function buildReceiptHtml(order: any, paperWidth: "80mm" | "58mm" = "80mm
         }).join("")}
 
         <div class="summary-table">
-          <div class="summary-row"><span>Subtotal:</span><span>₹${subtotalRupees.toFixed(2)}</span></div>
-          ${discountRupees > 0 ? `<div class="summary-row"><span>Discount:</span><span>-₹${discountRupees.toFixed(2)}</span></div>` : ""}
-          ${cgstRupees > 0 ? `<div class="summary-row"><span>CGST:</span><span>₹${cgstRupees.toFixed(2)}</span></div>` : ""}
-          ${sgstRupees > 0 ? `<div class="summary-row"><span>SGST:</span><span>₹${sgstRupees.toFixed(2)}</span></div>` : ""}
-          ${serviceTaxRupees > 0 ? `<div class="summary-row"><span>Service Tax / Charge:</span><span>₹${serviceTaxRupees.toFixed(2)}</span></div>` : ""}
-          ${roundOffRupees !== 0 ? `<div class="summary-row"><span>Round Off:</span><span>${roundOffRupees > 0 ? "+" : ""}₹${roundOffRupees.toFixed(2)}</span></div>` : ""}
+          <div class="summary-row"><span>Subtotal:</span><span>£${subtotalPounds.toFixed(2)}</span></div>
+          ${discountPounds > 0 ? `<div class="summary-row"><span>Discount:</span><span>-£${discountPounds.toFixed(2)}</span></div>` : ""}
+          ${cgstPounds > 0 ? `<div class="summary-row"><span>CGST:</span><span>£${cgstPounds.toFixed(2)}</span></div>` : ""}
+          ${sgstPounds > 0 ? `<div class="summary-row"><span>SGST:</span><span>£${sgstPounds.toFixed(2)}</span></div>` : ""}
+          ${serviceTaxPounds > 0 ? `<div class="summary-row"><span>Service Tax / Charge:</span><span>£${serviceTaxPounds.toFixed(2)}</span></div>` : ""}
+          ${roundOffPounds !== 0 ? `<div class="summary-row"><span>Round Off:</span><span>${roundOffPounds > 0 ? "+" : ""}£${roundOffPounds.toFixed(2)}</span></div>` : ""}
         </div>
 
         <div class="total-box">
           <span>GRAND TOTAL:</span>
-          <span>₹${grandTotalRupees.toFixed(2)}</span>
+          <span>£${grandTotalPounds.toFixed(2)}</span>
         </div>
 
         <div class="center bold" style="font-size: 12px; margin: 4px 0;">

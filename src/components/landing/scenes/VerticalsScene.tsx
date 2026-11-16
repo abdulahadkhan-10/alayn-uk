@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { FieldScene, useField, DEFAULT_NODES, type FieldNode } from "../motion/GlobalField";
 
-// Every outcome below maps to a shipped feature (POS with UPI/card/cash,
+// Every outcome below maps to a shipped feature (POS with card/cash,
 // tables, kitchen display + KOT, menu availability, stock minimums and
 // expiry, suppliers and POs, waste logging, shifts, multi-outlet). Metrics
 // are illustrative and labelled "Example" in the UI.
@@ -18,14 +18,14 @@ const VERTICALS = [
   {
     name: "Cafés",
     labels: ["Orders", "Kitchen", "Stock", "Staff", "Payments", "Menu"],
-    outcome: "Bill fast at the counter with UPI, card or cash, switch sold-out items off the menu, and get a low-stock alert before the oat milk runs out.",
+    outcome: "Bill fast at the counter with card or cash, switch sold-out items off the menu, and get a low-stock alert before the oat milk runs out.",
     data: { metric1: "3 cartons", label1: "Oat milk left · low-stock alert sent", metric2: "212", label2: "Orders before 10 am" }
   },
   {
     name: "Quick Service Restaurants (QSRs)",
     labels: ["Orders", "Kitchen", "Stock", "Staff", "Payments", "Menu"],
     outcome: "Keep the counter queue moving with quick billing, live kitchen tickets, and cancellations the kitchen sees straight away.",
-    data: { metric1: "9", label1: "Orders on the kitchen screen", metric2: "143", label2: "UPI payments today" }
+    data: { metric1: "9", label1: "Orders on the kitchen screen", metric2: "143", label2: "Card payments today" }
   },
   {
     name: "Cloud Kitchens",

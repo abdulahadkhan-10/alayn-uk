@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useMemo } from "react";
-import { X, Trash2, IndianRupee, Loader2, CheckCircle2, AlertTriangle, ChevronDown } from "lucide-react";
+import { X, Trash2, PoundSterling, Loader2, CheckCircle2, AlertTriangle, ChevronDown } from "lucide-react";
 import { InventoryItemApi } from "@/redux/slices/inventoryApiSlice";
 import NumberInput from "@/components/ui/NumberInput";
 import {
@@ -17,7 +17,7 @@ interface CustomPOLine {
   unit: string;
   currentStock: number;
   quantity: number;
-  unitCostRupees: number;
+  unitCostPounds: number;
 }
 
 interface Props {
@@ -68,7 +68,7 @@ export default function CreatePurchaseOrderModal({
     const foundItem = allItems.find((i) => i.id === selectedItemIdToAdd);
     if (!foundItem) return;
 
-    const rupees = (foundItem.unitCostPaise || 0) / 100;
+    const pounds = (foundItem.unitCostPaise || 0) / 100;
 
     setLines((prev) => [
       ...prev,
@@ -78,7 +78,7 @@ export default function CreatePurchaseOrderModal({
         unit: foundItem.unit,
         currentStock: foundItem.currentStock || 0,
         quantity: Math.max(1, addQty),
-        unitCostRupees: rupees,
+        unitCostPounds: pounds,
       },
     ]);
 
@@ -92,9 +92,9 @@ export default function CreatePurchaseOrderModal({
     );
   };
 
-  const handleCostChange = (itemId: string, rupees: number) => {
+  const handleCostChange = (itemId: string, pounds: number) => {
     setLines((prev) =>
-      prev.map((l) => (l.itemId === itemId ? { ...l, unitCostRupees: Math.max(0, rupees) } : l))
+      prev.map((l) => (l.itemId === itemId ? { ...l, unitCostPounds: Math.max(0, pounds) } : l))
     );
   };
 
@@ -103,7 +103,7 @@ export default function CreatePurchaseOrderModal({
   };
 
   const totalPaise = useMemo(() => {
-    return lines.reduce((sum, line) => sum + Math.round(line.quantity * line.unitCostRupees * 100), 0);
+    return lines.reduce((sum, line) => sum + Math.round(line.quantity * line.unitCostPounds * 100), 0);
   }, [lines]);
 
   const handleSubmitPO = async (e: React.FormEvent) => {
@@ -124,7 +124,7 @@ export default function CreatePurchaseOrderModal({
       const payloadItems = lines.map((l) => ({
         itemId: l.itemId,
         orderedQuantity: l.quantity,
-        unitCostPaise: Math.round(l.unitCostRupees * 100),
+        unitCostPaise: Math.round(l.unitCostPounds * 100),
       }));
 
       const payload = { supplierId: selectedSupplierId, items: payloadItems };
@@ -282,7 +282,7 @@ export default function CreatePurchaseOrderModal({
                   <tr className="border-b border-zinc-200 text-zinc-400 text-[11px] font-semibold uppercase tracking-wider">
                     <th className="pb-3 w-5/12">Item Name</th>
                     <th className="pb-3 text-center w-2/12">Quantity</th>
-                    <th className="pb-3 text-center w-2/12">Unit Cost (₹)</th>
+                    <th className="pb-3 text-center w-2/12">Unit Cost (£)</th>
                     <th className="pb-3 text-right w-2/12">Line Total</th>
                     <th className="pb-3 text-right w-1/12"></th>
                   </tr>
@@ -308,18 +308,18 @@ export default function CreatePurchaseOrderModal({
                       </td>
                       <td className="py-3.5 px-2 text-center">
                         <div className="inline-flex items-center gap-1 border border-zinc-200 rounded-lg bg-white px-2 py-1">
-                          <span className="text-[11px] text-zinc-400">₹</span>
+                          <span className="text-[11px] text-zinc-400">£</span>
                           <NumberInput
                             min={0}
-                            aria-label="Unit cost in rupees"
-                            value={line.unitCostRupees}
-                            onChange={(rupees) => handleCostChange(line.itemId, rupees)}
+                            aria-label="Unit cost in pounds"
+                            value={line.unitCostPounds}
+                            onChange={(pounds) => handleCostChange(line.itemId, pounds)}
                             className="w-16 text-center text-xs font-semibold text-zinc-900 focus:outline-none"
                           />
                         </div>
                       </td>
                       <td className="py-3.5 pl-3 text-right font-semibold text-zinc-900 tabular-nums">
-                        ₹{(line.quantity * line.unitCostRupees).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+                        £{(line.quantity * line.unitCostPounds).toLocaleString("en-GB", { minimumFractionDigits: 2 })}
                       </td>
                       <td className="py-3.5 pl-2 text-right">
                         <button
@@ -344,8 +344,8 @@ export default function CreatePurchaseOrderModal({
           <div>
             <span className="text-[11px] font-semibold uppercase tracking-wider text-zinc-400 block">Total Amount</span>
             <span className="text-xl font-bold text-zinc-900 flex items-center gap-0.5 mt-0.5">
-              <IndianRupee className="h-4 w-4 text-zinc-500" />
-              {(totalPaise / 100).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              <PoundSterling className="h-4 w-4 text-zinc-500" />
+              {(totalPaise / 100).toLocaleString("en-GB", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </span>
           </div>
 

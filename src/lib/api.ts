@@ -372,7 +372,6 @@ export interface TableMenuResponse {
   tableNumber?: number;
   tableOrderMode?: 'WAITER_SERVICE' | 'ORDER_AND_PAY';
   allowPayAtCounter?: boolean;
-  upiId?: string | null;
   currency?: string;
   taxRates?: {
     cgstRate: number;
@@ -401,7 +400,7 @@ export interface CreateQROrderPayload {
   items: QROrderItemInput[];
   customerName?: string;
   customerPhone?: string;
-  paymentMethod?: 'UPI' | 'CARD' | 'CASH';
+  paymentMethod?: 'CARD' | 'CASH';
   paymentStatus?: 'PENDING' | 'CONFIRMED' | 'FAILED';
   paymentRef?: string;
 }
@@ -424,8 +423,7 @@ export async function fetchTableMenu(
     tableNumber: data?.tableNumber,
     tableOrderMode: data?.tableOrderMode || 'WAITER_SERVICE',
     allowPayAtCounter: data?.allowPayAtCounter ?? true,
-    upiId: data?.upiId,
-    currency: data?.currency || 'INR',
+    currency: data?.currency || 'GBP',
     taxRates: data?.taxRates || {
       cgstRate: 2.5,
       sgstRate: 2.5,
@@ -470,7 +468,7 @@ export async function createQROrder(
 /** The diner asks for the table's bill and says how they'll pay; staff are alerted to print it and collect */
 export async function requestTableBill(
   token: string,
-  payload: { paymentMethod: "UPI" | "CARD" | "CASH"; paymentRef?: string }
+  payload: { paymentMethod: "CARD" | "CASH"; paymentRef?: string }
 ): Promise<{ ok: boolean; order?: any; error?: string }> {
   const result = await apiRequest<any>(`/orders/tables/${token}/bill-request`, { method: "POST", body: payload });
   if (!result.ok) return { ok: false, error: result.error };

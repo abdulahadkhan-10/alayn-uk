@@ -7,7 +7,7 @@ import type { DietaryType } from "./menuFormat";
 
 const DIETARY_LABEL: Record<DietaryType, string> = { VEG: "Vegetarian", NON_VEG: "Non-vegetarian", VEGAN: "Vegan" };
 
-/** The square food mark Indian diners read at a glance: green dot for veg, red triangle for non-veg */
+/** The square food mark diners read at a glance: green dot for veg, red triangle for non-veg */
 export function DietaryMark({ type, className }: { type: DietaryType; className?: string }) {
   const tone = type === "NON_VEG" ? "border-[#B3261E] text-[#B3261E]" : type === "VEGAN" ? "border-[#0F766E] text-[#0F766E]" : "border-[#15803D] text-[#15803D]";
   return (

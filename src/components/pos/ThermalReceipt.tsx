@@ -1,8 +1,6 @@
 "use client";
 
 import React, { useRef, useEffect, useState } from "react";
-import { QRCodeSVG } from "qrcode.react";
-import { buildUpiPayUrl } from "@/lib/upi";
 import { Printer, X, CheckCircle, Smartphone, Loader2 } from "lucide-react";
 import { printThermalHtml } from "@/lib/printUtils";
 import { billItemRows, receiptCashierName } from "@/lib/billLines";
@@ -67,7 +65,6 @@ export interface ThermalReceiptProps {
       gstin?: string;
       receiptTagline?: string;
       receiptFooter?: string;
-      upiId?: string;
       cgstRateDecimal?: number | string;
       sgstRateDecimal?: number | string;
       serviceTaxRateDecimal?: number | string;
@@ -125,15 +122,14 @@ export default function ThermalReceipt({ order, onClose, autoPrint = false }: Th
   const outletGstin = actualOrder.outlet?.gstin || "";
   const tagline = actualOrder.outlet?.receiptTagline || "";
   const footerMessage = actualOrder.outlet?.receiptFooter || "Thank you for dining with us!\nWe hope to see you again soon.";
-  const upiVpa = actualOrder.outlet?.upiId || "";
 
   const orderDate = actualOrder.createdAt ? new Date(actualOrder.createdAt) : new Date();
-  const formattedDate = orderDate.toLocaleDateString("en-IN", {
+  const formattedDate = orderDate.toLocaleDateString("en-GB", {
     day: "2-digit",
     month: "2-digit",
     year: "2-digit",
   });
-  const formattedTime = orderDate.toLocaleTimeString("en-IN", {
+  const formattedTime = orderDate.toLocaleTimeString("en-GB", {
     hour: "2-digit",
     minute: "2-digit",
     hour12: false,
@@ -150,26 +146,26 @@ export default function ThermalReceipt({ order, onClose, autoPrint = false }: Th
   const customerName = actualOrder.customerName || "";
   const customerPhone = actualOrder.customerPhone || "";
 
-  // Financial math (in Rupees)
-  const subtotalRupees = actualOrder.subtotalPaise !== undefined
+  // Financial math (in Pounds)
+  const subtotalPounds = actualOrder.subtotalPaise !== undefined
     ? actualOrder.subtotalPaise / 100
     : actualOrder.subtotal !== undefined
       ? Number(actualOrder.subtotal)
       : 0;
 
-  const discountRupees = actualOrder.discountPaise !== undefined
+  const discountPounds = actualOrder.discountPaise !== undefined
     ? actualOrder.discountPaise / 100
     : actualOrder.discountAmount !== undefined
       ? Number(actualOrder.discountAmount)
       : 0;
 
-  const grandTotalRupees = actualOrder.totalPaise !== undefined
+  const grandTotalPounds = actualOrder.totalPaise !== undefined
     ? actualOrder.totalPaise / 100
     : actualOrder.totalAmount !== undefined
       ? Number(actualOrder.totalAmount)
       : 0;
 
-  const serviceChargeRupees = actualOrder.serviceChargeAmount !== undefined
+  const serviceChargePounds = actualOrder.serviceChargeAmount !== undefined
     ? Number(actualOrder.serviceChargeAmount)
     : actualOrder.serviceTaxAmount !== undefined
       ? Number(actualOrder.serviceTaxAmount)
@@ -177,7 +173,7 @@ export default function ThermalReceipt({ order, onClose, autoPrint = false }: Th
         ? actualOrder.serviceTaxPaise / 100
         : 0;
 
-  const taxableRupees = Math.max(0, subtotalRupees - discountRupees + serviceChargeRupees);
+  const taxablePounds = Math.max(0, subtotalPounds - discountPounds + serviceChargePounds);
 
   const gstType = actualOrder.gstRegistrationType || actualOrder.outlet?.gstRegistrationType || "REGULAR";
   const isComposition = gstType === "COMPOSITION";
@@ -188,37 +184,37 @@ export default function ThermalReceipt({ order, onClose, autoPrint = false }: Th
     ? Number(actualOrder.cgstRate)
     : actualOrder.outlet?.cgstRateDecimal !== undefined
       ? Number(actualOrder.outlet.cgstRateDecimal)
-      : taxableRupees > 0 && actualOrder.cgstPaise
-        ? Number((((actualOrder.cgstPaise / 100) / taxableRupees) * 100).toFixed(1))
+      : taxablePounds > 0 && actualOrder.cgstPaise
+        ? Number((((actualOrder.cgstPaise / 100) / taxablePounds) * 100).toFixed(1))
         : 2.5;
 
   const sgstRate = actualOrder.sgstRate !== undefined && actualOrder.sgstRate !== null
     ? Number(actualOrder.sgstRate)
     : actualOrder.outlet?.sgstRateDecimal !== undefined
       ? Number(actualOrder.outlet.sgstRateDecimal)
-      : taxableRupees > 0 && actualOrder.sgstPaise
-        ? Number((((actualOrder.sgstPaise / 100) / taxableRupees) * 100).toFixed(1))
+      : taxablePounds > 0 && actualOrder.sgstPaise
+        ? Number((((actualOrder.sgstPaise / 100) / taxablePounds) * 100).toFixed(1))
         : 2.5;
 
   const serviceChargeRate = actualOrder.serviceChargeRate !== undefined && actualOrder.serviceChargeRate !== null
     ? Number(actualOrder.serviceChargeRate)
     : actualOrder.outlet?.serviceTaxRateDecimal !== undefined
       ? Number(actualOrder.outlet.serviceTaxRateDecimal)
-      : (subtotalRupees > 0 && serviceChargeRupees > 0 ? Number(((serviceChargeRupees / subtotalRupees) * 100).toFixed(1)) : 0);
+      : (subtotalPounds > 0 && serviceChargePounds > 0 ? Number(((serviceChargePounds / subtotalPounds) * 100).toFixed(1)) : 0);
 
-  const cgstRupees = actualOrder.cgstPaise !== undefined
+  const cgstPounds = actualOrder.cgstPaise !== undefined
     ? actualOrder.cgstPaise / 100
     : actualOrder.cgstAmount !== undefined
       ? Number(actualOrder.cgstAmount)
-      : isRegular ? Math.round(((taxableRupees * cgstRate) / 100) * 100) / 100 : 0;
+      : isRegular ? Math.round(((taxablePounds * cgstRate) / 100) * 100) / 100 : 0;
 
-  const sgstRupees = actualOrder.sgstPaise !== undefined
+  const sgstPounds = actualOrder.sgstPaise !== undefined
     ? actualOrder.sgstPaise / 100
     : actualOrder.sgstAmount !== undefined
       ? Number(actualOrder.sgstAmount)
-      : isRegular ? Math.round(((taxableRupees * sgstRate) / 100) * 100) / 100 : 0;
+      : isRegular ? Math.round(((taxablePounds * sgstRate) / 100) * 100) / 100 : 0;
 
-  const roundOffRupees = actualOrder.roundOffAmount !== undefined
+  const roundOffPounds = actualOrder.roundOffAmount !== undefined
     ? Number(actualOrder.roundOffAmount)
     : actualOrder.roundOffPaise !== undefined
       ? actualOrder.roundOffPaise / 100
@@ -236,7 +232,7 @@ export default function ThermalReceipt({ order, onClose, autoPrint = false }: Th
   const confirmedPaidPaise = (actualOrder.payments || [])
     .filter((p: { status: string }) => p.status === "CONFIRMED")
     .reduce((sum: number, p: { amountPaise?: number }) => sum + (p.amountPaise || 0), 0);
-  const amountDuePaise = Math.max(0, Math.round(grandTotalRupees * 100) - confirmedPaidPaise);
+  const amountDuePaise = Math.max(0, Math.round(grandTotalPounds * 100) - confirmedPaidPaise);
   const isPaid = actualOrder.status === "COMPLETED" || amountDuePaise === 0;
   // A split bill prints each part under the PAID stamp
   const paymentLines = getPaymentLines(actualOrder);
@@ -244,12 +240,6 @@ export default function ThermalReceipt({ order, onClose, autoPrint = false }: Th
   const paymentMethodLabel = isSplitPayment
     ? "SPLIT"
     : actualOrder.paymentMethod || actualOrder.payments?.[0]?.method || "CASH";
-
-  // Pay-by-UPI QR for the amount still due — only on an unpaid bill (pre-bill), and only to the outlet's own
-  // UPI ID; a paid receipt never asks for money again
-  const upiPaymentUrl = isPaid
-    ? ""
-    : buildUpiPayUrl({ upiId: upiVpa, payeeName: outletName, amountPaise: amountDuePaise, note: `Bill ${billNo}` });
 
   const handlePrint = async () => {
     const content = receiptRef.current;
@@ -484,15 +474,15 @@ export default function ThermalReceipt({ order, onClose, autoPrint = false }: Th
                     <div className="flex justify-between text-[11px] items-start">
                       <span className="flex-1 pr-1 font-bold leading-tight">{line.name}</span>
                       <span className="w-8 text-center">{line.qty}</span>
-                      <span className="w-12 text-right">{line.unitRupees.toFixed(2)}</span>
-                      <span className="w-16 text-right font-black">{line.amountRupees.toFixed(2)}</span>
+                      <span className="w-12 text-right">{line.unitPounds.toFixed(2)}</span>
+                      <span className="w-16 text-right font-black">{line.amountPounds.toFixed(2)}</span>
                     </div>
                     {line.addons.map((addon, aIdx) => (
                       <div key={aIdx} className="flex justify-between text-[10px] mt-0.5">
                         <span className="flex-1 pr-1 pl-2 leading-tight">+ {addon.name}</span>
                         <span className="w-8 text-center">{line.qty}</span>
-                        <span className="w-12 text-right">{addon.unitRupees.toFixed(2)}</span>
-                        <span className="w-16 text-right">{addon.amountRupees.toFixed(2)}</span>
+                        <span className="w-12 text-right">{addon.unitPounds.toFixed(2)}</span>
+                        <span className="w-16 text-right">{addon.amountPounds.toFixed(2)}</span>
                       </div>
                     ))}
                     {item.notes && (
@@ -511,46 +501,46 @@ export default function ThermalReceipt({ order, onClose, autoPrint = false }: Th
             <div className="space-y-1 text-[11px] mt-2">
               <div className="flex justify-between font-bold">
                 <span>Sub Total ({totalQty} items)</span>
-                <span>₹{subtotalRupees.toFixed(2)}</span>
+                <span>£{subtotalPounds.toFixed(2)}</span>
               </div>
 
-              {discountRupees > 0 && (
+              {discountPounds > 0 && (
                 <>
                   <div className="flex justify-between">
                     <span>Discount {actualOrder.couponCode ? `(${actualOrder.couponCode})` : ""}</span>
-                    <span>- ₹{discountRupees.toFixed(2)}</span>
+                    <span>- £{discountPounds.toFixed(2)}</span>
                   </div>
                   <div className="flex justify-between font-bold border-t border-dotted border-black/40 pt-1">
                     <span>Taxable Value</span>
-                    <span>₹{taxableRupees.toFixed(2)}</span>
+                    <span>£{taxablePounds.toFixed(2)}</span>
                   </div>
                 </>
               )}
 
-              {serviceChargeRupees > 0 && (
+              {serviceChargePounds > 0 && (
                 <div className="flex justify-between">
                   <span>Service Charge {serviceChargeRate > 0 ? `@ ${serviceChargeRate}%` : ""}</span>
-                  <span>₹{serviceChargeRupees.toFixed(2)}</span>
+                  <span>£{serviceChargePounds.toFixed(2)}</span>
                 </div>
               )}
 
-              {isRegular && cgstRupees > 0 && (
+              {isRegular && cgstPounds > 0 && (
                 <div className="flex justify-between">
                   <span>CGST @ {cgstRate}%</span>
-                  <span>₹{cgstRupees.toFixed(2)}</span>
+                  <span>£{cgstPounds.toFixed(2)}</span>
                 </div>
               )}
-              {isRegular && sgstRupees > 0 && (
+              {isRegular && sgstPounds > 0 && (
                 <div className="flex justify-between">
                   <span>SGST @ {sgstRate}%</span>
-                  <span>₹{sgstRupees.toFixed(2)}</span>
+                  <span>£{sgstPounds.toFixed(2)}</span>
                 </div>
               )}
 
-              {roundOffRupees !== 0 && (
+              {roundOffPounds !== 0 && (
                 <div className="flex justify-between">
                   <span>Round off</span>
-                  <span>{roundOffRupees > 0 ? `+ ₹${roundOffRupees.toFixed(2)}` : `- ₹${Math.abs(roundOffRupees).toFixed(2)}`}</span>
+                  <span>{roundOffPounds > 0 ? `+ £${roundOffPounds.toFixed(2)}` : `- £${Math.abs(roundOffPounds).toFixed(2)}`}</span>
                 </div>
               )}
             </div>
@@ -560,7 +550,7 @@ export default function ThermalReceipt({ order, onClose, autoPrint = false }: Th
             {/* -- GRAND TOTAL -- */}
             <div className="flex justify-between items-center text-[16px] font-black py-1">
               <span>GRAND TOTAL</span>
-              <span>₹{grandTotalRupees.toFixed(2)}</span>
+              <span>£{grandTotalPounds.toFixed(2)}</span>
             </div>
 
             <div className="border-t border-dashed border-black my-2" />
@@ -580,7 +570,7 @@ export default function ThermalReceipt({ order, onClose, autoPrint = false }: Th
                             {line.label}
                             {line.reference ? <span className="text-[10px]"> (Ref {line.reference})</span> : null}
                           </span>
-                          <span className="font-bold">₹{(line.amountPaise / 100).toFixed(2)}</span>
+                          <span className="font-bold">£{(line.amountPaise / 100).toFixed(2)}</span>
                         </div>
                       ))}
                     </div>
@@ -597,19 +587,6 @@ export default function ThermalReceipt({ order, onClose, autoPrint = false }: Th
             <div className="text-center text-[11px] my-3 whitespace-pre-line leading-relaxed border-t border-dashed border-black pt-3 font-bold">
               {footerMessage}
             </div>
-
-            {/* -- UPI QR CODE (unpaid bills only) -- */}
-            {upiPaymentUrl && (
-            <div className="flex flex-col items-center mt-2 pt-2 border-t border-dashed border-black">
-              <div className="p-1 border border-black rounded-sm bg-white inline-block">
-                <QRCodeSVG value={upiPaymentUrl} size={88} level="M" />
-              </div>
-              <p className="text-[10px] font-bold mt-1.5 text-center text-black">
-                Scan & Pay via UPI
-              </p>
-              <p className="text-[9px] font-medium mt-0.5">{upiVpa}</p>
-            </div>
-            )}
 
             {/* -- BOTTOM SPACING -- */}
             <div className="mt-4 text-center text-[9px] tracking-widest font-bold">

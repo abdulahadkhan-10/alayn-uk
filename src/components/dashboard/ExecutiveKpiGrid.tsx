@@ -2,7 +2,7 @@
 
 import React, { memo, useState } from "react";
 import {
-  IndianRupee,
+  PoundSterling,
   TrendingUp,
   TrendingDown,
   ShoppingBag,
@@ -26,7 +26,7 @@ interface ExecutiveKpiGridProps {
 }
 
 const ICON_MAP: Record<string, any> = {
-  revenue: IndianRupee,
+  revenue: PoundSterling,
   sales: Receipt,
   profit: TrendingUp,
   margin: Percent,
@@ -52,7 +52,7 @@ export const ExecutiveKpiGrid = memo(function ExecutiveKpiGrid({
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
         {metrics.map((metric) => {
           const isUp = metric.isPositive;
-          const IconComp = ICON_MAP[metric.iconName] || IndianRupee;
+          const IconComp = ICON_MAP[metric.iconName] || PoundSterling;
 
           return (
             <div

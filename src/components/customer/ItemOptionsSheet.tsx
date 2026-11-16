@@ -7,7 +7,7 @@ import { resolveUploadUrl } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import BottomSheet from "./BottomSheet";
 import { DietaryMark, QuantityStepper } from "./MenuBits";
-import { dietaryTypeOf, formatRupees } from "./menuFormat";
+import { dietaryTypeOf, formatPounds } from "./menuFormat";
 
 export interface CartModifierItem {
   id?: string;
@@ -118,7 +118,7 @@ export default function ItemOptionsSheet({ item, onClose, onAdd }: ItemOptionsSh
               )}
             >
               <span className="truncate">{missing ? `Choose ${missing.name}` : "Add item"}</span>
-              <span className="shrink-0 tabular-nums">{formatRupees(unitPricePaise * quantity)}</span>
+              <span className="shrink-0 tabular-nums">{formatPounds(unitPricePaise * quantity)}</span>
             </button>
           </div>
         )
@@ -184,7 +184,7 @@ export default function ItemOptionsSheet({ item, onClose, onAdd }: ItemOptionsSh
                       </span>
                       <span className="min-w-0 flex-1 text-[15px] text-(--espresso)">{mod.name}</span>
                       <span className="shrink-0 text-sm tabular-nums text-(--muted)">
-                        {sizeGroup ? formatRupees(price) : price > 0 ? `+${formatRupees(price)}` : ""}
+                        {sizeGroup ? formatPounds(price) : price > 0 ? `+${formatPounds(price)}` : ""}
                       </span>
                     </label>
                   );

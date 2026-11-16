@@ -20,7 +20,7 @@ export interface SalesForecastPoint {
   label: string;
   isToday: boolean;
   isFuture: boolean;
-  actual: number | null; // ₹ before tax (today: so far)
+  actual: number | null; // £ before tax (today: so far)
   projected: number | null;
   low: number | null; // likely range
   high: number | null;
@@ -67,7 +67,7 @@ export interface StaffTodayResponse {
   }[];
 }
 
-/** Today's sales so far against a typical same weekday (₹, before tax) */
+/** Today's sales so far against a typical same weekday (£, before tax) */
 export interface TodayPaceResponse {
   /** no_pattern: fewer than 2 past same weekdays with sales, so no comparison yet */
   status: "ok" | "no_pattern";

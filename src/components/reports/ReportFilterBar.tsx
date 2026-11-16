@@ -85,7 +85,7 @@ export default function ReportFilterBar({ params, onChange, options, outletMode,
   const set = (patch: Partial<ReportParams>) => onChange({ ...params, ...patch });
   const [pickingDays, setPickingDays] = useState(false);
   const [customHours, setCustomHours] = useState(false);
-  const minDay = options?.earliestSale ? new Date(options.earliestSale).toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" }) : undefined;
+  const minDay = options?.earliestSale ? new Date(options.earliestSale).toLocaleDateString("en-CA", { timeZone: "Europe/London" }) : undefined;
   const today = istDay();
 
   // Categories come once per outlet: show each name once, and pick every id that carries it

@@ -27,7 +27,7 @@ function markdownResponse(body: string, status: number) {
 
 const MARKDOWN_NOT_FOUND = `# 404 — Page not found
 
-There is no page at this address on alaynai.com. Alayn AI is a restaurant billing software and operating system: GST POS billing, kitchen display, FEFO inventory, waste tracking and staff scheduling for restaurants, cafés and cloud kitchens.
+There is no page at this address on alaynai.com. Alayn AI is a restaurant billing software and operating system: VAT POS billing, kitchen display, FEFO inventory, waste tracking and staff scheduling for restaurants, cafés and cloud kitchens.
 
 Try one of these instead:
 

@@ -53,8 +53,8 @@ export default function ProfilePage() {
     name: "",
     phoneNo: "",
     nickName: "",
-    timeZone: "(GMT+05:30) India Standard Time",
-    country: "India",
+    timeZone: "(GMT+00:00) Greenwich Mean Time / British Summer Time",
+    country: "United Kingdom",
   });
 
   const [saveSuccessMsg, setSaveSuccessMsg] = useState<string | null>(null);
