@@ -3,8 +3,9 @@ import { socialMetadata } from "@/lib/socialMetadata";
 import Link from "next/link";
 import LandingNav from "@/components/landing/LandingNav";
 import LandingFooter from "@/components/landing/LandingFooter";
+import { SITE_URL, regionAlternates } from "@/lib/site-url";
 
-const siteUrl = "https://alaynai.com";
+const siteUrl = SITE_URL;
 const title = "Restaurant Billing Software & UK VAT POS System | Alayn AI";
 const description =
   "Fast VAT billing software and POS for restaurants, cafés, QSRs, and cloud kitchens in the UK. Counter & table billing, instant KOT, card/cash/mobile pay, live KDS, FEFO inventory & workforce for £79/month.";
@@ -25,6 +26,7 @@ export const metadata: Metadata = {
   ],
   alternates: {
     canonical: `${siteUrl}/billing-software`,
+    languages: regionAlternates("/billing-software"),
     types: { "text/markdown": `${siteUrl}/billing-software.md` },
   },
   ...socialMetadata({ title, description, path: "/billing-software" }),

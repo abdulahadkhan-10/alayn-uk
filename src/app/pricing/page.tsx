@@ -3,8 +3,9 @@ import { socialMetadata } from "@/lib/socialMetadata";
 import Link from "next/link";
 import LandingNav from "@/components/landing/LandingNav";
 import LandingFooter from "@/components/landing/LandingFooter";
+import { SITE_URL, regionAlternates } from "@/lib/site-url";
 
-const siteUrl = "https://alaynai.com";
+const siteUrl = SITE_URL;
 const title = "Pricing — £79 per Outlet per Month | Restaurant Billing & POS | Alayn AI";
 const description = "Alayn AI restaurant billing software and POS costs £79 per outlet per month, or £600 per outlet per year, + 20% VAT, with POS billing, kitchen display, inventory, waste tracking, workforce and analytics all included.";
 
@@ -13,6 +14,7 @@ export const metadata: Metadata = {
   description,
   alternates: {
     canonical: `${siteUrl}/pricing`,
+    languages: regionAlternates("/pricing"),
     types: { "text/markdown": `${siteUrl}/pricing.md` },
   },
   ...socialMetadata({ title, description, path: "/pricing" }),
