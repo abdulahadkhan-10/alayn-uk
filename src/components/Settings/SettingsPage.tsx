@@ -30,7 +30,6 @@ import {
   Monitor,
   Layers,
   CheckCircle2,
-  AlertCircle,
   X,
   Settings as SettingsIcon,
   Store,
@@ -72,14 +71,13 @@ export default function SettingsPage() {
   const { data: outletsData = [], isLoading: isOutletsLoading } = useGetOutletsQuery();
   const currentOutlet = outletsData.find((o) => o.id === activeBranch?.id) || outletsData[0];
 
-  const [cgstInput, setCgstInput] = useState<string>("2.5");
-  const [sgstInput, setSgstInput] = useState<string>("2.5");
+  const [vatInput, setVatInput] = useState<string>("20");
   const [serviceTaxInput, setServiceTaxInput] = useState<string>("0.0");
-  const [gstRegistrationType, setGstRegistrationType] = useState<"REGULAR" | "COMPOSITION" | "UNREGISTERED">("REGULAR");
+  const [vatRegistered, setVatRegistered] = useState<boolean>(true);
   const [updateTaxRates, { isLoading: isUpdatingTax }] = useUpdateTaxRatesMutation();
 
   // Receipt Details State
-  const [gstinInput, setGstinInput] = useState<string>("");
+  const [vatNumberInput, setVatNumberInput] = useState<string>("");
   const [outletPhoneInput, setOutletPhoneInput] = useState<string>("");
   const [taglineInput, setTaglineInput] = useState<string>("");
   const [footerInput, setFooterInput] = useState<string>("");
@@ -166,11 +164,10 @@ export default function SettingsPage() {
 
   useEffect(() => {
     if (currentOutlet) {
-      setCgstInput(String(currentOutlet.cgstRateDecimal ?? 2.5));
-      setSgstInput(String(currentOutlet.sgstRateDecimal ?? 2.5));
+      setVatInput(String(currentOutlet.vatRateDecimal ?? 20));
       setServiceTaxInput(String(currentOutlet.serviceTaxRateDecimal ?? 0.0));
-      setGstRegistrationType((currentOutlet.gstRegistrationType as any) || "REGULAR");
-      setGstinInput(currentOutlet.gstin || "");
+      setVatRegistered(currentOutlet.vatRegistered ?? true);
+      setVatNumberInput(currentOutlet.vatNumber || "");
       setOutletPhoneInput(currentOutlet.phone || "");
       setTaglineInput(currentOutlet.receiptTagline || "Serving joy every day.");
       setFooterInput(currentOutlet.receiptFooter || "Thanks for stopping by!\nWe hope to see you again soon!");
@@ -220,24 +217,22 @@ export default function SettingsPage() {
   const handleSaveTaxRates = async (e: React.FormEvent) => {
     e.preventDefault();
     const targetOutletId = activeBranch?.id || "all";
-    const cgst = parseFloat(cgstInput);
-    const sgst = parseFloat(sgstInput);
+    const vat = parseFloat(vatInput);
     const serviceTax = parseFloat(serviceTaxInput) || 0;
-    if (isNaN(cgst) || isNaN(sgst) || cgst < 0 || sgst < 0 || serviceTax < 0) {
+    if (isNaN(vat) || vat < 0 || serviceTax < 0) {
       setFeedbackMsg("Please enter valid positive tax percentage values.");
       return;
     }
     try {
       await updateTaxRates({
         outletId: targetOutletId,
-        cgstRate: cgst,
-        sgstRate: sgst,
+        vatRate: vat,
         serviceTaxRate: serviceTax,
-        gstRegistrationType,
+        vatRegistered,
       }).unwrap();
       const scopeLabel = targetOutletId === "all" ? "ALL Outlets" : (currentOutlet?.name || "selected branch");
-      const gstSummary = gstRegistrationType === "REGULAR" ? `${cgst}% CGST + ${sgst}% SGST` : `${gstRegistrationType} Scheme (No GST)`;
-      setFeedbackMsg(`Tax Rates updated successfully for ${scopeLabel}! (${gstSummary} • ${serviceTax}% Service Charge)`);
+      const vatSummary = vatRegistered ? `${vat}% VAT included in prices` : "Not VAT-registered";
+      setFeedbackMsg(`VAT settings updated for ${scopeLabel}! (${vatSummary} • ${serviceTax}% Service Charge)`);
     } catch (err: any) {
       setFeedbackMsg(err?.data?.message || "Failed to update tax rates.");
     }
@@ -249,13 +244,13 @@ export default function SettingsPage() {
     try {
       await updateReceiptDetails({
         outletId: targetOutletId,
-        gstin: gstinInput.trim() || undefined,
+        vatNumber: vatNumberInput.trim() || undefined,
         phone: outletPhoneInput.trim() || undefined,
         receiptTagline: taglineInput.trim() || undefined,
         receiptFooter: footerInput.trim() || undefined,
       }).unwrap();
       const scopeLabel = targetOutletId === "all" ? "ALL Outlets" : (currentOutlet?.name || "selected branch");
-      setFeedbackMsg(`AlaynAI Receipt & GST Configuration updated successfully for ${scopeLabel}!`);
+      setFeedbackMsg(`Receipt details updated successfully for ${scopeLabel}!`);
     } catch (err: any) {
       setFeedbackMsg(err?.data?.message || "Failed to update receipt details.");
     }
@@ -879,45 +874,43 @@ export default function SettingsPage() {
               </div>
             </div>
 
-            {/* Tax & GST Configuration Card */}
+            {/* VAT & Service Charge Card */}
             <div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm space-y-4 h-fit">
               <div>
                 <h3 className="text-base font-bold text-gray-900 flex items-center gap-2">
                   <Percent className="h-5 w-5 text-[#D3232A]" />
-                  GST & Tax Rate Configuration
+                  VAT & Service Charge
                 </h3>
                 <p className="text-xs text-gray-500 mt-1">
-                  Configure CGST & SGST percentages applied to POS orders, billing receipts, and QR ordering for{" "}
+                  Menu prices include VAT. Receipts show how much VAT each bill contains, for{" "}
                   <span className="font-bold text-gray-800">{activeBranch?.id === "all" ? "All Outlets (Business-wide)" : (currentOutlet?.name || activeBranch?.name || "selected branch")}</span>.
                 </p>
               </div>
 
               <form onSubmit={handleSaveTaxRates} className="space-y-4">
-                {/* GST Registration Type Selection */}
                 <div>
                   <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">
-                    GST Registration Type <span className="text-red-500">*</span>
+                    VAT registered? <span className="text-red-500">*</span>
                   </label>
                   <select
-                    value={gstRegistrationType}
-                    onChange={(e) => setGstRegistrationType(e.target.value as any)}
+                    value={vatRegistered ? "YES" : "NO"}
+                    onChange={(e) => setVatRegistered(e.target.value === "YES")}
                     className="w-full px-3.5 py-2.5 border border-gray-300 rounded-xl text-xs font-bold text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#D3232A] bg-white cursor-pointer"
                   >
-                    <option value="REGULAR">Regular (Standard GST — CGST + SGST charged on bills, prints "Tax Invoice")</option>
-                    <option value="COMPOSITION">Composition Scheme (No GST charged to customers, prints "Bill of Supply")</option>
-                    <option value="UNREGISTERED">Unregistered (Turnover below threshold — no GST collected on bills)</option>
+                    <option value="YES">Yes, this outlet is VAT-registered</option>
+                    <option value="NO">No, turnover is below the VAT threshold</option>
                   </select>
-                  {gstRegistrationType !== "REGULAR" && (
+                  {!vatRegistered && (
                     <p className="text-[11px] text-amber-800 bg-amber-50 border border-amber-200/80 rounded-xl p-2.5 mt-2 font-medium">
-                      Under {gstRegistrationType === "COMPOSITION" ? "Composition Scheme" : "Unregistered status"}, GST (CGST/SGST) is legally barred from being charged on customer bills. Receipts will automatically display as "Bill of Supply".
+                      Receipts won&apos;t show VAT or a VAT number. Prices stay the same.
                     </p>
                   )}
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                  <div className={gstRegistrationType !== "REGULAR" ? "opacity-50" : ""}>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className={!vatRegistered ? "opacity-50" : ""}>
                     <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">
-                      CGST (%) {gstRegistrationType === "REGULAR" && <span className="text-red-500">*</span>}
+                      VAT rate (%) {vatRegistered && <span className="text-red-500">*</span>}
                     </label>
                     <div className="relative">
                       <input
@@ -925,36 +918,18 @@ export default function SettingsPage() {
                         step="0.01"
                         min="0"
                         max="50"
-                        value={cgstInput}
-                        onChange={(e) => setCgstInput(e.target.value)}
-                        disabled={gstRegistrationType !== "REGULAR"}
+                        value={vatInput}
+                        onChange={(e) => setVatInput(e.target.value)}
+                        disabled={!vatRegistered}
                         className="w-full px-3.5 py-2 border border-gray-300 rounded-xl text-sm font-bold text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#D3232A] disabled:bg-gray-100 disabled:cursor-not-allowed"
-                        placeholder="2.5"
-                        required={gstRegistrationType === "REGULAR"}
+                        placeholder="20"
+                        required={vatRegistered}
                       />
                       <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-gray-400">%</span>
                     </div>
-                  </div>
-
-                  <div className={gstRegistrationType !== "REGULAR" ? "opacity-50" : ""}>
-                    <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">
-                      SGST (%) {gstRegistrationType === "REGULAR" && <span className="text-red-500">*</span>}
-                    </label>
-                    <div className="relative">
-                      <input
-                        type="number"
-                        step="0.01"
-                        min="0"
-                        max="50"
-                        value={sgstInput}
-                        onChange={(e) => setSgstInput(e.target.value)}
-                        disabled={gstRegistrationType !== "REGULAR"}
-                        className="w-full px-3.5 py-2 border border-gray-300 rounded-xl text-sm font-bold text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#D3232A] disabled:bg-gray-100 disabled:cursor-not-allowed"
-                        placeholder="2.5"
-                        required={gstRegistrationType === "REGULAR"}
-                      />
-                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-gray-400">%</span>
-                    </div>
+                    <p className="text-[10px] text-gray-500 mt-1 font-medium">
+                      Standard rate is 20%
+                    </p>
                   </div>
 
                   <div>
@@ -975,32 +950,25 @@ export default function SettingsPage() {
                       <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-gray-400">%</span>
                     </div>
                     <p className="text-[10px] text-gray-500 mt-1 font-medium">
-                      Dine-in only • customer may ask to remove • GST applies on it
+                      Dine-in only • optional for the customer • no VAT on it
                     </p>
                   </div>
                 </div>
 
                 <div className="p-3.5 rounded-xl bg-gray-50 border border-gray-200 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                   <div>
-                    <span className="text-xs font-bold text-gray-700 block">Applied Rates Summary:</span>
+                    <span className="text-xs font-bold text-gray-700 block">On a £10.00 dine-in bill:</span>
                     <span className="text-xs text-gray-500">
-                      {gstRegistrationType === "REGULAR"
-                        ? `GST: ${((parseFloat(cgstInput) || 0) + (parseFloat(sgstInput) || 0)).toFixed(2)}% (${cgstInput}% CGST + ${sgstInput}% SGST)`
-                        : `No GST charged to customers (${gstRegistrationType})`}
-                      {parseFloat(serviceTaxInput) > 0 ? ` • Service Charge: ${serviceTaxInput}%` : " • No Service Charge"}
+                      {vatRegistered
+                        ? `Includes £${((10 * (parseFloat(vatInput) || 0)) / (100 + (parseFloat(vatInput) || 0))).toFixed(2)} VAT`
+                        : "No VAT shown"}
+                      {parseFloat(serviceTaxInput) > 0
+                        ? ` • Service charge £${((10 * (parseFloat(serviceTaxInput) || 0)) / 100).toFixed(2)}`
+                        : " • No service charge"}
                     </span>
                   </div>
                   <span className="text-sm font-black text-[#D3232A]">
-                    {gstRegistrationType === "REGULAR"
-                      ? `${((parseFloat(cgstInput) || 0) + (parseFloat(sgstInput) || 0)).toFixed(2)}% GST`
-                      : "0% GST"}
-                  </span>
-                </div>
-
-                <div className="flex items-start gap-2 p-3 bg-blue-50/80 border border-blue-200 rounded-xl text-blue-900 text-xs leading-relaxed">
-                  <AlertCircle className="w-4 h-4 text-blue-600 shrink-0 mt-0.5" />
-                  <span>
-                    <strong>Statutory Note:</strong> GST is now applied on service charge as required by GST law (part of value of supply, CGST Act s.15) — please inform your accountant.
+                    {vatRegistered ? `${parseFloat(vatInput) || 0}% VAT` : "No VAT"}
                   </span>
                 </div>
 
@@ -1010,19 +978,19 @@ export default function SettingsPage() {
                   className="w-full flex items-center justify-center gap-2 bg-[#D3232A] hover:bg-[#b01e23] text-white font-bold py-2.5 px-4 rounded-xl shadow-sm transition-all cursor-pointer disabled:opacity-50 text-sm"
                 >
                   <Percent className="h-4 w-4" />
-                  {isUpdatingTax ? "Saving Tax Rates..." : "Save Tax Rates"}
+                  {isUpdatingTax ? "Saving..." : "Save VAT Settings"}
                 </button>
               </form>
 
-              {/* ── AlaynAI Thermal Receipt & GST Details Card ── */}
+              {/* ── Thermal Receipt Details Card ── */}
               <div className="pt-6 border-t border-gray-100 space-y-4">
                 <div>
                   <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
                     <Receipt className="h-5 w-5 text-emerald-600" />
-                    AlaynAI Receipt & GST Branding
+                    Receipt Details
                   </h3>
                   <p className="text-xs text-gray-500 mt-0.5">
-                    Configure GSTIN, outlet phone number, custom header tagline, and footer message printed on thermal bills.
+                    VAT number, outlet phone number, header tagline and footer message printed on receipts.
                   </p>
                 </div>
 
@@ -1030,14 +998,14 @@ export default function SettingsPage() {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">
-                        GSTIN Number
+                        VAT Number
                       </label>
                       <input
                         type="text"
-                        value={gstinInput}
-                        onChange={(e) => setGstinInput(e.target.value)}
+                        value={vatNumberInput}
+                        onChange={(e) => setVatNumberInput(e.target.value)}
                         className="w-full px-3.5 py-2 border border-gray-300 rounded-xl text-sm font-semibold text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#D3232A]"
-                        placeholder="27AAZFN6174F1ZL"
+                        placeholder="GB123456789"
                       />
                     </div>
 

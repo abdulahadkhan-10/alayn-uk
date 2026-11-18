@@ -57,7 +57,7 @@ import { getKitchenModeCapabilities } from "@/lib/kitchenMode";
 import { fetchTables, TableItem } from "@/lib/api";
 import { useGetEmployeesQuery } from "@/redux/slices/employeeApiSlice";
 import { useGetOutletsQuery } from "@/redux/slices/outletApiSlice";
-import { estimateBill, GstRegistrationType } from "@/lib/billing";
+import { estimateBill } from "@/lib/billing";
 
 export interface CartModifierItem {
   id?: string;
@@ -493,12 +493,11 @@ export default function PosTerminalComponent() {
 
   // Bill Rates & Registration Type
   const billRates = useMemo(() => ({
-    cgstRate: Number(currentOutlet?.cgstRateDecimal ?? 2.5),
-    sgstRate: Number(currentOutlet?.sgstRateDecimal ?? 2.5),
+    vatRate: Number(currentOutlet?.vatRateDecimal ?? 20),
     serviceChargeRate: Number(currentOutlet?.serviceTaxRateDecimal ?? 0),
   }), [currentOutlet]);
 
-  const gstRegistrationType = (currentOutlet?.gstRegistrationType || "REGULAR") as GstRegistrationType;
+  const vatRegistered = currentOutlet?.vatRegistered ?? true;
   const isDineIn = Boolean(selectedTableNo);
 
   // Financial Calculations — Single source of truth mirrored from billing.ts
@@ -509,14 +508,14 @@ export default function PosTerminalComponent() {
       {
         dineIn: isDineIn,
         discount,
-        gstRegistrationType,
+        vatRegistered,
       }
     );
-  }, [cart, billRates, isDineIn, discount, gstRegistrationType]);
+  }, [cart, billRates, isDineIn, discount, vatRegistered]);
 
   const subtotal = billEstimate.subtotal;
   const grandTotal = billEstimate.total;
-  const taxAmount = billEstimate.cgst + billEstimate.sgst;
+  const taxAmount = billEstimate.vat;
 
   const totalItemCount = useMemo(() => {
     return cart.reduce((acc, ci) => acc + ci.quantity, 0);
@@ -885,21 +884,6 @@ export default function PosTerminalComponent() {
           value={formatMoney(billEstimate.serviceCharge)}
         />
       )}
-      {gstRegistrationType === "REGULAR" ? (
-        <>
-          {billEstimate.cgst > 0 && (
-            <SummaryRow label={`CGST (${billRates.cgstRate}%)`} value={formatMoney(billEstimate.cgst)} />
-          )}
-          {billEstimate.sgst > 0 && (
-            <SummaryRow label={`SGST (${billRates.sgstRate}%)`} value={formatMoney(billEstimate.sgst)} />
-          )}
-        </>
-      ) : (
-        <SummaryRow
-          label={gstRegistrationType === "COMPOSITION" ? "Composition scheme" : "Unregistered"}
-          value="No GST"
-        />
-      )}
       {billEstimate.roundOff !== 0 && (
         <SummaryRow
           label="Round off"
@@ -915,6 +899,12 @@ export default function PosTerminalComponent() {
           {formatMoney(billEstimate.total)}
         </span>
       </div>
+      {billEstimate.vat > 0 && (
+        <SummaryRow
+          label={`Includes VAT (${billEstimate.appliedRates.vatRate}%)`}
+          value={formatMoney(billEstimate.vat)}
+        />
+      )}
     </div>
   );
 

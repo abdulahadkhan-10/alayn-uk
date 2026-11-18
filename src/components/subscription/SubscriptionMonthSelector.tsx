@@ -8,7 +8,7 @@ interface SubscriptionMonthSelectorProps {
   onChange: (months: number) => void;
   baseMonthlyFee?: number; // default 79 (GBP, VAT included)
   yearlyFee?: number; // default 600 (GBP, VAT included)
-  gstRatePercent?: number; // UK VAT, default 20
+  vatRatePercent?: number; // UK VAT, default 20
   currentPeriodEnd?: string | null;
   disabled?: boolean;
   coupon?: {
@@ -36,7 +36,7 @@ export const BILLING_OPTIONS = [
 export function calculateSubscriptionPricing(
   months: number,
   baseMonthlyFee: number = MONTHLY_FEE_GBP,
-  gstRatePercent: number = VAT_RATE_PERCENT,
+  vatRatePercent: number = VAT_RATE_PERCENT,
   coupon?: { discountType: string; discountValue: number } | null,
   yearlyFee: number = YEARLY_FEE_GBP
 ) {
@@ -51,18 +51,18 @@ export function calculateSubscriptionPricing(
     }
   }
   const grandTotal = Math.round(Math.max(0, rawBaseTotal - discountPounds) * 100) / 100;
-  const gstTotal = Math.round((grandTotal - grandTotal / (1 + gstRatePercent / 100)) * 100) / 100;
-  const baseTotal = Math.round((grandTotal - gstTotal) * 100) / 100;
+  const vatTotal = Math.round((grandTotal - grandTotal / (1 + vatRatePercent / 100)) * 100) / 100;
+  const baseTotal = Math.round((grandTotal - vatTotal) * 100) / 100;
 
   return {
     months: safeMonths,
     rawBaseTotal,
     discountPounds,
     baseTotal,
-    gstTotal,
+    vatTotal,
     grandTotal,
     baseTotalPaise: Math.round(baseTotal * 100),
-    gstTotalPaise: Math.round(gstTotal * 100),
+    vatTotalPaise: Math.round(vatTotal * 100),
     grandTotalPaise: Math.round(grandTotal * 100),
   };
 }
@@ -92,12 +92,12 @@ export default function SubscriptionMonthSelector({
   onChange,
   baseMonthlyFee = MONTHLY_FEE_GBP,
   yearlyFee = YEARLY_FEE_GBP,
-  gstRatePercent = VAT_RATE_PERCENT,
+  vatRatePercent = VAT_RATE_PERCENT,
   currentPeriodEnd,
   disabled = false,
   coupon = null,
 }: SubscriptionMonthSelectorProps) {
-  const pricing = calculateSubscriptionPricing(months, baseMonthlyFee, gstRatePercent, coupon, yearlyFee);
+  const pricing = calculateSubscriptionPricing(months, baseMonthlyFee, vatRatePercent, coupon, yearlyFee);
   const projectedEnd = calculateProjectedEndDate(months, currentPeriodEnd);
 
   const handlePresetSelect = (m: number) => {
@@ -208,7 +208,7 @@ export default function SubscriptionMonthSelector({
           <div>
             <span className="block text-sm font-semibold text-zinc-900">Total due today</span>
             <span className="block text-[11px] text-zinc-500">
-              {termLabel}, includes {formatGBP(pricing.gstTotal)} VAT ({gstRatePercent}%)
+              {termLabel}, includes {formatGBP(pricing.vatTotal)} VAT ({vatRatePercent}%)
             </span>
           </div>
           <span className="text-2xl font-semibold leading-none tracking-tight text-zinc-900 tabular-nums">

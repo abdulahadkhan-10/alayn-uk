@@ -159,8 +159,6 @@ function BillBreakdown({ order, paidPaise, duePaise }: { order: any; paidPaise: 
   const rows: [string, number][] = [["Item total", order.subtotalPaise || 0]];
   if (order.discountPaise > 0) rows.push(["Discount", -order.discountPaise]);
   if (order.serviceTaxPaise > 0) rows.push([`Service charge${rate(order.serviceChargeRate)}`, order.serviceTaxPaise]);
-  if (order.cgstPaise > 0) rows.push([`CGST${rate(order.cgstRate)}`, order.cgstPaise]);
-  if (order.sgstPaise > 0) rows.push([`SGST${rate(order.sgstRate)}`, order.sgstPaise]);
   if (order.roundOffPaise) rows.push(["Round off", order.roundOffPaise]);
   const signed = (paise: number) => `${paise < 0 ? "−" : ""}${formatPounds(Math.abs(paise), { exact: true })}`;
 
@@ -176,6 +174,12 @@ function BillBreakdown({ order, paidPaise, duePaise }: { order: any; paidPaise: 
         <dt>Total</dt>
         <dd className="tabular-nums">{formatPounds(order.totalPaise || 0, { exact: true })}</dd>
       </div>
+      {order.vatPaise > 0 && (
+        <div className="flex justify-between gap-4 text-xs text-(--muted)">
+          <dt>Includes VAT{rate(order.vatRate)}</dt>
+          <dd className="tabular-nums">{formatPounds(order.vatPaise, { exact: true })}</dd>
+        </div>
+      )}
       {paidPaise > 0 && duePaise > 0 && (
         <>
           <div className="flex justify-between gap-4 text-(--muted)">

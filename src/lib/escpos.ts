@@ -14,6 +14,7 @@
 import { billItemRows, itemModifiers, receiptCashierName } from "./billLines";
 import { kotHeader, kotItems } from "./kotLines";
 import { getPaymentLines } from "./splitPayment";
+import { receiptVat } from "./billing";
 
 export interface ESCPOSOptions {
   paperWidth?: "80mm" | "58mm";
@@ -281,7 +282,7 @@ export function buildReceiptBytes(order: any, paperWidth: "80mm" | "58mm" = "80m
   const outletName = outlet.name || "ALAYN RESTAURANT";
   const outletAddress = outlet.address ? `${outlet.address}${outlet.city ? `, ${outlet.city}` : ""}` : "";
   const outletPhone = outlet.phone || "";
-  const outletGstin = outlet.gstin || "";
+  const vat = receiptVat(actualOrder);
   const tagline = outlet.receiptTagline || "";
   const footerMessage = outlet.receiptFooter || "Thank you for dining with us!\nVisit again soon!";
 
@@ -321,26 +322,6 @@ export function buildReceiptBytes(order: any, paperWidth: "80mm" | "58mm" = "80m
       : actualOrder.serviceTaxPaise !== undefined
         ? actualOrder.serviceTaxPaise / 100
         : 0;
-  const taxable = Math.max(0, subtotal - discount + serviceCharge);
-
-  const cgstRate = actualOrder.cgstRate !== undefined && actualOrder.cgstRate !== null
-    ? Number(actualOrder.cgstRate)
-    : 2.5;
-  const sgstRate = actualOrder.sgstRate !== undefined && actualOrder.sgstRate !== null
-    ? Number(actualOrder.sgstRate)
-    : 2.5;
-
-  const cgst = actualOrder.cgstPaise !== undefined
-    ? actualOrder.cgstPaise / 100
-    : actualOrder.cgstAmount !== undefined
-      ? Number(actualOrder.cgstAmount)
-      : Math.round(((taxable * cgstRate) / 100) * 100) / 100;
-  const sgst = actualOrder.sgstPaise !== undefined
-    ? actualOrder.sgstPaise / 100
-    : actualOrder.sgstAmount !== undefined
-      ? Number(actualOrder.sgstAmount)
-      : Math.round(((taxable * sgstRate) / 100) * 100) / 100;
-
   const roundOff = actualOrder.roundOffAmount !== undefined
     ? Number(actualOrder.roundOffAmount)
     : actualOrder.roundOffPaise !== undefined
@@ -351,7 +332,7 @@ export function buildReceiptBytes(order: any, paperWidth: "80mm" | "58mm" = "80m
     ? actualOrder.totalPaise / 100
     : actualOrder.totalAmount !== undefined
       ? Number(actualOrder.totalAmount)
-      : Math.round(taxable + cgst + sgst);
+      : Math.max(0, subtotal - discount) + serviceCharge;
   const paymentLines = getPaymentLines(actualOrder);
   const paymentMethod = paymentLines.length > 1 ? "SPLIT" : actualOrder.paymentMethod || "CASH";
 
@@ -370,12 +351,12 @@ export function buildReceiptBytes(order: any, paperWidth: "80mm" | "58mm" = "80m
   if (outletPhone) {
     builder.textLine(`Ph: ${outletPhone}`);
   }
-  if (outletGstin) {
-    builder.bold(true).textLine(`GSTIN: ${outletGstin}`).bold(false);
+  if (vat.vatNumber) {
+    builder.bold(true).textLine(`VAT No: ${vat.vatNumber}`).bold(false);
   }
 
   builder.divider("=");
-  builder.bold(true).textLine("RETAIL TAX INVOICE").bold(false);
+  builder.bold(true).textLine(vat.registered ? "VAT RECEIPT" : "RECEIPT").bold(false);
   builder.divider("-");
 
   // ── METADATA ──
@@ -430,14 +411,9 @@ export function buildReceiptBytes(order: any, paperWidth: "80mm" | "58mm" = "80m
       `Discount ${actualOrder.couponCode ? `(${actualOrder.couponCode})` : ""}:`,
       `-£${Number(discount).toFixed(2)}`
     );
-    builder.twoColumns("Taxable Value:", `£${Number(taxable).toFixed(2)}`);
   }
   if (serviceCharge > 0) {
     builder.twoColumns("Service Charge:", `£${Number(serviceCharge).toFixed(2)}`);
-  }
-  if (cgst > 0 || sgst > 0) {
-    builder.twoColumns(`CGST (${cgstRate}%):`, `£${Number(cgst).toFixed(2)}`);
-    builder.twoColumns(`SGST (${sgstRate}%):`, `£${Number(sgst).toFixed(2)}`);
   }
   if (roundOff !== 0) {
     builder.twoColumns("Round off:", `${roundOff > 0 ? "+" : ""}£${Number(roundOff).toFixed(2)}`);
@@ -449,6 +425,9 @@ export function buildReceiptBytes(order: any, paperWidth: "80mm" | "58mm" = "80m
   builder.bold(true).textSize(2, 2);
   builder.twoColumns("TOTAL:", `£${Number(finalTotal).toFixed(2)}`);
   builder.textSize(1, 1).bold(false);
+  if (vat.vatPounds > 0) {
+    builder.twoColumns(`Includes VAT @ ${vat.rate}%:`, `£${vat.vatPounds.toFixed(2)}`);
+  }
 
   builder.divider("=");
 

@@ -5,10 +5,10 @@ export interface SubscriptionPlan {
   name: string;
   description: string;
   monthlyFeePaise: number;
-  gstRatePercent: number;
+  vatRatePercent: number;
   features: string[];
   basePricePounds: number;
-  gstPounds: number;
+  vatPounds: number;
   totalPayablePounds: number;
   totalPayablePaise: number;
 }
@@ -21,7 +21,7 @@ export interface InitiateSubscriptionResponse {
   paidWithoutGateway?: boolean;
   orderAmountPounds: number;
   baseAmountPounds: number;
-  gstAmountPounds: number;
+  vatAmountPounds: number;
   currency: string;
   plan: {
     code: string;

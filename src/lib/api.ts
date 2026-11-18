@@ -374,10 +374,9 @@ export interface TableMenuResponse {
   allowPayAtCounter?: boolean;
   currency?: string;
   taxRates?: {
-    cgstRate: number;
-    sgstRate: number;
+    vatRate: number;
     serviceChargeRate: number;
-    gstRegistrationType: 'REGULAR' | 'COMPOSITION' | 'UNREGISTERED';
+    vatRegistered: boolean;
   };
   categories?: CustomerMenuCategory[];
   error?: string;
@@ -425,10 +424,9 @@ export async function fetchTableMenu(
     allowPayAtCounter: data?.allowPayAtCounter ?? true,
     currency: data?.currency || 'GBP',
     taxRates: data?.taxRates || {
-      cgstRate: 2.5,
-      sgstRate: 2.5,
+      vatRate: 20,
       serviceChargeRate: 0,
-      gstRegistrationType: 'REGULAR',
+      vatRegistered: true,
     },
     categories: Array.isArray(data) ? data : data?.categories || []
   };

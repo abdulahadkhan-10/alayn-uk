@@ -8,12 +8,11 @@ export interface Outlet {
   state: string;
   country: string;
   businessId: string;
-  cgstRateDecimal?: number | string;
-  sgstRateDecimal?: number | string;
+  vatRateDecimal?: number | string;
   serviceTaxRateDecimal?: number | string;
-  gstRegistrationType?: "REGULAR" | "COMPOSITION" | "UNREGISTERED";
+  vatRegistered?: boolean;
   phone?: string;
-  gstin?: string;
+  vatNumber?: string;
   receiptTagline?: string;
   receiptFooter?: string;
   latitude?: number;
@@ -72,21 +71,21 @@ export const outletApi = baseApi.injectEndpoints({
       invalidatesTags: ["Outlet"],
     }),
 
-    updateTaxRates: builder.mutation<any, { outletId?: string; cgstRate: number; sgstRate: number; serviceTaxRate?: number; gstRegistrationType?: "REGULAR" | "COMPOSITION" | "UNREGISTERED" }>({
-      query: ({ outletId, cgstRate, sgstRate, serviceTaxRate, gstRegistrationType }) => ({
+    updateTaxRates: builder.mutation<any, { outletId?: string; vatRate: number; serviceTaxRate?: number; vatRegistered?: boolean }>({
+      query: ({ outletId, vatRate, serviceTaxRate, vatRegistered }) => ({
         url: "/outlets/tax-rates",
         method: "PATCH",
-        body: { cgstRate, sgstRate, serviceTaxRate, gstRegistrationType },
+        body: { vatRate, serviceTaxRate, vatRegistered },
         headers: outletId ? { "x-outlet-id": outletId } : undefined,
       }),
       invalidatesTags: ["Outlet"],
     }),
 
-    updateReceiptDetails: builder.mutation<any, { outletId?: string; phone?: string; gstin?: string; receiptTagline?: string; receiptFooter?: string }>({
-      query: ({ outletId, phone, gstin, receiptTagline, receiptFooter }) => ({
+    updateReceiptDetails: builder.mutation<any, { outletId?: string; phone?: string; vatNumber?: string; receiptTagline?: string; receiptFooter?: string }>({
+      query: ({ outletId, phone, vatNumber, receiptTagline, receiptFooter }) => ({
         url: "/outlets/receipt-details",
         method: "PATCH",
-        body: { phone, gstin, receiptTagline, receiptFooter },
+        body: { phone, vatNumber, receiptTagline, receiptFooter },
         headers: outletId ? { "x-outlet-id": outletId } : undefined,
       }),
       invalidatesTags: ["Outlet"],

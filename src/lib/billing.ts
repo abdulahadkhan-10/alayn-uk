@@ -1,23 +1,19 @@
 /**
- * Bill calculation — mirrors alayn-backend/src/modules/orders/billing.ts
+ * Bill calculation — mirrors alayn-uk-api/src/modules/orders/billing.ts
  * Single source of truth for bill estimation on the POS and order previews.
  *
- * All financial math is done in paise integers to prevent IEEE-754 floating-point drift:
- *   subtotal       = Σ unit price × qty
+ * UK pricing: menu prices INCLUDE VAT, so VAT is the part of the price already paid, not an extra.
+ * All financial math is done in pence integers to prevent IEEE-754 floating-point drift:
+ *   subtotal       = Σ unit price × qty           (VAT-inclusive)
  *   net            = subtotal − discount
- *   service charge = round(net × scRate)       (dine-in only; voluntary)
- *   taxable value  = net + service charge     (GST applies on food + service charge)
- *   CGST / SGST    = round(taxable × rate)    (0 for COMPOSITION / UNREGISTERED)
- *   total          = round(gross to nearest 100 paise)
- *   round-off      = total − gross
+ *   VAT            = round(net × rate / (100 + rate))   (0 when the outlet isn't VAT-registered)
+ *   service charge = round(net × scRate)          (dine-in only; voluntary, so outside the scope of VAT)
+ *   total          = net + service charge         (bills are not rounded)
  */
 
-export type GstRegistrationType = 'REGULAR' | 'COMPOSITION' | 'UNREGISTERED';
-
 export interface BillRates {
-  /** Percentages, e.g. 2.5 for 2.5% */
-  cgstRate: number;
-  sgstRate: number;
+  /** Percentages, e.g. 20 for 20% */
+  vatRate: number;
   serviceChargeRate: number;
 }
 
@@ -27,7 +23,8 @@ export interface BillOptions {
   serviceChargeWaived?: boolean;
   /** Discount in Pounds */
   discount?: number;
-  gstRegistrationType?: GstRegistrationType;
+  /** false: the outlet is below the VAT threshold, so its bills carry no VAT */
+  vatRegistered?: boolean;
 }
 
 export interface CartLineItem {
@@ -39,9 +36,10 @@ export interface BillEstimate {
   subtotal: number;
   discount: number;
   serviceCharge: number;
-  taxableValue: number;
-  cgst: number;
-  sgst: number;
+  /** Value of the goods excluding VAT */
+  netOfVat: number;
+  /** VAT included in the prices */
+  vat: number;
   roundOff: number;
   total: number;
   appliedRates: BillRates;
@@ -58,43 +56,59 @@ export function estimateBill(
   rates: BillRates,
   options: BillOptions
 ): BillEstimate {
-  // Convert to paise
-  const subtotalPaise = items.reduce(
+  const subtotalPence = items.reduce(
     (sum, item) => sum + Math.round((item.price || 0) * 100) * (item.quantity || 0),
     0
   );
 
-  const discountPaise = Math.min(
+  const discountPence = Math.min(
     Math.max(0, Math.round((options.discount || 0) * 100)),
-    subtotalPaise
+    subtotalPence
   );
-  const netPaise = subtotalPaise - discountPaise;
+  const netPence = subtotalPence - discountPence;
 
   const serviceChargeRate =
     options.dineIn && !options.serviceChargeWaived ? Math.max(0, rates.serviceChargeRate || 0) : 0;
-  const serviceChargePaise = Math.round((netPaise * serviceChargeRate) / 100);
+  const serviceChargePence = Math.round((netPence * serviceChargeRate) / 100);
 
-  const collectsGst = (options.gstRegistrationType || 'REGULAR') === 'REGULAR';
-  const cgstRate = collectsGst ? Math.max(0, rates.cgstRate || 0) : 0;
-  const sgstRate = collectsGst ? Math.max(0, rates.sgstRate || 0) : 0;
-
-  const taxableValuePaise = netPaise + serviceChargePaise;
-  const cgstPaise = Math.round((taxableValuePaise * cgstRate) / 100);
-  const sgstPaise = Math.round((taxableValuePaise * sgstRate) / 100);
-
-  const grossPaise = taxableValuePaise + cgstPaise + sgstPaise;
-  const totalPaise = Math.round(grossPaise / 100) * 100;
-  const roundOffPaise = totalPaise - grossPaise;
+  const vatRate = options.vatRegistered === false ? 0 : Math.max(0, rates.vatRate || 0);
+  const vatPence = Math.round((netPence * vatRate) / (100 + vatRate));
 
   return {
-    subtotal: subtotalPaise / 100,
-    discount: discountPaise / 100,
-    serviceCharge: serviceChargePaise / 100,
-    taxableValue: taxableValuePaise / 100,
-    cgst: cgstPaise / 100,
-    sgst: sgstPaise / 100,
-    roundOff: roundOffPaise / 100,
-    total: totalPaise / 100,
-    appliedRates: { cgstRate, sgstRate, serviceChargeRate },
+    subtotal: subtotalPence / 100,
+    discount: discountPence / 100,
+    serviceCharge: serviceChargePence / 100,
+    netOfVat: (netPence - vatPence) / 100,
+    vat: vatPence / 100,
+    roundOff: 0,
+    total: (netPence + serviceChargePence) / 100,
+    appliedRates: { vatRate, serviceChargeRate },
   };
+}
+
+/**
+ * VAT details for printing a saved bill (receipt, ESC/POS, HTML print).
+ * Prefers the amounts saved on the order; falls back to the outlet's settings.
+ */
+export function receiptVat(order: any): { registered: boolean; rate: number; vatPounds: number; vatNumber: string } {
+  const outlet = order?.outlet || {};
+  const registered = (order?.vatRegistered ?? outlet.vatRegistered) !== false;
+  const rate =
+    order?.vatRate !== undefined && order?.vatRate !== null
+      ? Number(order.vatRate)
+      : outlet.vatRateDecimal !== undefined
+        ? Number(outlet.vatRateDecimal)
+        : 20;
+
+  let vatPounds = 0;
+  if (registered) {
+    if (order?.vatPaise !== undefined) vatPounds = order.vatPaise / 100;
+    else if (order?.vatAmount !== undefined) vatPounds = Number(order.vatAmount);
+    else {
+      const subtotal = order?.subtotalPaise !== undefined ? order.subtotalPaise / 100 : Number(order?.subtotal || 0);
+      const discount = order?.discountPaise !== undefined ? order.discountPaise / 100 : Number(order?.discountAmount || 0);
+      vatPounds = Math.round(((Math.max(0, subtotal - discount) * rate) / (100 + rate)) * 100) / 100;
+    }
+  }
+  return { registered, rate, vatPounds, vatNumber: registered ? outlet.vatNumber || "" : "" };
 }

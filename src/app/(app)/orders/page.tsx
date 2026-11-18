@@ -92,14 +92,13 @@ function settlementBill(order: Order, appliedCoupon: ValidateCouponResponse | nu
     : (subtotalVal > 0 && order.serviceChargeAmount ? Number(((order.serviceChargeAmount / subtotalVal) * 100).toFixed(1)) : 0);
 
   const bill = estimateBill([{ price: subtotalVal, quantity: 1 }], {
-    cgstRate: order.cgstRate != null ? Number(order.cgstRate) : 2.5,
-    sgstRate: order.sgstRate != null ? Number(order.sgstRate) : 2.5,
+    vatRate: order.vatRate != null ? Number(order.vatRate) : 20,
     serviceChargeRate: scRate,
   }, {
     dineIn: isDineIn,
     serviceChargeWaived: !!order.serviceChargeWaived,
     discount: discountVal,
-    gstRegistrationType: order.gstRegistrationType || "REGULAR",
+    vatRegistered: order.vatRegistered ?? true,
   });
 
   const totalPaise = Math.round(bill.total * 100);
@@ -115,9 +114,8 @@ function settlementBill(order: Order, appliedCoupon: ValidateCouponResponse | nu
     subtotalVal,
     discountVal,
     serviceChargeVal: bill.serviceCharge,
-    taxableVal: bill.taxableValue,
-    cgstVal: bill.cgst,
-    sgstVal: bill.sgst,
+    vatVal: bill.vat,
+    vatRate: bill.appliedRates.vatRate,
     roundOffVal: bill.roundOff,
     totalVal: bill.total,
     totalPaise,
@@ -1461,18 +1459,12 @@ export default function LiveOrdersPage() {
                           ? (selectedOrder as any).serviceTaxPaise / 100
                           : 0;
 
-                  const cgstVal =
-                    selectedOrder.cgstAmount !== undefined
-                      ? selectedOrder.cgstAmount
-                      : (selectedOrder as any).cgstPaise !== undefined
-                        ? (selectedOrder as any).cgstPaise / 100
-                        : 0;
-
-                  const sgstVal =
-                    selectedOrder.sgstAmount !== undefined
-                      ? selectedOrder.sgstAmount
-                      : (selectedOrder as any).sgstPaise !== undefined
-                        ? (selectedOrder as any).sgstPaise / 100
+                  // VAT is already inside the prices; shown as "includes VAT"
+                  const vatVal =
+                    selectedOrder.vatAmount !== undefined
+                      ? selectedOrder.vatAmount
+                      : (selectedOrder as any).vatPaise !== undefined
+                        ? (selectedOrder as any).vatPaise / 100
                         : 0;
 
                   const roundOffVal =
@@ -1482,20 +1474,14 @@ export default function LiveOrdersPage() {
                         ? (selectedOrder as any).roundOffPaise / 100
                         : 0;
 
-                  const taxableVal = Math.max(0, subtotalVal - discountVal + serviceChargeVal);
-
                   // Use snapshotted rates if available, else derive
                   const scRate = selectedOrder.serviceChargeRate !== undefined && selectedOrder.serviceChargeRate !== null
                     ? Number(selectedOrder.serviceChargeRate)
                     : (subtotalVal > 0 && serviceChargeVal > 0 ? Number(((serviceChargeVal / subtotalVal) * 100).toFixed(1)) : 0);
 
-                  const cgstRate = selectedOrder.cgstRate !== undefined && selectedOrder.cgstRate !== null
-                    ? Number(selectedOrder.cgstRate)
-                    : (taxableVal > 0 && cgstVal > 0 ? Number(((cgstVal / taxableVal) * 100).toFixed(1)) : 2.5);
-
-                  const sgstRate = selectedOrder.sgstRate !== undefined && selectedOrder.sgstRate !== null
-                    ? Number(selectedOrder.sgstRate)
-                    : (taxableVal > 0 && sgstVal > 0 ? Number(((sgstVal / taxableVal) * 100).toFixed(1)) : 2.5);
+                  const vatRate = selectedOrder.vatRate !== undefined && selectedOrder.vatRate !== null
+                    ? Number(selectedOrder.vatRate)
+                    : 20;
 
                   const isDineIn = selectedOrder.isDineIn ?? (selectedOrder.orderSource === "TABLE" || selectedOrder.orderSource === "QR");
                   const isOrderOpen = selectedOrder.status !== "COMPLETED" && selectedOrder.status !== "CANCELLED";
@@ -1516,10 +1502,6 @@ export default function LiveOrdersPage() {
                             <span className="font-semibold">
                               - £{discountVal.toFixed(2)}
                             </span>
-                          </div>
-                          <div className="flex justify-between text-slate-700 font-semibold border-t border-dashed border-gray-200 pt-1">
-                            <span>Taxable Value</span>
-                            <span>£{taxableVal.toFixed(2)}</span>
                           </div>
                         </>
                       )}
@@ -1542,24 +1524,6 @@ export default function LiveOrdersPage() {
                         </div>
                       )}
 
-                      {cgstVal > 0 && (
-                        <div className="flex justify-between text-gray-600 font-medium">
-                          <span>CGST ({cgstRate}%)</span>
-                          <span className="font-semibold text-gray-800">
-                            £{cgstVal.toFixed(2)}
-                          </span>
-                        </div>
-                      )}
-
-                      {sgstVal > 0 && (
-                        <div className="flex justify-between text-gray-600 font-medium">
-                          <span>SGST ({sgstRate}%)</span>
-                          <span className="font-semibold text-gray-800">
-                            £{sgstVal.toFixed(2)}
-                          </span>
-                        </div>
-                      )}
-
                       {roundOffVal !== 0 && (
                         <div className="flex justify-between text-gray-500 font-medium text-[11px]">
                           <span>Round off</span>
@@ -1575,6 +1539,15 @@ export default function LiveOrdersPage() {
                           £{totalVal.toFixed(2)}
                         </span>
                       </div>
+
+                      {vatVal > 0 && (
+                        <div className="flex justify-between text-gray-500 font-medium text-[11px]">
+                          <span>Includes VAT ({vatRate}%)</span>
+                          <span className="font-semibold text-gray-700">
+                            £{vatVal.toFixed(2)}
+                          </span>
+                        </div>
+                      )}
 
                       {/* Voluntary Service Charge action for open dine-in orders */}
                       {isDineIn && isOrderOpen && (
@@ -1716,16 +1689,15 @@ export default function LiveOrdersPage() {
                 {/* Amount due — breakdown folded behind "Details" */}
                 {(() => {
                   const {
-                    subtotalVal, discountVal, isDineIn, scRate, serviceChargeVal, taxableVal,
-                    cgstVal, sgstVal, roundOffVal, totalVal, paidPaise, balanceDuePaise,
+                    subtotalVal, discountVal, isDineIn, scRate, serviceChargeVal,
+                    vatVal, vatRate, roundOffVal, totalVal, paidPaise, balanceDuePaise,
                   } = settlementBill(settlingOrder, appliedCoupon);
-                  const gstVal = cgstVal + sgstVal;
                   const fmt = (n: number) => `£${n.toLocaleString("en-GB", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
                   const summaryParts = [
                     `Subtotal ${fmt(subtotalVal)}`,
                     discountVal > 0 ? `Discount −${fmt(discountVal)}` : null,
                     serviceChargeVal > 0 ? `Service ${fmt(serviceChargeVal)}` : null,
-                    gstVal > 0 ? `VAT ${fmt(gstVal)}` : null,
+                    vatVal > 0 ? `incl. VAT ${fmt(vatVal)}` : null,
                   ].filter(Boolean);
 
                   return (
@@ -1773,10 +1745,6 @@ export default function LiveOrdersPage() {
                                     <span>Coupon {appliedCoupon?.code || settlingOrder.couponCode || ""}</span>
                                     <span>−{fmt(discountVal)}</span>
                                   </div>
-                                  <div className="flex justify-between">
-                                    <span>Taxable value</span>
-                                    <span className="text-slate-800">{fmt(taxableVal)}</span>
-                                  </div>
                                 </>
                               )}
                               {serviceChargeVal > 0 && (
@@ -1785,10 +1753,10 @@ export default function LiveOrdersPage() {
                                   <span className="text-slate-800">{fmt(serviceChargeVal)}</span>
                                 </div>
                               )}
-                              {gstVal > 0 && (
-                                <div className="flex justify-between">
-                                  <span>GST (CGST + SGST)</span>
-                                  <span className="text-slate-800">{fmt(gstVal)}</span>
+                              {vatVal > 0 && (
+                                <div className="flex justify-between text-slate-500">
+                                  <span>Includes VAT ({vatRate}%)</span>
+                                  <span>{fmt(vatVal)}</span>
                                 </div>
                               )}
                               {roundOffVal !== 0 && (
@@ -2323,7 +2291,7 @@ export default function LiveOrdersPage() {
               <div className="p-4 bg-slate-50 border-t border-slate-100 flex items-center gap-2 shrink-0">
                 <button
                   onClick={() => {
-                    const { discountVal, serviceChargeVal, cgstVal, sgstVal, roundOffVal, totalVal } =
+                    const { discountVal, serviceChargeVal, vatVal, roundOffVal, totalVal } =
                       settlementBill(settlingOrder, appliedCoupon);
 
                     setPrintingOrder({
@@ -2336,10 +2304,8 @@ export default function LiveOrdersPage() {
                       discountPaise: Math.round(discountVal * 100),
                       couponCode: appliedCoupon?.code || settlingOrder.couponCode,
                       couponId: appliedCoupon?.couponId || settlingOrder.couponId,
-                      cgstAmount: cgstVal,
-                      cgstPaise: Math.round(cgstVal * 100),
-                      sgstAmount: sgstVal,
-                      sgstPaise: Math.round(sgstVal * 100),
+                      vatAmount: vatVal,
+                      vatPaise: Math.round(vatVal * 100),
                       serviceChargeAmount: serviceChargeVal,
                       serviceTaxAmount: serviceChargeVal,
                       serviceTaxPaise: Math.round(serviceChargeVal * 100),

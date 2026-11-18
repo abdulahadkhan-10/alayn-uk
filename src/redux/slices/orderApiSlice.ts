@@ -66,18 +66,17 @@ export interface Order {
   totalAmount: number;
   subtotal: number;
   taxAmount: number;
-  cgstAmount?: number;
-  sgstAmount?: number;
+  /** VAT included in the total (prices include VAT) */
+  vatAmount?: number;
   serviceTaxAmount?: number;
   serviceChargeAmount?: number;
   serviceChargeRate?: number | null;
-  cgstRate?: number | null;
-  sgstRate?: number | null;
+  vatRate?: number | null;
   roundOffAmount?: number;
   serviceChargeWaived?: boolean;
   serviceChargeWaiveReason?: string | null;
   isDineIn?: boolean;
-  gstRegistrationType?: "REGULAR" | "COMPOSITION" | "UNREGISTERED";
+  vatRegistered?: boolean;
   discountAmount: number;
   couponCode?: string | null;
   couponId?: string | null;
@@ -104,7 +103,7 @@ export interface Order {
     city?: string;
     state?: string;
     phone?: string;
-    gstin?: string;
+    vatNumber?: string;
     receiptTagline?: string;
     receiptFooter?: string;
   };

@@ -14,6 +14,7 @@ import { printThermalHtml } from "./printUtils";
 import { billItemRows, receiptCashierName } from "./billLines";
 import { kotHeader, kotItems } from "./kotLines";
 import { getPaymentLines } from "./splitPayment";
+import { receiptVat } from "./billing";
 
 const escapeHtml = (text: string) =>
   text.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c] as string);
@@ -499,7 +500,7 @@ export function buildKotHtml(order: any, isCancellation = false, paperWidth: "80
 }
 
 /**
- * 🧾 Builds standard thermal HTML for Customer Bill / Tax Invoice
+ * 🧾 Builds standard thermal HTML for the customer's VAT receipt
  */
 export function buildReceiptHtml(order: any, paperWidth: "80mm" | "58mm" = "80mm"): string {
   const actualOrder = (order as any)?.data || order || {};
@@ -507,7 +508,7 @@ export function buildReceiptHtml(order: any, paperWidth: "80mm" | "58mm" = "80mm
   const outletName = outlet.name || "ALAYN RESTAURANT";
   const outletAddress = outlet.address || "";
   const outletPhone = outlet.phone || "";
-  const gstin = outlet.gstin || "";
+  const vat = receiptVat(actualOrder);
 
   const orderNumber = actualOrder.orderNumber || actualOrder.orderNo || (actualOrder.id ? String(actualOrder.id).slice(0, 8).toUpperCase() : "BILL-1");
   const tableDisplay = actualOrder.tableNumber || actualOrder.tableNo
@@ -556,18 +557,6 @@ export function buildReceiptHtml(order: any, paperWidth: "80mm" | "58mm" = "80mm
     ? Number(actualOrder.totalAmount)
     : 0;
 
-  const cgstPounds = actualOrder.cgstPaise !== undefined
-    ? actualOrder.cgstPaise / 100
-    : actualOrder.cgstAmount !== undefined
-    ? Number(actualOrder.cgstAmount)
-    : 0;
-
-  const sgstPounds = actualOrder.sgstPaise !== undefined
-    ? actualOrder.sgstPaise / 100
-    : actualOrder.sgstAmount !== undefined
-    ? Number(actualOrder.sgstAmount)
-    : 0;
-
   const serviceTaxPounds = actualOrder.serviceTaxPaise !== undefined
     ? actualOrder.serviceTaxPaise / 100
     : actualOrder.serviceTaxAmount !== undefined
@@ -580,12 +569,7 @@ export function buildReceiptHtml(order: any, paperWidth: "80mm" | "58mm" = "80mm
     ? Number(actualOrder.roundOffAmount)
     : 0;
 
-  const gstType = actualOrder.gstRegistrationType || outlet.gstRegistrationType || "REGULAR";
-  const invoiceTitle = gstType === "COMPOSITION"
-    ? "BILL OF SUPPLY"
-    : gstType === "UNREGISTERED"
-    ? "RETAIL INVOICE"
-    : "TAX INVOICE";
+  const invoiceTitle = vat.registered ? "VAT RECEIPT" : "RECEIPT";
 
   const paymentLines = getPaymentLines(actualOrder);
   const paymentMethodLabel = paymentLines.length > 1
@@ -644,7 +628,7 @@ export function buildReceiptHtml(order: any, paperWidth: "80mm" | "58mm" = "80mm
         <div class="center bold" style="font-size: 16px; text-transform: uppercase;">${outletName}</div>
         ${outletAddress ? `<div class="center" style="font-size: 10px; margin-top: 2px;">${outletAddress}</div>` : ""}
         ${outletPhone ? `<div class="center" style="font-size: 10px;">Ph: ${outletPhone}</div>` : ""}
-        ${gstin ? `<div class="center" style="font-size: 10px; font-weight: bold; margin-top: 2px;">GSTIN: ${gstin}</div>` : ""}
+        ${vat.vatNumber ? `<div class="center" style="font-size: 10px; font-weight: bold; margin-top: 2px;">VAT No: ${escapeHtml(vat.vatNumber)}</div>` : ""}
 
         <div class="center bold" style="font-size: 12px; border: 1px solid #000; padding: 3px 6px; margin: 6px auto; display: inline-block;">
           ${invoiceTitle}
@@ -692,9 +676,7 @@ export function buildReceiptHtml(order: any, paperWidth: "80mm" | "58mm" = "80mm
         <div class="summary-table">
           <div class="summary-row"><span>Subtotal:</span><span>£${subtotalPounds.toFixed(2)}</span></div>
           ${discountPounds > 0 ? `<div class="summary-row"><span>Discount:</span><span>-£${discountPounds.toFixed(2)}</span></div>` : ""}
-          ${cgstPounds > 0 ? `<div class="summary-row"><span>CGST:</span><span>£${cgstPounds.toFixed(2)}</span></div>` : ""}
-          ${sgstPounds > 0 ? `<div class="summary-row"><span>SGST:</span><span>£${sgstPounds.toFixed(2)}</span></div>` : ""}
-          ${serviceTaxPounds > 0 ? `<div class="summary-row"><span>Service Tax / Charge:</span><span>£${serviceTaxPounds.toFixed(2)}</span></div>` : ""}
+          ${serviceTaxPounds > 0 ? `<div class="summary-row"><span>Service Charge:</span><span>£${serviceTaxPounds.toFixed(2)}</span></div>` : ""}
           ${roundOffPounds !== 0 ? `<div class="summary-row"><span>Round Off:</span><span>${roundOffPounds > 0 ? "+" : ""}£${roundOffPounds.toFixed(2)}</span></div>` : ""}
         </div>
 
@@ -702,6 +684,7 @@ export function buildReceiptHtml(order: any, paperWidth: "80mm" | "58mm" = "80mm
           <span>GRAND TOTAL:</span>
           <span>£${grandTotalPounds.toFixed(2)}</span>
         </div>
+        ${vat.vatPounds > 0 ? `<div class="summary-row" style="font-size: 11px;"><span>Includes VAT @ ${vat.rate}%:</span><span>£${vat.vatPounds.toFixed(2)}</span></div>` : ""}
 
         <div class="center bold" style="font-size: 12px; margin: 4px 0;">
           PAID VIA ${paymentMethodLabel}

@@ -21,8 +21,9 @@ export interface ThermalReceiptProps {
     createdAt: string;
     subtotalPaise?: number;
     subtotal?: number;
-    cgstPaise?: number;
-    sgstPaise?: number;
+    vatPaise?: number;
+    vatRate?: number | string | null;
+    vatRegistered?: boolean;
     serviceTaxPaise?: number;
     taxPaise?: number;
     taxAmount?: number;
@@ -30,8 +31,7 @@ export interface ThermalReceiptProps {
     totalAmount?: number;
     discountAmount?: number;
     discountPaise?: number;
-    cgstAmount?: number;
-    sgstAmount?: number;
+    vatAmount?: number;
     serviceTaxAmount?: number;
     placedByName?: string;
     customerName?: string;
@@ -62,11 +62,11 @@ export interface ThermalReceiptProps {
       city?: string;
       state?: string;
       phone?: string;
-      gstin?: string;
+      vatNumber?: string;
+      vatRegistered?: boolean;
       receiptTagline?: string;
       receiptFooter?: string;
-      cgstRateDecimal?: number | string;
-      sgstRateDecimal?: number | string;
+      vatRateDecimal?: number | string;
       serviceTaxRateDecimal?: number | string;
     };
   };
@@ -119,7 +119,7 @@ export default function ThermalReceipt({ order, onClose, autoPrint = false }: Th
     ? `${actualOrder.outlet.address}${actualOrder.outlet.city ? `, ${actualOrder.outlet.city}` : ""}`
     : "";
   const outletPhone = actualOrder.outlet?.phone || "";
-  const outletGstin = actualOrder.outlet?.gstin || "";
+  const outletVatNumber = actualOrder.outlet?.vatNumber || "";
   const tagline = actualOrder.outlet?.receiptTagline || "";
   const footerMessage = actualOrder.outlet?.receiptFooter || "Thank you for dining with us!\nWe hope to see you again soon.";
 
@@ -173,28 +173,14 @@ export default function ThermalReceipt({ order, onClose, autoPrint = false }: Th
         ? actualOrder.serviceTaxPaise / 100
         : 0;
 
-  const taxablePounds = Math.max(0, subtotalPounds - discountPounds + serviceChargePounds);
+  // UK: menu prices include VAT, so VAT is shown as the part of the total it already contains
+  const vatRegistered = (actualOrder.vatRegistered ?? actualOrder.outlet?.vatRegistered) !== false;
 
-  const gstType = actualOrder.gstRegistrationType || actualOrder.outlet?.gstRegistrationType || "REGULAR";
-  const isComposition = gstType === "COMPOSITION";
-  const isUnregistered = gstType === "UNREGISTERED";
-  const isRegular = gstType === "REGULAR";
-
-  const cgstRate = actualOrder.cgstRate !== undefined && actualOrder.cgstRate !== null
-    ? Number(actualOrder.cgstRate)
-    : actualOrder.outlet?.cgstRateDecimal !== undefined
-      ? Number(actualOrder.outlet.cgstRateDecimal)
-      : taxablePounds > 0 && actualOrder.cgstPaise
-        ? Number((((actualOrder.cgstPaise / 100) / taxablePounds) * 100).toFixed(1))
-        : 2.5;
-
-  const sgstRate = actualOrder.sgstRate !== undefined && actualOrder.sgstRate !== null
-    ? Number(actualOrder.sgstRate)
-    : actualOrder.outlet?.sgstRateDecimal !== undefined
-      ? Number(actualOrder.outlet.sgstRateDecimal)
-      : taxablePounds > 0 && actualOrder.sgstPaise
-        ? Number((((actualOrder.sgstPaise / 100) / taxablePounds) * 100).toFixed(1))
-        : 2.5;
+  const vatRate = actualOrder.vatRate !== undefined && actualOrder.vatRate !== null
+    ? Number(actualOrder.vatRate)
+    : actualOrder.outlet?.vatRateDecimal !== undefined
+      ? Number(actualOrder.outlet.vatRateDecimal)
+      : 20;
 
   const serviceChargeRate = actualOrder.serviceChargeRate !== undefined && actualOrder.serviceChargeRate !== null
     ? Number(actualOrder.serviceChargeRate)
@@ -202,17 +188,13 @@ export default function ThermalReceipt({ order, onClose, autoPrint = false }: Th
       ? Number(actualOrder.outlet.serviceTaxRateDecimal)
       : (subtotalPounds > 0 && serviceChargePounds > 0 ? Number(((serviceChargePounds / subtotalPounds) * 100).toFixed(1)) : 0);
 
-  const cgstPounds = actualOrder.cgstPaise !== undefined
-    ? actualOrder.cgstPaise / 100
-    : actualOrder.cgstAmount !== undefined
-      ? Number(actualOrder.cgstAmount)
-      : isRegular ? Math.round(((taxablePounds * cgstRate) / 100) * 100) / 100 : 0;
-
-  const sgstPounds = actualOrder.sgstPaise !== undefined
-    ? actualOrder.sgstPaise / 100
-    : actualOrder.sgstAmount !== undefined
-      ? Number(actualOrder.sgstAmount)
-      : isRegular ? Math.round(((taxablePounds * sgstRate) / 100) * 100) / 100 : 0;
+  const vatPounds = !vatRegistered
+    ? 0
+    : actualOrder.vatPaise !== undefined
+      ? actualOrder.vatPaise / 100
+      : actualOrder.vatAmount !== undefined
+        ? Number(actualOrder.vatAmount)
+        : Math.round(((Math.max(0, subtotalPounds - discountPounds) * vatRate) / (100 + vatRate)) * 100) / 100;
 
   const roundOffPounds = actualOrder.roundOffAmount !== undefined
     ? Number(actualOrder.roundOffAmount)
@@ -220,11 +202,7 @@ export default function ThermalReceipt({ order, onClose, autoPrint = false }: Th
       ? actualOrder.roundOffPaise / 100
       : 0;
 
-  const invoiceTitle = isComposition
-    ? "BILL OF SUPPLY"
-    : isUnregistered
-      ? "RETAIL INVOICE"
-      : "TAX INVOICE";
+  const invoiceTitle = vatRegistered ? "VAT RECEIPT" : "RECEIPT";
 
   const totalQty = itemsList.reduce((acc: number, i: any) => acc + (i.quantity || 1), 0);
 
@@ -324,7 +302,7 @@ export default function ThermalReceipt({ order, onClose, autoPrint = false }: Th
           <div>
             <div className="flex items-center gap-2">
               <p className="text-slate-900 font-bold text-sm leading-tight">
-                {isComposition ? "Bill of Supply Preview" : isUnregistered ? "Retail Invoice Preview" : "Tax Invoice Preview"}
+                {vatRegistered ? "VAT Receipt Preview" : "Receipt Preview"}
               </p>
               {isPaid && (
                 <span className="text-[10px] font-semibold px-2 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200">
@@ -412,13 +390,8 @@ export default function ThermalReceipt({ order, onClose, autoPrint = false }: Th
               {tagline && <p className="text-[10.5px] italic font-medium mt-1">{tagline}</p>}
               {outletAddress && <p className="text-[10px] mt-0.5">{outletAddress}</p>}
               {outletPhone && <p className="text-[10.5px]">Mob: {outletPhone}</p>}
-              {isRegular && outletGstin && (
-                <p className="text-[10.5px] font-bold mt-1">GSTIN: {outletGstin}</p>
-              )}
-              {isComposition && (
-                <p className="text-[9px] font-bold uppercase mt-1 leading-tight text-center px-1">
-                  Composition taxable person, not eligible to collect tax on supplies
-                </p>
+              {vatRegistered && outletVatNumber && (
+                <p className="text-[10.5px] font-bold mt-1">VAT No: {outletVatNumber}</p>
               )}
             </div>
 
@@ -510,10 +483,6 @@ export default function ThermalReceipt({ order, onClose, autoPrint = false }: Th
                     <span>Discount {actualOrder.couponCode ? `(${actualOrder.couponCode})` : ""}</span>
                     <span>- £{discountPounds.toFixed(2)}</span>
                   </div>
-                  <div className="flex justify-between font-bold border-t border-dotted border-black/40 pt-1">
-                    <span>Taxable Value</span>
-                    <span>£{taxablePounds.toFixed(2)}</span>
-                  </div>
                 </>
               )}
 
@@ -521,19 +490,6 @@ export default function ThermalReceipt({ order, onClose, autoPrint = false }: Th
                 <div className="flex justify-between">
                   <span>Service Charge {serviceChargeRate > 0 ? `@ ${serviceChargeRate}%` : ""}</span>
                   <span>£{serviceChargePounds.toFixed(2)}</span>
-                </div>
-              )}
-
-              {isRegular && cgstPounds > 0 && (
-                <div className="flex justify-between">
-                  <span>CGST @ {cgstRate}%</span>
-                  <span>£{cgstPounds.toFixed(2)}</span>
-                </div>
-              )}
-              {isRegular && sgstPounds > 0 && (
-                <div className="flex justify-between">
-                  <span>SGST @ {sgstRate}%</span>
-                  <span>£{sgstPounds.toFixed(2)}</span>
                 </div>
               )}
 
@@ -552,6 +508,12 @@ export default function ThermalReceipt({ order, onClose, autoPrint = false }: Th
               <span>GRAND TOTAL</span>
               <span>£{grandTotalPounds.toFixed(2)}</span>
             </div>
+            {vatPounds > 0 && (
+              <div className="flex justify-between text-[11px]">
+                <span>Includes VAT @ {vatRate}%</span>
+                <span>£{vatPounds.toFixed(2)}</span>
+              </div>
+            )}
 
             <div className="border-t border-dashed border-black my-2" />
 
