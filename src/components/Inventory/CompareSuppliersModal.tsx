@@ -101,7 +101,7 @@ export default function CompareSuppliersModal({
               Your Current Store Cost
             </span>
             <span className="text-base font-black text-zinc-900 tabular-nums">
-              ₹{currentPriceRupees.toFixed(2)} <span className="text-xs font-normal text-zinc-500">/ {item?.unit}</span>
+              £{currentPriceRupees.toFixed(2)} <span className="text-xs font-normal text-zinc-500">/ {item?.unit}</span>
             </span>
           </div>
         </div>
@@ -147,7 +147,7 @@ export default function CompareSuppliersModal({
                   {cheapest ? cheapest.supplierName : "None"}
                 </div>
                 <div className="text-xs text-emerald-700 font-bold tabular-nums mt-0.5">
-                  {cheapest ? `₹${cheapest.priceRupees.toFixed(2)} / ${cheapest.unit}` : "N/A"}
+                  {cheapest ? `£${cheapest.priceRupees.toFixed(2)} / ${cheapest.unit}` : "N/A"}
                 </div>
               </div>
 
@@ -172,7 +172,7 @@ export default function CompareSuppliersModal({
                   {bestQuality ? bestQuality.supplierName : "None"}
                 </div>
                 <div className="text-xs text-purple-700 font-bold tabular-nums mt-0.5">
-                  {bestQuality ? `⭐ ${bestQuality.rating} • ₹${bestQuality.priceRupees.toFixed(2)}` : "N/A"}
+                  {bestQuality ? `⭐ ${bestQuality.rating} • £${bestQuality.priceRupees.toFixed(2)}` : "N/A"}
                 </div>
               </div>
 
@@ -197,7 +197,7 @@ export default function CompareSuppliersModal({
                   {fastest ? fastest.supplierName : "None"}
                 </div>
                 <div className="text-xs text-blue-700 font-bold tabular-nums mt-0.5">
-                  {fastest ? `₹${fastest.priceRupees.toFixed(2)} • ${fastest.leadTimeHours}h Delivery` : "N/A"}
+                  {fastest ? `£${fastest.priceRupees.toFixed(2)} • ${fastest.leadTimeHours}h Delivery` : "N/A"}
                 </div>
               </div>
             </div>
@@ -306,20 +306,20 @@ export default function CompareSuppliersModal({
                     <div className="flex sm:flex-col items-center sm:items-end justify-between sm:justify-center gap-2 border-t sm:border-t-0 pt-2 sm:pt-0 border-zinc-100 shrink-0">
                       <div className="text-left sm:text-right">
                         <div className="text-base font-black text-zinc-900 tabular-nums">
-                          ₹{opt.priceRupees.toFixed(2)}
+                          £{opt.priceRupees.toFixed(2)}
                           <span className="text-xs font-normal text-zinc-400"> / {opt.unit}</span>
                         </div>
                         {currentPriceRupees > 0 && (
                           <div className="text-[11px] font-bold">
                             {opt.isCheaper ? (
                               <span className="text-emerald-700">
-                                Save ₹{(currentPriceRupees - opt.priceRupees).toFixed(2)} ({opt.savingsPercent}%)
+                                Save £{(currentPriceRupees - opt.priceRupees).toFixed(2)} ({opt.savingsPercent}%)
                               </span>
                             ) : opt.priceRupees === currentPriceRupees ? (
                               <span className="text-zinc-500">Same as current cost</span>
                             ) : (
                               <span className="text-rose-600">
-                                +₹{(opt.priceRupees - currentPriceRupees).toFixed(2)} higher
+                                +£{(opt.priceRupees - currentPriceRupees).toFixed(2)} higher
                               </span>
                             )}
                           </div>

@@ -390,7 +390,7 @@ export default function CompletedOrdersPage() {
             )}
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            {(["CASH", "CARD", "DELIVEROO", "UBER_EATS", "JUST_EAT", "UPI", "SWIGGY", "ZOMATO", "EAZYDINER"] as const)
+            {(["CASH", "CARD", "DELIVEROO", "UBER_EATS", "JUST_EAT"] as const)
               // Partner apps and the pre-UK-launch methods only show once something was collected through them
               .filter((method) => collectionsByMethod.totals[method]?.bills > 0 || ["CASH", "CARD"].includes(method))
               .map((method) => {

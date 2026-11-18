@@ -54,7 +54,7 @@ const MAX_MATCHES_SHOWN = 2;
 const SEARCH_DEBOUNCE_MS = 300;
 
 function formatRupees(value: number): string {
-  return value.toLocaleString("en-IN", {
+  return value.toLocaleString("en-GB", {
     minimumFractionDigits: Number.isInteger(value) ? 0 : 2,
     maximumFractionDigits: 2,
   });
@@ -437,7 +437,7 @@ export default function SupplierMarketplaceSection({
                               {idx > 0 && <span className="text-zinc-300"> · </span>}
                               {item.name}{" "}
                               <span className="font-semibold text-zinc-900 tabular-nums">
-                                ₹{formatRupees(item.pricePaise / 100)}
+                                £{formatRupees(item.pricePaise / 100)}
                               </span>
                               <span className="text-zinc-400">/{item.unit}</span>
                             </span>
@@ -463,7 +463,7 @@ export default function SupplierMarketplaceSection({
                     {bestSaving && (
                       <span
                         className="hidden md:inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md"
-                        title={`You pay ₹${formatRupees(bestSaving.currentCostPaise / 100)} now`}
+                        title={`You pay £${formatRupees(bestSaving.currentCostPaise / 100)} now`}
                       >
                         <TrendingDown className="h-3 w-3" />
                         {bestSaving.percent}% cheaper
@@ -476,7 +476,7 @@ export default function SupplierMarketplaceSection({
                     <div className="text-right w-20">
                       <span className="block text-[10px] text-zinc-400 leading-tight">from</span>
                       <span className="text-sm font-semibold text-zinc-900 tabular-nums">
-                        ₹{formatRupees(row.minPricePaise / 100)}
+                        £{formatRupees(row.minPricePaise / 100)}
                       </span>
                     </div>
                     <button
@@ -683,7 +683,7 @@ export default function SupplierMarketplaceSection({
                           <span className="block text-sm font-medium text-zinc-900 truncate">{item.name}</span>
                           <span className="flex items-center gap-x-2 gap-y-0.5 flex-wrap mt-0.5 text-[11px] text-zinc-500">
                             <span className="tabular-nums">
-                              <span className="font-semibold text-zinc-800">₹{formatRupees(item.pricePaise / 100)}</span>/{item.unit}
+                              <span className="font-semibold text-zinc-800">£{formatRupees(item.pricePaise / 100)}</span>/{item.unit}
                             </span>
                             <span aria-hidden>·</span>
                             <span>
@@ -698,7 +698,7 @@ export default function SupplierMarketplaceSection({
                             {saving && (
                               <span
                                 className="inline-flex items-center gap-0.5 font-semibold text-emerald-700"
-                                title={`You currently pay ₹${formatRupees(saving.currentCostPaise / 100)}/${item.unit}`}
+                                title={`You currently pay £${formatRupees(saving.currentCostPaise / 100)}/${item.unit}`}
                               >
                                 <TrendingDown className="h-3 w-3" />
                                 {saving.percent}% cheaper than now
@@ -740,7 +740,7 @@ export default function SupplierMarketplaceSection({
                             isSelected ? "font-semibold text-zinc-900" : "text-zinc-300"
                           }`}
                         >
-                          ₹{formatRupees(Math.round(qty * item.pricePaise) / 100)}
+                          £{formatRupees(Math.round(qty * item.pricePaise) / 100)}
                         </span>
                       </li>
                     );
@@ -758,7 +758,7 @@ export default function SupplierMarketplaceSection({
                       {orderSummary.items.length} {orderSummary.items.length === 1 ? "item" : "items"} selected
                     </span>
                     <span className="block text-lg font-semibold text-zinc-900 tabular-nums">
-                      ₹{formatRupees(orderSummary.totalRupees)}
+                      £{formatRupees(orderSummary.totalRupees)}
                     </span>
                   </>
                 ) : (

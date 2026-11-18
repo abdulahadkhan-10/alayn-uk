@@ -81,7 +81,7 @@ export interface Order {
   couponCode?: string | null;
   couponId?: string | null;
   /** "SPLIT" when the bill was paid with more than one method */
-  paymentMethod: "CASH" | "CARD" | "DELIVEROO" | "UBER_EATS" | "JUST_EAT" | "UPI" | "SWIGGY" | "ZOMATO" | "EAZYDINER" | "SPLIT";
+  paymentMethod: "CASH" | "CARD" | "DELIVEROO" | "UBER_EATS" | "JUST_EAT" | "SPLIT";
   paymentStatus: "PENDING" | "CONFIRMED" | "FAILED";
   isSplitPayment?: boolean;
   /** Confirmed payments on the bill, one per part of a split */

@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useMemo, useState } from "react";
-import { X, IndianRupee, Loader2, AlertTriangle, ChevronDown, Plus, Store, Trash2 } from "lucide-react";
+import { X, PoundSterling, Loader2, AlertTriangle, ChevronDown, Plus, Store, Trash2 } from "lucide-react";
 import { InventoryItemApi, useCreateItemMutation } from "@/redux/slices/inventoryApiSlice";
 import { SupplierItemApi } from "@/redux/slices/supplierApiSlice";
 import { useCreatePurchaseOrderMutation } from "@/redux/slices/procurementApiSlice";
@@ -207,7 +207,7 @@ export default function MarketplacePOModal({
                       <td className="py-3.5 pr-3">
                         <p className="font-medium text-zinc-900 text-sm leading-snug">{catalogItem.name}</p>
                         <p className="text-[11px] text-zinc-400">
-                          ₹{(catalogItem.pricePaise / 100).toFixed(2)} / {catalogItem.unit} · Min {min} {catalogItem.unit}
+                          £{(catalogItem.pricePaise / 100).toFixed(2)} / {catalogItem.unit} · Min {min} {catalogItem.unit}
                         </p>
                       </td>
                       <td className="py-3.5 pr-3">
@@ -262,8 +262,8 @@ export default function MarketplacePOModal({
                         </div>
                       </td>
                       <td className="py-3.5 pl-3 text-right font-semibold text-zinc-900 tabular-nums">
-                        ₹
-                        {((line.quantity * catalogItem.pricePaise) / 100).toLocaleString("en-IN", {
+                        £
+                        {((line.quantity * catalogItem.pricePaise) / 100).toLocaleString("en-GB", {
                           minimumFractionDigits: 2,
                         })}
                       </td>
@@ -290,8 +290,8 @@ export default function MarketplacePOModal({
           <div>
             <span className="text-[11px] font-semibold uppercase tracking-wider text-zinc-400 block">Total Amount</span>
             <span className="text-xl font-bold text-zinc-900 flex items-center gap-0.5 mt-0.5">
-              <IndianRupee className="h-4 w-4 text-zinc-500" />
-              {(totalPaise / 100).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              <PoundSterling className="h-4 w-4 text-zinc-500" />
+              {(totalPaise / 100).toLocaleString("en-GB", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </span>
           </div>
 

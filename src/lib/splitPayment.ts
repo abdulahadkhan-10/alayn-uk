@@ -17,11 +17,6 @@ export const PAYMENT_METHOD_LABELS: Record<string, string> = {
   DELIVEROO: "Deliveroo",
   UBER_EATS: "Uber Eats",
   JUST_EAT: "Just Eat",
-  // Legacy methods, kept so bills paid before the UK launch still read correctly
-  UPI: "UPI",
-  SWIGGY: "Swiggy",
-  ZOMATO: "Zomato",
-  EAZYDINER: "EazyDiner",
   SPLIT: "Split",
 };
 const SHORT_LABELS: Record<string, string> = {
@@ -30,10 +25,6 @@ const SHORT_LABELS: Record<string, string> = {
   DELIVEROO: "Deliveroo",
   UBER_EATS: "Uber Eats",
   JUST_EAT: "Just Eat",
-  UPI: "UPI",
-  SWIGGY: "Swiggy",
-  ZOMATO: "Zomato",
-  EAZYDINER: "EazyDiner",
 };
 
 export const isPlatformMethod = (method: string): method is PlatformMethodCode =>
