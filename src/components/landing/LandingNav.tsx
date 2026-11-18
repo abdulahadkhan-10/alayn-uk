@@ -117,9 +117,9 @@ export default function LandingNav() {
           <Link href="/features" className="nav-page-link">
             Features
           </Link>
-          <Link href="/pricing" className="nav-page-link">
+          {/* <Link href="/pricing" className="nav-page-link">
             Pricing
-          </Link>
+          </Link> */}
         </div>
 
         {/* Desktop Nav Actions */}
@@ -305,9 +305,9 @@ export default function LandingNav() {
                   <Link href="/#scene-verticals" onClick={() => setMobileMenuOpen(false)} className="px-3 py-3 text-[13px] font-semibold text-zinc-800 hover:bg-zinc-50 rounded-lg transition-colors">
                     Who it&apos;s for
                   </Link>
-                  <Link href="/pricing" onClick={() => setMobileMenuOpen(false)} className="px-3 py-3 text-[13px] font-semibold text-zinc-800 hover:bg-zinc-50 rounded-lg transition-colors">
+                  {/* <Link href="/pricing" onClick={() => setMobileMenuOpen(false)} className="px-3 py-3 text-[13px] font-semibold text-zinc-800 hover:bg-zinc-50 rounded-lg transition-colors">
                     Pricing
-                  </Link>
+                  </Link> */}
                 </div>
 
                 <a
