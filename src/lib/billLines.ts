@@ -39,42 +39,42 @@ export function itemModifiers(item: any): any[] {
   }
 }
 
-const modifierPaise = (m: any) =>
-  m.pricePaise !== undefined && m.pricePaise !== null ? Number(m.pricePaise) : Math.round(Number(m.price || 0) * 100);
+const modifierPence = (m: any) =>
+  m.pricePence !== undefined && m.pricePence !== null ? Number(m.pricePence) : Math.round(Number(m.price || 0) * 100);
 
 export function billItemRows(item: any): BillItemRows {
   const qty = Number(item.quantity) || 1;
   const baseName = (item.menuItem?.name || item.menuItemName || item.name || "Item").trim();
 
   // What was actually charged per unit (dish + add-ons), as stored on the order
-  const unitPaise =
-    item.unitPricePaise !== undefined && item.unitPricePaise !== null
-      ? Number(item.unitPricePaise)
+  const unitPence =
+    item.unitPricePence !== undefined && item.unitPricePence !== null
+      ? Number(item.unitPricePence)
       : item.unitPrice !== undefined
         ? Math.round(Number(item.unitPrice) * 100)
-        : Number(item.menuItem?.pricePaise) || 0;
-  const linePaise =
-    item.subtotalPaise !== undefined && item.subtotalPaise !== null ? Number(item.subtotalPaise) : unitPaise * qty;
+        : Number(item.menuItem?.pricePence) || 0;
+  const linePence =
+    item.subtotalPence !== undefined && item.subtotalPence !== null ? Number(item.subtotalPence) : unitPence * qty;
 
   const mods = itemModifiers(item);
   const variant = mods.find((m: any) => m.isVariant);
   const addonMods = mods.filter((m: any) => !m.isVariant);
 
   const addons: BillAddonRow[] = addonMods.map((m: any) => {
-    const paise = modifierPaise(m);
-    return { name: m.name, unitPounds: paise / 100, amountPounds: (paise * qty) / 100 };
+    const pence = modifierPence(m);
+    return { name: m.name, unitPounds: pence / 100, amountPounds: (pence * qty) / 100 };
   });
-  const addonsPaisePerUnit = addonMods.reduce((sum: number, m: any) => sum + modifierPaise(m), 0);
+  const addonsPencePerUnit = addonMods.reduce((sum: number, m: any) => sum + modifierPence(m), 0);
 
   // The dish's own price is whatever is left once the add-ons are taken out
-  const dishUnitPaise = unitPaise - addonsPaisePerUnit;
-  const dishLinePaise = linePaise - addonsPaisePerUnit * qty;
+  const dishUnitPence = unitPence - addonsPencePerUnit;
+  const dishLinePence = linePence - addonsPencePerUnit * qty;
 
   return {
     name: variant ? `${baseName} (${variant.name})` : baseName,
     qty,
-    unitPounds: dishUnitPaise / 100,
-    amountPounds: dishLinePaise / 100,
+    unitPounds: dishUnitPence / 100,
+    amountPounds: dishLinePence / 100,
     addons,
     notes: item.notes?.trim() || undefined,
   };

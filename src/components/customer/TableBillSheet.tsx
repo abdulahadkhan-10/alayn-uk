@@ -31,7 +31,7 @@ export default function TableBillSheet({ open, onClose, order, canOrderMore, onP
   const settled = order.status === "COMPLETED";
   const items: any[] = order.items || [];
   const status = tableBillStatus(order);
-  const canPay = !cancelled && !settled && status.duePaise > 0 && (!status.request || status.requestOutdated);
+  const canPay = !cancelled && !settled && status.duePence > 0 && (!status.request || status.requestOutdated);
 
   return (
     <BottomSheet
@@ -60,7 +60,7 @@ export default function TableBillSheet({ open, onClose, order, canOrderMore, onP
               className="flex h-12 min-w-0 flex-1 items-center justify-between gap-3 rounded-xl bg-(--amber) px-4 text-[15px] font-semibold text-white transition-[transform,background-color] duration-150 ease-out hover:bg-[#A91A24] active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--amber)"
             >
               <span className="truncate">{status.requestOutdated ? "Pay new total" : "Pay bill"}</span>
-              <span className="shrink-0 tabular-nums">{formatPounds(status.duePaise, { exact: true })}</span>
+              <span className="shrink-0 tabular-nums">{formatPounds(status.duePence, { exact: true })}</span>
             </button>
           ) : (
             (!canOrderMore || cancelled || settled) && (
@@ -100,13 +100,13 @@ export default function TableBillSheet({ open, onClose, order, canOrderMore, onP
                     {item.menuItem?.name || "Item"}
                   </span>
                   <span className="shrink-0 tabular-nums text-(--muted)">
-                    {formatPounds(item.subtotalPaise ?? (item.unitPricePaise || 0) * (item.quantity || 1), { exact: true })}
+                    {formatPounds(item.subtotalPence ?? (item.unitPricePence || 0) * (item.quantity || 1), { exact: true })}
                   </span>
                 </li>
               );
             })}
           </ul>
-          <BillBreakdown order={order} paidPaise={status.paidPaise} duePaise={status.duePaise} />
+          <BillBreakdown order={order} paidPence={status.paidPence} duePence={status.duePence} />
         </section>
       </div>
     </BottomSheet>
@@ -151,44 +151,44 @@ function KitchenProgress({ step, settled }: { step: number; settled: boolean }) 
 }
 
 /** The bill as the cashier will print it: taxes once, on the whole table's food */
-function BillBreakdown({ order, paidPaise, duePaise }: { order: any; paidPaise: number; duePaise: number }) {
+function BillBreakdown({ order, paidPence, duePence }: { order: any; paidPence: number; duePence: number }) {
   const rate = (value: unknown) => {
     const n = Number(value);
     return Number.isFinite(n) && n > 0 ? ` (${n}%)` : "";
   };
-  const rows: [string, number][] = [["Item total", order.subtotalPaise || 0]];
-  if (order.discountPaise > 0) rows.push(["Discount", -order.discountPaise]);
-  if (order.serviceTaxPaise > 0) rows.push([`Service charge${rate(order.serviceChargeRate)}`, order.serviceTaxPaise]);
-  if (order.roundOffPaise) rows.push(["Round off", order.roundOffPaise]);
-  const signed = (paise: number) => `${paise < 0 ? "−" : ""}${formatPounds(Math.abs(paise), { exact: true })}`;
+  const rows: [string, number][] = [["Item total", order.subtotalPence || 0]];
+  if (order.discountPence > 0) rows.push(["Discount", -order.discountPence]);
+  if (order.serviceTaxPence > 0) rows.push([`Service charge${rate(order.serviceChargeRate)}`, order.serviceTaxPence]);
+  if (order.roundOffPence) rows.push(["Round off", order.roundOffPence]);
+  const signed = (pence: number) => `${pence < 0 ? "−" : ""}${formatPounds(Math.abs(pence), { exact: true })}`;
 
   return (
     <dl className="mt-2 space-y-2 border-t border-zinc-200 pt-3 text-sm">
-      {rows.map(([label, paise]) => (
+      {rows.map(([label, pence]) => (
         <div key={label} className="flex justify-between gap-4 text-(--muted)">
           <dt>{label}</dt>
-          <dd className="tabular-nums">{signed(paise)}</dd>
+          <dd className="tabular-nums">{signed(pence)}</dd>
         </div>
       ))}
       <div className="flex justify-between gap-4 border-t border-zinc-200 pt-3 text-base font-semibold text-(--espresso)">
         <dt>Total</dt>
-        <dd className="tabular-nums">{formatPounds(order.totalPaise || 0, { exact: true })}</dd>
+        <dd className="tabular-nums">{formatPounds(order.totalPence || 0, { exact: true })}</dd>
       </div>
-      {order.vatPaise > 0 && (
+      {order.vatPence > 0 && (
         <div className="flex justify-between gap-4 text-xs text-(--muted)">
           <dt>Includes VAT{rate(order.vatRate)}</dt>
-          <dd className="tabular-nums">{formatPounds(order.vatPaise, { exact: true })}</dd>
+          <dd className="tabular-nums">{formatPounds(order.vatPence, { exact: true })}</dd>
         </div>
       )}
-      {paidPaise > 0 && duePaise > 0 && (
+      {paidPence > 0 && duePence > 0 && (
         <>
           <div className="flex justify-between gap-4 text-(--muted)">
             <dt>Paid</dt>
-            <dd className="tabular-nums">−{formatPounds(paidPaise, { exact: true })}</dd>
+            <dd className="tabular-nums">−{formatPounds(paidPence, { exact: true })}</dd>
           </div>
           <div className="flex justify-between gap-4 font-semibold text-(--espresso)">
             <dt>Still to pay</dt>
-            <dd className="tabular-nums">{formatPounds(duePaise, { exact: true })}</dd>
+            <dd className="tabular-nums">{formatPounds(duePence, { exact: true })}</dd>
           </div>
         </>
       )}
@@ -198,7 +198,7 @@ function BillBreakdown({ order, paidPaise, duePaise }: { order: any; paidPaise: 
 
 function PaymentStatus({ order, tableNumber, onChange }: { order: any; tableNumber?: number; onChange: () => void }) {
   const status = tableBillStatus(order);
-  const paid = order.status === "COMPLETED" || (status.totalPaise > 0 && status.duePaise === 0);
+  const paid = order.status === "COMPLETED" || (status.totalPence > 0 && status.duePence === 0);
   const request = status.request;
 
   if (paid) {
@@ -212,7 +212,7 @@ function PaymentStatus({ order, tableNumber, onChange }: { order: any; tableNumb
   if (status.requestOutdated) {
     return (
       <StatusCard icon={<CircleAlert className="h-5 w-5" aria-hidden="true" />} tone="warn" title="Your bill has changed">
-        You ordered more after asking for the bill. Choose how to pay the new total of {formatPounds(status.duePaise, { exact: true })}.
+        You ordered more after asking for the bill. Choose how to pay the new total of {formatPounds(status.duePence, { exact: true })}.
       </StatusCard>
     );
   }

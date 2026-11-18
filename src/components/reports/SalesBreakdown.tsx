@@ -2,7 +2,7 @@
 
 import React, { useRef, useState } from "react";
 import type { ReportBreakdownRow, ReportData } from "@/redux/slices/reportsApiSlice";
-import { changeTone, formatChange, formatPaise, type ReportParams } from "@/lib/reportQuery";
+import { changeTone, formatChange, formatPence, type ReportParams } from "@/lib/reportQuery";
 import { CsvButton } from "./ExportMenu";
 
 interface Tab {
@@ -41,7 +41,7 @@ function Rows({ rows, firstColumn, hasPrev }: { rows: ReportBreakdownRow[]; firs
           {rows.map((r) => (
             <tr key={r.key} className="text-slate-700">
               <td className="truncate whitespace-nowrap px-2 py-2 font-medium text-slate-800 sm:px-3" title={r.label}>{r.label}</td>
-              <td className="whitespace-nowrap px-2 py-2 text-right tabular-nums sm:px-3">{formatPaise(r.current.netSalesPaise)}</td>
+              <td className="whitespace-nowrap px-2 py-2 text-right tabular-nums sm:px-3">{formatPence(r.current.netSalesPence)}</td>
               <td className="whitespace-nowrap px-2 py-2 text-right tabular-nums sm:px-3">
                 <span className="inline-flex items-center justify-end gap-2">
                   <span className="hidden sm:block h-1.5 w-20 rounded-full bg-slate-100" aria-hidden="true">

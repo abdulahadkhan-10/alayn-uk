@@ -3,7 +3,7 @@
 import React from "react";
 import { TrendingDown, TrendingUp, Minus } from "lucide-react";
 import type { ReportData, ReportTotals } from "@/redux/slices/reportsApiSlice";
-import { changeTone, formatChange, formatCount, formatPaise } from "@/lib/reportQuery";
+import { changeTone, formatChange, formatCount, formatPence } from "@/lib/reportQuery";
 
 interface Figure {
   label: string;
@@ -16,16 +16,16 @@ interface Figure {
 
 // Same figures and colour rules as the PDF's headline table, split into the four that matter most and the rest
 const HEADLINE: Figure[] = [
-  { label: "Sales (before tax)", key: "netSalesPaise", money: true, note: "Settled orders, after discounts" },
+  { label: "Sales (before tax)", key: "netSalesPence", money: true, note: "Settled orders, after discounts" },
   { label: "Orders", key: "orders", money: false, note: "Settled orders" },
-  { label: "Average order value", key: "avgOrderPaise", money: true, note: "Sales divided by orders" },
-  { label: "Stock wasted", key: "wastePaise", money: true, lowerIsBetter: true, note: "Value of stock logged as waste" },
+  { label: "Average order value", key: "avgOrderPence", money: true, note: "Sales divided by orders" },
+  { label: "Stock wasted", key: "wastePence", money: true, lowerIsBetter: true, note: "Value of stock logged as waste" },
 ];
 const OTHER: Figure[] = [
   { label: "Items sold", key: "itemsSold", money: false },
-  { label: "Discounts", key: "discountPaise", money: true, neutral: true },
-  { label: "Tax collected", key: "taxPaise", money: true, neutral: true },
-  { label: "Service charge", key: "serviceChargePaise", money: true, neutral: true },
+  { label: "Discounts", key: "discountPence", money: true, neutral: true },
+  { label: "Tax collected", key: "taxPence", money: true, neutral: true },
+  { label: "Service charge", key: "serviceChargePence", money: true, neutral: true },
   { label: "Cancelled orders", key: "cancelledOrders", money: false, lowerIsBetter: true },
 ];
 
@@ -35,7 +35,7 @@ const BADGE: Record<string, string> = {
   "text-slate-500": "bg-slate-50 border-slate-200",
 };
 
-const show = (t: ReportTotals, f: Figure) => (f.money ? formatPaise(t[f.key]) : formatCount(t[f.key]));
+const show = (t: ReportTotals, f: Figure) => (f.money ? formatPence(t[f.key]) : formatCount(t[f.key]));
 
 /** Headline cards (this period, change, comparison value) and a strip with the smaller figures. */
 export default function ComparisonKpis({ report }: { report: ReportData }) {

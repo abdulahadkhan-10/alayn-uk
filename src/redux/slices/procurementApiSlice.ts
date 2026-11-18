@@ -27,7 +27,7 @@ export interface PurchaseOrderItemApi {
   dispatchedQuantity?: number;
   receivedQuantity?: number;
   damagedQuantity?: number;
-  unitCostPaise: number;
+  unitCostPence: number;
   item?: InventoryItemApi;
 }
 
@@ -47,7 +47,7 @@ export interface PurchaseOrderApi {
     | "RECEIVED"
     | "CLOSED"
     | "CANCELLED";
-  totalAmountPaise: number;
+  totalAmountPence: number;
   supplierNotes?: string;
   dispatchDate?: string;
   expectedNextDeliveryDate?: string;
@@ -101,7 +101,7 @@ export const procurementApiSlice = baseApi.injectEndpoints({
       PurchaseOrderApi,
       {
         supplierId: string;
-        items: { itemId: string; orderedQuantity: number; unitCostPaise: number }[];
+        items: { itemId: string; orderedQuantity: number; unitCostPence: number }[];
         /** Same key twice returns the PO already created (see useRequestKeys) */
         clientRequestId?: string;
       }

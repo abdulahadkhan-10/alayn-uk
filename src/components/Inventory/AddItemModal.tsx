@@ -77,7 +77,7 @@ export default function AddItemModal({
     const initialStockNum = Number(currentQty) || 0;
     const reorderNum = Number(notifyBelow) || 0;
     const costPoundsNum = Number(costText) || 0;
-    const unitCostPaise = Math.round(costPoundsNum * 100);
+    const unitCostPence = Math.round(costPoundsNum * 100);
 
     setBusy(true);
 
@@ -88,7 +88,7 @@ export default function AddItemModal({
         category,
         unit,
         reorderThreshold: reorderNum,
-        unitCostPaise,
+        unitCostPence,
         currentStock: initialStockNum,
         outletId: selectedOutletId,
       }).unwrap();

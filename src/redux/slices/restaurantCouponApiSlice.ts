@@ -36,7 +36,7 @@ export interface CreateRestaurantCouponPayload {
 export interface ValidateCouponPayload {
   code: string;
   subtotalAmount?: number;
-  subtotalPaise?: number;
+  subtotalPence?: number;
   outletId?: string;
 }
 
@@ -46,7 +46,7 @@ export interface ValidateCouponResponse {
   code: string;
   discountType: "PERCENTAGE" | "FIXED_AMOUNT";
   discountValue: number;
-  discountPaise: number;
+  discountPence: number;
   discountAmount: number;
   description?: string;
   minOrderAmount: number | null;

@@ -42,7 +42,7 @@ export interface Feedback {
     id: string;
     orderNumber?: string;
     tableNumber?: number;
-    totalPaise?: number;
+    totalPence?: number;
   };
 }
 

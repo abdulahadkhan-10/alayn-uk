@@ -3,7 +3,7 @@
 import React from "react";
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import type { ReportBreakdownRow, ReportData } from "@/redux/slices/reportsApiSlice";
-import { changeTone, formatChange, formatCount, formatPaise, type ReportParams } from "@/lib/reportQuery";
+import { changeTone, formatChange, formatCount, formatPence, type ReportParams } from "@/lib/reportQuery";
 import { CsvButton } from "./ExportMenu";
 import { compactGbp, CURRENT, PREVIOUS } from "./TrendChart";
 
@@ -20,13 +20,13 @@ function BuyTooltip({ active, payload, compareLabel }: { active?: boolean; paylo
   return (
     <div className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs shadow-md">
       <p className="font-semibold text-slate-800">{row.label}</p>
-      <p className="mt-1 text-slate-700 tabular-nums">Sales {formatPaise(row.current.netSalesPaise)}</p>
+      <p className="mt-1 text-slate-700 tabular-nums">Sales {formatPence(row.current.netSalesPence)}</p>
       <p className="text-slate-700 tabular-nums">Orders {formatCount(row.current.orders)}</p>
       <p className="text-slate-700 tabular-nums">Share {row.sharePct.toFixed(1)}%</p>
       {compareLabel && (
         <>
           <p className="mt-1 text-slate-500 tabular-nums">
-            {compareLabel}: {row.previous ? formatPaise(row.previous.netSalesPaise) : "—"}
+            {compareLabel}: {row.previous ? formatPence(row.previous.netSalesPence) : "—"}
           </p>
           <p className={`font-semibold tabular-nums ${row.changePct == null ? "text-slate-400" : changeTone(row.changePct)}`}>
             Change {formatChange(row.changePct)}
@@ -40,8 +40,8 @@ function BuyTooltip({ active, payload, compareLabel }: { active?: boolean; paylo
 function SalesBars({ title, rows, compareLabel, params, section }: { title: string; rows: ReportBreakdownRow[]; compareLabel?: string; params: ReportParams; section: string }) {
   const data: Point[] = rows.map((r) => ({
     label: r.label,
-    current: r.current.netSalesPaise / 100,
-    previous: r.previous ? r.previous.netSalesPaise / 100 : null,
+    current: r.current.netSalesPence / 100,
+    previous: r.previous ? r.previous.netSalesPence / 100 : null,
     row: r,
   }));
   return (
@@ -69,7 +69,7 @@ function SalesBars({ title, rows, compareLabel, params, section }: { title: stri
 /** Sales by hour of day and by weekday, this period against the comparison. */
 export default function WhenPeopleBuy({ report, params }: { report: ReportData; params: ReportParams }) {
   const hasHours = report.hours.length > 0; // the server only lists hours with sales
-  const hasDays = report.weekdays.some((r) => r.current.netSalesPaise > 0 || (r.previous?.netSalesPaise ?? 0) > 0);
+  const hasDays = report.weekdays.some((r) => r.current.netSalesPence > 0 || (r.previous?.netSalesPence ?? 0) > 0);
   if (!hasHours && !hasDays) return null;
   const compareLabel = report.comparison?.compareLabel;
 

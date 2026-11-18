@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import { AlertTriangle } from "lucide-react";
 import { useGetRemovedItemsReportQuery, type RemovalTotals } from "@/redux/slices/reportsApiSlice";
-import { formatCount, formatPaise, type ReportParams } from "@/lib/reportQuery";
+import { formatCount, formatPence, type ReportParams } from "@/lib/reportQuery";
 
 const CARD = "min-w-0 bg-white rounded-2xl border border-slate-200/80 shadow-xs p-5 flex flex-col gap-4";
 const PREVIEW_ROWS = 10;
@@ -88,7 +88,7 @@ export default function RemovedItemsList({ params }: { params: ReportParams }) {
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
           <p className="text-xs font-semibold text-slate-500">Value removed (before tax)</p>
-          <p className="text-xl font-bold text-slate-800 tabular-nums">{formatPaise(totals.amountPaise)}</p>
+          <p className="text-xl font-bold text-slate-800 tabular-nums">{formatPence(totals.amountPence)}</p>
           <p className="text-xs text-slate-500">{removalsLabel(totals)}</p>
         </div>
         <div
@@ -101,7 +101,7 @@ export default function RemovedItemsList({ params }: { params: ReportParams }) {
             Removed after serving
           </p>
           <p className={`text-xl font-bold tabular-nums ${totals.afterServedRemovals > 0 ? "text-rose-700" : "text-slate-800"}`}>
-            {formatPaise(totals.afterServedPaise)}
+            {formatPence(totals.afterServedPence)}
           </p>
           <p className="text-xs text-slate-500">
             {totals.afterServedRemovals > 0
@@ -123,7 +123,7 @@ export default function RemovedItemsList({ params }: { params: ReportParams }) {
                   <span className="ml-1.5 text-xs font-normal text-slate-500">{ROLE_LABELS[p.role] ?? p.role}</span>
                 </span>
                 <span className="shrink-0 whitespace-nowrap tabular-nums text-slate-700">
-                  {formatPaise(p.amountPaise)}
+                  {formatPence(p.amountPence)}
                   <span className="ml-1 text-xs text-slate-500">({formatCount(p.removals)})</span>
                 </span>
               </li>
@@ -137,7 +137,7 @@ export default function RemovedItemsList({ params }: { params: ReportParams }) {
               <li key={r.reason} className="flex items-baseline justify-between gap-3 py-2 text-sm">
                 <span className="min-w-0 truncate font-medium text-slate-800" title={r.reason}>{r.reason}</span>
                 <span className="shrink-0 whitespace-nowrap tabular-nums text-slate-700">
-                  {formatPaise(r.amountPaise)}
+                  {formatPence(r.amountPence)}
                   <span className="ml-1 text-xs text-slate-500">({formatCount(r.removals)})</span>
                 </span>
               </li>
@@ -176,7 +176,7 @@ export default function RemovedItemsList({ params }: { params: ReportParams }) {
                   <td className="px-3 py-2 text-slate-800">
                     {r.quantity}× {r.itemName}
                   </td>
-                  <td className="px-3 py-2 text-right whitespace-nowrap tabular-nums text-slate-800">{formatPaise(r.amountPaise)}</td>
+                  <td className="px-3 py-2 text-right whitespace-nowrap tabular-nums text-slate-800">{formatPence(r.amountPence)}</td>
                   <td className={`px-3 py-2 whitespace-nowrap ${r.itemStage === "SERVED" ? "font-semibold text-rose-700" : "text-slate-600"}`}>
                     {STAGE_LABELS[r.itemStage] ?? r.itemStage}
                   </td>

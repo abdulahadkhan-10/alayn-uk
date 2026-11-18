@@ -7,7 +7,7 @@ export interface InventoryItemApi {
   category: string;
   unit: string;
   reorderThreshold: number;
-  unitCostPaise: number;
+  unitCostPence: number;
   currentStock: number;
   outletId?: string;
   outlet?: { id: string; name: string };
@@ -22,7 +22,7 @@ export interface InventoryAlertsResult {
     quantity: number;
     expiryDate: string;
     batchNumber: string;
-    unitCostPaise: number;
+    unitCostPence: number;
     item?: InventoryItemApi;
   }[];
 }

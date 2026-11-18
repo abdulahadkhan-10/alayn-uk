@@ -13,10 +13,10 @@ export interface RecipeLine {
   name: string;
   sku: string;
   unit: string;
-  unitCostPaise: number;
+  unitCostPence: number;
   quantity: number;
   wastagePercent: number;
-  lineCostPaise: number;
+  lineCostPence: number;
 }
 
 export interface Recipe {
@@ -25,9 +25,9 @@ export interface Recipe {
   outletId: string;
   hasRecipe: boolean;
   lines: RecipeLine[];
-  costPerPortionPaise: number;
-  pricePaise: number;
-  marginPaise: number;
+  costPerPortionPence: number;
+  pricePence: number;
+  marginPence: number;
   foodCostPercent: number | null;
 }
 
@@ -48,9 +48,9 @@ export interface RecipeCoverageItem {
   isActive: boolean;
   hasRecipe: boolean;
   ingredientCount: number;
-  pricePaise: number;
-  costPerPortionPaise: number | null;
-  marginPaise: number | null;
+  pricePence: number;
+  costPerPortionPence: number | null;
+  marginPence: number | null;
   foodCostPercent: number | null;
 }
 
@@ -79,7 +79,7 @@ export interface UsageVarianceItem {
   itemId: string;
   name: string;
   unit: string;
-  unitCostPaise: number;
+  unitCostPence: number;
   /** False when no recipe uses this ingredient, so its use cannot be compared with sales */
   inRecipes: boolean;
   measuredFrom: string;
@@ -89,7 +89,7 @@ export interface UsageVarianceItem {
   wasteLogged: number;
   /** actualUsed minus (sold + waste). Positive = more went than the books explain */
   variance: number;
-  variancePaise: number;
+  variancePence: number;
 }
 
 export interface UsageVariance {
@@ -98,8 +98,8 @@ export interface UsageVariance {
   to: string;
   items: UsageVarianceItem[];
   notMeasured: number;
-  totalVariancePaise: number;
-  totalLossPaise: number;
+  totalVariancePence: number;
+  totalLossPence: number;
 }
 
 const unwrap = <T,>(response: unknown): T => ((response as { data?: T } | null)?.data ?? response) as T;

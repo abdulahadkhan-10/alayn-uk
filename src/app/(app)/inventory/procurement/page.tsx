@@ -136,8 +136,8 @@ export default function ProcurementPage() {
   }, [purchaseOrders]);
 
   const totalSpendPounds = useMemo(() => {
-    const totalPaise = purchaseOrders.reduce((acc, po) => acc + (po.totalAmountPaise || 0), 0);
-    return (totalPaise / 100).toLocaleString("en-GB", { maximumFractionDigits: 2 });
+    const totalPence = purchaseOrders.reduce((acc, po) => acc + (po.totalAmountPence || 0), 0);
+    return (totalPence / 100).toLocaleString("en-GB", { maximumFractionDigits: 2 });
   }, [purchaseOrders]);
 
   // Filtered Purchase Orders
@@ -590,7 +590,7 @@ export default function ProcurementPage() {
                               )}
                               <td className="px-4 py-3.5 text-center text-zinc-600 font-medium whitespace-nowrap">{po.items?.length || 0}</td>
                               <td className="px-4 py-3.5 text-right font-semibold text-zinc-900 tabular-nums whitespace-nowrap">
-                                £{(po.totalAmountPaise / 100).toFixed(2)}
+                                £{(po.totalAmountPence / 100).toFixed(2)}
                               </td>
                               <td className="px-3 py-3 text-center whitespace-nowrap">
                                 <span
@@ -1735,7 +1735,7 @@ export default function ProcurementPage() {
                             )}
                           </div>
                           <div className="flex items-center gap-3">
-                            <span className="font-bold text-zinc-900 tabular-nums">£{(po.totalAmountPaise / 100).toFixed(2)}</span>
+                            <span className="font-bold text-zinc-900 tabular-nums">£{(po.totalAmountPence / 100).toFixed(2)}</span>
                             <span className="rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 px-2 py-0.5 text-[10px] font-bold">
                               {po.status}
                             </span>

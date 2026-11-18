@@ -4,13 +4,13 @@ export interface SubscriptionPlan {
   planCode: string;
   name: string;
   description: string;
-  monthlyFeePaise: number;
+  monthlyFeePence: number;
   vatRatePercent: number;
   features: string[];
   basePricePounds: number;
   vatPounds: number;
   totalPayablePounds: number;
-  totalPayablePaise: number;
+  totalPayablePence: number;
 }
 
 export interface InitiateSubscriptionResponse {

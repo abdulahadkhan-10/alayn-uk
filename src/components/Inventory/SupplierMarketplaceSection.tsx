@@ -53,7 +53,7 @@ interface Props {
 const MAX_MATCHES_SHOWN = 2;
 const SEARCH_DEBOUNCE_MS = 300;
 
-function formatRupees(value: number): string {
+function formatPounds(value: number): string {
   return value.toLocaleString("en-GB", {
     minimumFractionDigits: Number.isInteger(value) ? 0 : 2,
     maximumFractionDigits: 2,
@@ -88,17 +88,17 @@ function toMarketplaceSupplier(s: MarketplaceSupplierRow["supplier"]): Marketpla
  * matching its own stock items by name. null when there is nothing to compare.
  */
 function savingsAgainstStock(
-  item: { name: string; pricePaise: number },
+  item: { name: string; pricePence: number },
   inventoryItems: InventoryItemApi[]
-): { percent: number; currentCostPaise: number } | null {
+): { percent: number; currentCostPence: number } | null {
   const supName = item.name.toLowerCase().trim();
   const match = inventoryItems.find((inv) => {
     const invName = inv.name.toLowerCase().trim();
     return invName === supName || invName.includes(supName) || supName.includes(invName);
   });
-  if (!match || match.unitCostPaise <= 0) return null;
-  const percent = Math.round(((match.unitCostPaise - item.pricePaise) / match.unitCostPaise) * 100);
-  return percent > 0 ? { percent, currentCostPaise: match.unitCostPaise } : null;
+  if (!match || match.unitCostPence <= 0) return null;
+  const percent = Math.round(((match.unitCostPence - item.pricePence) / match.unitCostPence) * 100);
+  return percent > 0 ? { percent, currentCostPence: match.unitCostPence } : null;
 }
 
 export default function SupplierMarketplaceSection({
@@ -219,11 +219,11 @@ export default function SupplierMarketplaceSection({
 
   const orderSummary = useMemo(() => {
     const items = catalog.filter((i) => selected[i.id]);
-    const totalPaise = items.reduce(
-      (sum, i) => sum + Math.round((quantities[i.id] ?? minQtyOf(i)) * i.pricePaise),
+    const totalPence = items.reduce(
+      (sum, i) => sum + Math.round((quantities[i.id] ?? minQtyOf(i)) * i.pricePence),
       0
     );
-    return { items, totalRupees: totalPaise / 100 };
+    return { items, totalPounds: totalPence / 100 };
   }, [catalog, selected, quantities]);
 
   const selectedCountFor = (supplierId: string) =>
@@ -437,7 +437,7 @@ export default function SupplierMarketplaceSection({
                               {idx > 0 && <span className="text-zinc-300"> · </span>}
                               {item.name}{" "}
                               <span className="font-semibold text-zinc-900 tabular-nums">
-                                £{formatRupees(item.pricePaise / 100)}
+                                £{formatPounds(item.pricePence / 100)}
                               </span>
                               <span className="text-zinc-400">/{item.unit}</span>
                             </span>
@@ -463,7 +463,7 @@ export default function SupplierMarketplaceSection({
                     {bestSaving && (
                       <span
                         className="hidden md:inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md"
-                        title={`You pay £${formatRupees(bestSaving.currentCostPaise / 100)} now`}
+                        title={`You pay £${formatPounds(bestSaving.currentCostPence / 100)} now`}
                       >
                         <TrendingDown className="h-3 w-3" />
                         {bestSaving.percent}% cheaper
@@ -476,7 +476,7 @@ export default function SupplierMarketplaceSection({
                     <div className="text-right w-20">
                       <span className="block text-[10px] text-zinc-400 leading-tight">from</span>
                       <span className="text-sm font-semibold text-zinc-900 tabular-nums">
-                        £{formatRupees(row.minPricePaise / 100)}
+                        £{formatPounds(row.minPricePence / 100)}
                       </span>
                     </div>
                     <button
@@ -683,7 +683,7 @@ export default function SupplierMarketplaceSection({
                           <span className="block text-sm font-medium text-zinc-900 truncate">{item.name}</span>
                           <span className="flex items-center gap-x-2 gap-y-0.5 flex-wrap mt-0.5 text-[11px] text-zinc-500">
                             <span className="tabular-nums">
-                              <span className="font-semibold text-zinc-800">£{formatRupees(item.pricePaise / 100)}</span>/{item.unit}
+                              <span className="font-semibold text-zinc-800">£{formatPounds(item.pricePence / 100)}</span>/{item.unit}
                             </span>
                             <span aria-hidden>·</span>
                             <span>
@@ -698,7 +698,7 @@ export default function SupplierMarketplaceSection({
                             {saving && (
                               <span
                                 className="inline-flex items-center gap-0.5 font-semibold text-emerald-700"
-                                title={`You currently pay £${formatRupees(saving.currentCostPaise / 100)}/${item.unit}`}
+                                title={`You currently pay £${formatPounds(saving.currentCostPence / 100)}/${item.unit}`}
                               >
                                 <TrendingDown className="h-3 w-3" />
                                 {saving.percent}% cheaper than now
@@ -740,7 +740,7 @@ export default function SupplierMarketplaceSection({
                             isSelected ? "font-semibold text-zinc-900" : "text-zinc-300"
                           }`}
                         >
-                          £{formatRupees(Math.round(qty * item.pricePaise) / 100)}
+                          £{formatPounds(Math.round(qty * item.pricePence) / 100)}
                         </span>
                       </li>
                     );
@@ -758,7 +758,7 @@ export default function SupplierMarketplaceSection({
                       {orderSummary.items.length} {orderSummary.items.length === 1 ? "item" : "items"} selected
                     </span>
                     <span className="block text-lg font-semibold text-zinc-900 tabular-nums">
-                      £{formatRupees(orderSummary.totalRupees)}
+                      £{formatPounds(orderSummary.totalPounds)}
                     </span>
                   </>
                 ) : (

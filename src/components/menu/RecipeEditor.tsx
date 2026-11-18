@@ -19,7 +19,7 @@ import {
   FOOD_COST_CLASSES,
   apiErrorMessage,
   foodCostTone,
-  lineCostPaise,
+  lineCostPence,
   pounds,
   summarizeCost,
 } from "@/lib/recipeCost";
@@ -86,13 +86,13 @@ function RecipeForm({
   const items = useMemo(() => stock?.items ?? [], [stock]);
   const itemById = useMemo(() => new Map(items.map((i) => [i.id, i])), [items]);
 
-  const pricePaise = Math.round((menuItem?.price ?? 0) * 100);
+  const pricePence = Math.round((menuItem?.price ?? 0) * 100);
   const costLines = lines.map((l) => ({
     quantity: toNumber(l.quantity),
     wastagePercent: toNumber(l.wastagePercent),
-    unitCostPaise: itemById.get(l.itemId)?.unitCostPaise ?? 0,
+    unitCostPence: itemById.get(l.itemId)?.unitCostPence ?? 0,
   }));
-  const summary = summarizeCost(costLines, pricePaise);
+  const summary = summarizeCost(costLines, pricePence);
   const tone = foodCostTone(lines.length ? summary.foodCostPercent : null);
 
   const matches = useMemo(() => {
@@ -258,10 +258,10 @@ function RecipeForm({
                             </td>
                             <td className="px-3 py-2 text-right tabular-nums text-gray-700">
                               {pounds(
-                                lineCostPaise({
+                                lineCostPence({
                                   quantity: toNumber(l.quantity),
                                   wastagePercent: toNumber(l.wastagePercent),
-                                  unitCostPaise: item?.unitCostPaise ?? saved?.unitCostPaise ?? 0,
+                                  unitCostPence: item?.unitCostPence ?? saved?.unitCostPence ?? 0,
                                 }),
                               )}
                             </td>
@@ -288,15 +288,15 @@ function RecipeForm({
                 <dl className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                   <div className="rounded-xl bg-gray-50 p-3">
                     <dt className="text-xs text-gray-500">Cost per portion</dt>
-                    <dd className="text-base font-bold text-gray-900 tabular-nums">{pounds(summary.costPerPortionPaise)}</dd>
+                    <dd className="text-base font-bold text-gray-900 tabular-nums">{pounds(summary.costPerPortionPence)}</dd>
                   </div>
                   <div className="rounded-xl bg-gray-50 p-3">
                     <dt className="text-xs text-gray-500">{isAddon ? "Add-on price" : "Selling price"}</dt>
-                    <dd className="text-base font-bold text-gray-900 tabular-nums">{pounds(pricePaise)}</dd>
+                    <dd className="text-base font-bold text-gray-900 tabular-nums">{pounds(pricePence)}</dd>
                   </div>
                   <div className="rounded-xl bg-gray-50 p-3">
                     <dt className="text-xs text-gray-500">Margin</dt>
-                    <dd className="text-base font-bold text-gray-900 tabular-nums">{pounds(summary.marginPaise)}</dd>
+                    <dd className="text-base font-bold text-gray-900 tabular-nums">{pounds(summary.marginPence)}</dd>
                   </div>
                   <div className={cn("rounded-xl border p-3", FOOD_COST_CLASSES[tone])}>
                     <dt className="text-xs opacity-80">Food cost</dt>

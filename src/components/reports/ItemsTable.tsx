@@ -3,14 +3,14 @@
 import React, { useMemo, useState } from "react";
 import { ArrowDown, ArrowUp, Search } from "lucide-react";
 import type { ReportItemRow } from "@/redux/slices/reportsApiSlice";
-import { changeTone, formatChange, formatCount, formatPaise, type ReportParams } from "@/lib/reportQuery";
+import { changeTone, formatChange, formatCount, formatPence, type ReportParams } from "@/lib/reportQuery";
 import { CsvButton } from "./ExportMenu";
 
 type SortKey = "qty" | "sales" | "change";
 const FIRST_ROWS = 25;
 
 const value = (r: ReportItemRow, key: SortKey) =>
-  key === "qty" ? r.qty : key === "sales" ? r.salesPaise : r.changePct ?? 0;
+  key === "qty" ? r.qty : key === "sales" ? r.salesPence : r.changePct ?? 0;
 
 interface ItemsTableProps {
   items: ReportItemRow[];
@@ -103,10 +103,10 @@ export default function ItemsTable({ items, hasPrev, empty, params }: ItemsTable
                       <span className="block text-xs text-slate-500">{r.category}</span>
                     </td>
                     <td className="px-3 py-2 text-right tabular-nums">{formatCount(r.qty)}</td>
-                    <td className="px-3 py-2 text-right tabular-nums">{formatPaise(r.salesPaise)}</td>
+                    <td className="px-3 py-2 text-right tabular-nums">{formatPence(r.salesPence)}</td>
                     {hasPrev && (
                       <td className="px-3 py-2 text-right tabular-nums text-slate-500">
-                        {r.prevSalesPaise == null ? "—" : formatPaise(r.prevSalesPaise)}
+                        {r.prevSalesPence == null ? "—" : formatPence(r.prevSalesPence)}
                       </td>
                     )}
                     {hasPrev && (

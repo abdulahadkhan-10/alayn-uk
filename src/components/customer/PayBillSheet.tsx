@@ -9,7 +9,7 @@ import { formatPounds, type BillPaymentMethod } from "./menuFormat";
 interface PayBillSheetProps {
   open: boolean;
   onClose: () => void;
-  amountDuePaise: number;
+  amountDuePence: number;
   tableNumber?: number;
   orderNumber?: string;
   /** Resolves true once the restaurant has the request */
@@ -26,7 +26,7 @@ const OPTIONS: { value: BillPaymentMethod; title: string; detail: string; icon: 
  * counter, where they collect the printed bill from the cashier, who confirms the payment.
  */
 export default function PayBillSheet(props: PayBillSheetProps) {
-  const { open, onClose, amountDuePaise, tableNumber, orderNumber, onRequestBill } = props;
+  const { open, onClose, amountDuePence, tableNumber, orderNumber, onRequestBill } = props;
   const options = OPTIONS;
   // Nothing is picked for them: tapping straight through must never tell the cashier how the diner will pay
   const [method, setMethod] = useState<BillPaymentMethod | null>(null);
@@ -70,7 +70,7 @@ export default function PayBillSheet(props: PayBillSheetProps) {
             &ldquo;Bill for {where}, please&rdquo;
           </p>
           <p className="mt-4 max-w-sm text-sm leading-relaxed text-(--muted)">
-            {`They'll print your bill for ${formatPounds(amountDuePaise, { exact: true })} and take your ${sent === "CARD" ? "card" : "cash"} payment.`}
+            {`They'll print your bill for ${formatPounds(amountDuePence, { exact: true })} and take your ${sent === "CARD" ? "card" : "cash"} payment.`}
           </p>
         </div>
       </BottomSheet>
@@ -82,7 +82,7 @@ export default function PayBillSheet(props: PayBillSheetProps) {
       open={open}
       onClose={onClose}
       title="Pay bill"
-      description={`${tableNumber ? `Table ${tableNumber} · ` : ""}${formatPounds(amountDuePaise, { exact: true })} including taxes`}
+      description={`${tableNumber ? `Table ${tableNumber} · ` : ""}${formatPounds(amountDuePence, { exact: true })} including taxes`}
       footer={
         <button
           type="button"

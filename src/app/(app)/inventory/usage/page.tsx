@@ -137,7 +137,7 @@ export default function UsagePage() {
                 <dl className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   <div className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-2xs">
                     <dt className="text-xs font-semibold text-zinc-500">Used more than recipes explain</dt>
-                    <dd className="mt-1 text-2xl font-black tabular-nums text-zinc-900">{pounds(data.totalLossPaise)}</dd>
+                    <dd className="mt-1 text-2xl font-black tabular-nums text-zinc-900">{pounds(data.totalLossPence)}</dd>
                     <p className="text-xs text-zinc-500 mt-0.5">At today&apos;s ingredient costs, ingredients in recipes only</p>
                   </div>
                   <div className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-2xs">
@@ -186,7 +186,7 @@ export default function UsagePage() {
                                   <span className="font-bold text-zinc-900">
                                     {i.variance > 0 ? "+" : ""}{qty(i.variance)} {i.unit}
                                   </span>
-                                  <span className="block text-xs text-zinc-500">{pounds(i.variancePaise)}</span>
+                                  <span className="block text-xs text-zinc-500">{pounds(i.variancePence)}</span>
                                 </>
                               ) : (
                                 <span className="text-zinc-500">—</span>

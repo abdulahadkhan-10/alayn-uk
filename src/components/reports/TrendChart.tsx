@@ -4,7 +4,7 @@ import React, { useMemo, useState } from "react";
 import { Area, CartesianGrid, ComposedChart, Line, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { ChevronDown } from "lucide-react";
 import type { ReportData } from "@/redux/slices/reportsApiSlice";
-import { formatPaise, type ReportParams } from "@/lib/reportQuery";
+import { formatPence, type ReportParams } from "@/lib/reportQuery";
 import TrendTable from "./TrendTable";
 import { CsvButton } from "./ExportMenu";
 
@@ -26,8 +26,8 @@ interface Row {
   prevLabel: string | null;
   current: number | null; // pounds, for the chart scale
   previous: number | null;
-  currentPaise: number | null;
-  previousPaise: number | null;
+  currentPence: number | null;
+  previousPence: number | null;
 }
 
 function TrendTooltip({ active, payload, compareLabel }: { active?: boolean; payload?: { payload: Row }[]; compareLabel?: string }) {
@@ -38,12 +38,12 @@ function TrendTooltip({ active, payload, compareLabel }: { active?: boolean; pay
       <p className="font-semibold text-slate-800">{r.label}</p>
       <p className="mt-1 flex items-center gap-2 text-slate-700 tabular-nums">
         <span className="h-2 w-2 rounded-full" style={{ background: CURRENT }} />
-        Sales {r.currentPaise == null ? "—" : formatPaise(r.currentPaise)}
+        Sales {r.currentPence == null ? "—" : formatPence(r.currentPence)}
       </p>
       {compareLabel && (
         <p className="mt-0.5 flex items-center gap-2 text-slate-500 tabular-nums">
           <span className="h-2 w-2 rounded-full" style={{ background: PREVIOUS }} />
-          {r.prevLabel ?? compareLabel}: {r.previousPaise == null ? "—" : formatPaise(r.previousPaise)}
+          {r.prevLabel ?? compareLabel}: {r.previousPence == null ? "—" : formatPence(r.previousPence)}
         </p>
       )}
     </div>
@@ -62,10 +62,10 @@ export default function TrendChart({ report, empty, params }: { report: ReportDa
       return {
         label: c?.label ?? p?.label ?? "",
         prevLabel: p?.label ?? null,
-        current: c ? c.netSalesPaise / 100 : null,
-        previous: p ? p.netSalesPaise / 100 : null,
-        currentPaise: c ? c.netSalesPaise : null,
-        previousPaise: p ? p.netSalesPaise : null,
+        current: c ? c.netSalesPence / 100 : null,
+        previous: p ? p.netSalesPence / 100 : null,
+        currentPence: c ? c.netSalesPence : null,
+        previousPence: p ? p.netSalesPence : null,
       };
     });
   }, [current, previous]);

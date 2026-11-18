@@ -46,7 +46,7 @@ export interface SplitLine {
   verified: boolean;
 }
 
-/** "185", "185.5", "£1,185.50" → pence/paise. null when it isn't a valid amount with at most 2 decimals. */
+/** "185", "185.5", "£1,185.50" → pence. null when it isn't a valid amount with at most 2 decimals. */
 export function poundsToPence(text: string): number | null {
   const cleaned = text.replace(/[£,\s]/g, "");
   const match = /^(\d{1,9})(?:\.(\d{0,2}))?$/.exec(cleaned) || /^\.(\d{1,2})$/.exec(cleaned);
@@ -56,19 +56,19 @@ export function poundsToPence(text: string): number | null {
 }
 
 /** 18500 → "185.00" (for inputs) */
-export const paiseToInput = (paise: number) => (paise / 100).toFixed(2);
+export const penceToInput = (pence: number) => (pence / 100).toFixed(2);
 
 /** 18500 → "£185.00" */
-export const formatPaise = (paise: number) =>
-  `£${(paise / 100).toLocaleString("en-GB", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+export const formatPence = (pence: number) =>
+  `£${(pence / 100).toLocaleString("en-GB", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
 let lineSeq = 0;
-export function newSplitLine(method: PaymentMethodCode, amountPaise?: number, auto = false): SplitLine {
+export function newSplitLine(method: PaymentMethodCode, amountPence?: number, auto = false): SplitLine {
   lineSeq += 1;
   return {
     key: `split-${Date.now()}-${lineSeq}`,
     method,
-    amountText: amountPaise !== undefined && amountPaise > 0 ? paiseToInput(amountPaise) : "",
+    amountText: amountPence !== undefined && amountPence > 0 ? penceToInput(amountPence) : "",
     auto,
     reference: "",
     verified: false,
@@ -76,20 +76,20 @@ export function newSplitLine(method: PaymentMethodCode, amountPaise?: number, au
 }
 
 /** Recompute the auto line so the split always offers to cover what is left */
-export function rebalanceAutoLine(lines: SplitLine[], duePaise: number): SplitLine[] {
+export function rebalanceAutoLine(lines: SplitLine[], duePence: number): SplitLine[] {
   const autoIndex = lines.findIndex((l) => l.auto);
   if (autoIndex === -1) return lines;
   const others = lines.reduce((sum, l, i) => (i === autoIndex ? sum : sum + (poundsToPence(l.amountText) || 0)), 0);
-  const remaining = Math.max(0, duePaise - others);
-  const nextText = remaining > 0 ? paiseToInput(remaining) : "";
+  const remaining = Math.max(0, duePence - others);
+  const nextText = remaining > 0 ? penceToInput(remaining) : "";
   if (lines[autoIndex].amountText === nextText) return lines;
   return lines.map((l, i) => (i === autoIndex ? { ...l, amountText: nextText, verified: false } : l));
 }
 
 export interface SplitSummary {
-  allocatedPaise: number;
+  allocatedPence: number;
   /** > 0 still to allocate, < 0 over-allocated */
-  remainingPaise: number;
+  remainingPence: number;
   hasInvalidAmount: boolean;
   unverifiedOnline: SplitLine[];
   isBalanced: boolean;
@@ -98,33 +98,33 @@ export interface SplitSummary {
   blocker: string | null;
 }
 
-export function summarizeSplit(lines: SplitLine[], duePaise: number): SplitSummary {
-  let allocatedPaise = 0;
+export function summarizeSplit(lines: SplitLine[], duePence: number): SplitSummary {
+  let allocatedPence = 0;
   let hasInvalidAmount = false;
   for (const line of lines) {
-    const paise = poundsToPence(line.amountText);
-    if (paise === null || paise <= 0) hasInvalidAmount = true;
-    else allocatedPaise += paise;
+    const pence = poundsToPence(line.amountText);
+    if (pence === null || pence <= 0) hasInvalidAmount = true;
+    else allocatedPence += pence;
   }
-  const remainingPaise = duePaise - allocatedPaise;
+  const remainingPence = duePence - allocatedPence;
   const unverifiedOnline = lines.filter((l) => isOnlineMethod(l.method) && !l.verified);
-  const isBalanced = remainingPaise === 0 && !hasInvalidAmount;
+  const isBalanced = remainingPence === 0 && !hasInvalidAmount;
 
   let blocker: string | null = null;
   if (lines.length === 0) blocker = "Add a payment";
   else if (hasInvalidAmount) blocker = "Enter an amount for every payment";
-  else if (remainingPaise > 0) blocker = `Allocate ${formatPaise(remainingPaise)} more`;
-  else if (remainingPaise < 0) blocker = `Reduce by ${formatPaise(-remainingPaise)}`;
+  else if (remainingPence > 0) blocker = `Allocate ${formatPence(remainingPence)} more`;
+  else if (remainingPence < 0) blocker = `Reduce by ${formatPence(-remainingPence)}`;
   else if (unverifiedOnline.length > 0) blocker = `Confirm ${SHORT_LABELS[unverifiedOnline[0].method]} received`;
 
-  return { allocatedPaise, remainingPaise, hasInvalidAmount, unverifiedOnline, isBalanced, canSettle: blocker === null, blocker };
+  return { allocatedPence, remainingPence, hasInvalidAmount, unverifiedOnline, isBalanced, canSettle: blocker === null, blocker };
 }
 
 /** Request body parts for the API */
 export function toPaymentPayload(lines: SplitLine[]) {
   return lines.map((l) => ({
     method: l.method,
-    amountPaise: poundsToPence(l.amountText) || 0,
+    amountPence: poundsToPence(l.amountText) || 0,
     reference: l.reference.trim() || undefined,
     verified: isOnlineMethod(l.method) ? l.verified : undefined,
   }));
@@ -133,15 +133,15 @@ export function toPaymentPayload(lines: SplitLine[]) {
 export interface PaymentLine {
   method: string;
   label: string;
-  amountPaise: number;
+  amountPence: number;
   reference: string | null;
 }
 
 /** The payment fields of an order as the API returns them (or as a receipt is handed one) */
 export interface OrderPaymentsLike {
   paymentMethod?: string;
-  paymentSplits?: { method: string; amountPaise?: number; amount?: number; reference?: string | null }[];
-  payments?: { method: string; amountPaise: number; status: string; reference?: string | null }[];
+  paymentSplits?: { method: string; amountPence?: number; amount?: number; reference?: string | null }[];
+  payments?: { method: string; amountPence: number; status: string; reference?: string | null }[];
 }
 
 export interface CustomerPaymentClaims {
@@ -178,7 +178,7 @@ export function getCustomerPaymentClaims(
 
 /** How a settled bill was paid, for receipts and reports (falls back to the single paymentMethod) */
 export function getPaymentLines(order: OrderPaymentsLike | null | undefined): PaymentLine[] {
-  const fromApi: { method: string; amountPaise?: number; amount?: number; reference?: string | null }[] = Array.isArray(order?.paymentSplits)
+  const fromApi: { method: string; amountPence?: number; amount?: number; reference?: string | null }[] = Array.isArray(order?.paymentSplits)
     ? order.paymentSplits
     : Array.isArray(order?.payments)
       ? order.payments.filter((p) => p.status === "CONFIRMED")
@@ -186,7 +186,7 @@ export function getPaymentLines(order: OrderPaymentsLike | null | undefined): Pa
   return fromApi.map((p) => ({
     method: p.method,
     label: SHORT_LABELS[p.method] || p.method,
-    amountPaise: typeof p.amountPaise === "number" ? p.amountPaise : Math.round(Number(p.amount || 0) * 100),
+    amountPence: typeof p.amountPence === "number" ? p.amountPence : Math.round(Number(p.amount || 0) * 100),
     reference: p.reference || null,
   }));
 }
@@ -194,6 +194,6 @@ export function getPaymentLines(order: OrderPaymentsLike | null | undefined): Pa
 /** "Cash £100.00 + Card £185.00", or the single method's name */
 export function describePaymentLines(order: OrderPaymentsLike | null | undefined, fallback = "CASH"): string {
   const lines = getPaymentLines(order);
-  if (lines.length > 1) return lines.map((l) => `${l.label} ${formatPaise(l.amountPaise)}`).join(" + ");
+  if (lines.length > 1) return lines.map((l) => `${l.label} ${formatPence(l.amountPence)}`).join(" + ");
   return lines[0]?.method || order?.paymentMethod || fallback;
 }

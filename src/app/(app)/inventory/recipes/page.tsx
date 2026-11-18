@@ -46,7 +46,7 @@ export default function RecipesPage() {
       sort === "FOOD_COST_DESC"
         ? byNumber(a.foodCostPercent, b.foodCostPercent, -1)
         : sort === "MARGIN_ASC"
-          ? byNumber(a.marginPaise, b.marginPaise, 1)
+          ? byNumber(a.marginPence, b.marginPence, 1)
           : a.name.localeCompare(b.name),
     );
   }, [data, search, filter, sort]);
@@ -56,7 +56,7 @@ export default function RecipesPage() {
   const percent = total > 0 ? Math.round((covered / total) * 100) : 0;
 
   const openEditor = (r: RecipeCoverageItem) => {
-    setTarget({ id: r.menuItemId, name: r.name, price: r.pricePaise / 100 });
+    setTarget({ id: r.menuItemId, name: r.name, price: r.pricePence / 100 });
     setEditorOpen(true);
   };
 
@@ -192,12 +192,12 @@ export default function RecipesPage() {
                           {!r.isActive && <span className="ml-2 text-xs font-medium text-zinc-500">(inactive)</span>}
                         </td>
                         <td className="px-4 py-3 text-zinc-600">{r.category ?? "—"}</td>
-                        <td className="px-4 py-3 text-right tabular-nums">{pounds(r.pricePaise)}</td>
+                        <td className="px-4 py-3 text-right tabular-nums">{pounds(r.pricePence)}</td>
                         <td className="px-4 py-3 text-right tabular-nums">
-                          {r.costPerPortionPaise === null ? <span className="text-zinc-500">—</span> : pounds(r.costPerPortionPaise)}
+                          {r.costPerPortionPence === null ? <span className="text-zinc-500">—</span> : pounds(r.costPerPortionPence)}
                         </td>
                         <td className="px-4 py-3 text-right tabular-nums">
-                          {r.marginPaise === null ? <span className="text-zinc-500">—</span> : pounds(r.marginPaise)}
+                          {r.marginPence === null ? <span className="text-zinc-500">—</span> : pounds(r.marginPence)}
                         </td>
                         <td className="px-4 py-3 text-right">
                           {r.foodCostPercent === null ? (

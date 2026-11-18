@@ -14,7 +14,7 @@ import { useRequestKeys } from "@/lib/useRequestKeys";
 interface SmartPOItemLine {
   item: InventoryItemApi;
   suggestedQty: number;
-  unitCostPaise: number;
+  unitCostPence: number;
   selectedSupplierId: string;
 }
 
@@ -48,7 +48,7 @@ export default function SmartPOModal({
       return {
         item,
         suggestedQty: suggested,
-        unitCostPaise: item.unitCostPaise,
+        unitCostPence: item.unitCostPence,
         selectedSupplierId: "",
       };
     });
@@ -112,8 +112,8 @@ export default function SmartPOModal({
     return map;
   }, [lines, suppliers]);
 
-  const totalEstimatedPaise = useMemo(() => {
-    return lines.reduce((sum, line) => sum + line.suggestedQty * line.unitCostPaise, 0);
+  const totalEstimatedPence = useMemo(() => {
+    return lines.reduce((sum, line) => sum + line.suggestedQty * line.unitCostPence, 0);
   }, [lines]);
 
   const handleGeneratePOs = async () => {
@@ -130,7 +130,7 @@ export default function SmartPOModal({
         const poLines = groupedBySupplier[supId].map((l) => ({
           itemId: l.item.id,
           orderedQuantity: l.suggestedQty,
-          unitCostPaise: l.unitCostPaise,
+          unitCostPence: l.unitCostPence,
         }));
 
         const payload = { supplierId: supId, items: poLines };
@@ -309,7 +309,7 @@ export default function SmartPOModal({
             <p className="text-[11px] font-semibold uppercase tracking-wider text-zinc-400 mb-1">Estimated Total</p>
             <p className="text-2xl font-bold text-zinc-900 flex items-center gap-1">
               <PoundSterling className="h-5 w-5 text-zinc-500" />
-              {(totalEstimatedPaise / 100).toLocaleString("en-GB", {
+              {(totalEstimatedPence / 100).toLocaleString("en-GB", {
                 minimumFractionDigits: 2,
                 maximumFractionDigits: 2,
               })}

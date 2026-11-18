@@ -5,7 +5,7 @@ export interface ModifierItem {
   groupId?: string;
   name: string;
   price: number;
-  pricePaise?: number;
+  pricePence?: number;
   isVeg?: boolean;
   dietaryType?: "VEG" | "NON_VEG" | "VEGAN";
   isActive?: boolean;

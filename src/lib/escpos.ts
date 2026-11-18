@@ -303,15 +303,15 @@ export function buildReceiptBytes(order: any, paperWidth: "80mm" | "58mm" = "80m
   const dateStr = orderDate.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
   const timeStr = orderDate.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", hour12: true });
 
-  const subtotal = actualOrder.subtotalPaise !== undefined
-    ? actualOrder.subtotalPaise / 100
+  const subtotal = actualOrder.subtotalPence !== undefined
+    ? actualOrder.subtotalPence / 100
     : actualOrder.subtotal !== undefined
       ? Number(actualOrder.subtotal)
       : actualOrder.totalAmount !== undefined
         ? Number(actualOrder.totalAmount)
         : 0;
-  const discount = actualOrder.discountPaise !== undefined
-    ? actualOrder.discountPaise / 100
+  const discount = actualOrder.discountPence !== undefined
+    ? actualOrder.discountPence / 100
     : actualOrder.discountAmount !== undefined
       ? Number(actualOrder.discountAmount)
       : 0;
@@ -319,17 +319,17 @@ export function buildReceiptBytes(order: any, paperWidth: "80mm" | "58mm" = "80m
     ? Number(actualOrder.serviceChargeAmount)
     : actualOrder.serviceTaxAmount !== undefined
       ? Number(actualOrder.serviceTaxAmount)
-      : actualOrder.serviceTaxPaise !== undefined
-        ? actualOrder.serviceTaxPaise / 100
+      : actualOrder.serviceTaxPence !== undefined
+        ? actualOrder.serviceTaxPence / 100
         : 0;
   const roundOff = actualOrder.roundOffAmount !== undefined
     ? Number(actualOrder.roundOffAmount)
-    : actualOrder.roundOffPaise !== undefined
-      ? actualOrder.roundOffPaise / 100
+    : actualOrder.roundOffPence !== undefined
+      ? actualOrder.roundOffPence / 100
       : 0;
 
-  const finalTotal = actualOrder.totalPaise !== undefined
-    ? actualOrder.totalPaise / 100
+  const finalTotal = actualOrder.totalPence !== undefined
+    ? actualOrder.totalPence / 100
     : actualOrder.totalAmount !== undefined
       ? Number(actualOrder.totalAmount)
       : Math.max(0, subtotal - discount) + serviceCharge;
@@ -438,7 +438,7 @@ export function buildReceiptBytes(order: any, paperWidth: "80mm" | "58mm" = "80m
     builder.align("left");
     for (const line of paymentLines) {
       const label = line.reference ? `${line.label} (Ref ${line.reference})` : line.label;
-      builder.twoColumns(`  ${label}`, `£${(line.amountPaise / 100).toFixed(2)}`);
+      builder.twoColumns(`  ${label}`, `£${(line.amountPence / 100).toFixed(2)}`);
     }
     builder.align("center");
   }

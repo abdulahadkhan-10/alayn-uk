@@ -202,13 +202,13 @@ export default function CustomerOrderUI({ token }: { token: string }) {
   };
 
   // ── Cart ──
-  const addToCart = (item: CustomerMenuItem, modifiers: CartModifierItem[] = [], quantity = 1, unitPricePaise = item.pricePaise) => {
+  const addToCart = (item: CustomerMenuItem, modifiers: CartModifierItem[] = [], quantity = 1, unitPricePence = item.pricePence) => {
     const key = modifiers.map((m) => m.id || m.name).sort().join(":");
     const cartItemId = `${item.id}-${key || "base"}`;
     setCart((prev) =>
       prev.some((l) => l.cartItemId === cartItemId)
         ? prev.map((l) => (l.cartItemId === cartItemId ? { ...l, quantity: l.quantity + quantity } : l))
-        : [...prev, { cartItemId, item, quantity, selectedModifiers: modifiers, unitPricePaise }]
+        : [...prev, { cartItemId, item, quantity, selectedModifiers: modifiers, unitPricePence }]
     );
     setAnnouncement(`Added ${quantity} ${item.name} to your order`);
   };
@@ -242,7 +242,7 @@ export default function CustomerOrderUI({ token }: { token: string }) {
   const itemCount = cart.reduce((sum, l) => sum + l.quantity, 0);
 
   // Taxes are worked out once on the table's whole bill, not on each round
-  const itemTotalPaise = cart.reduce((sum, l) => sum + l.unitPricePaise * l.quantity, 0);
+  const itemTotalPence = cart.reduce((sum, l) => sum + l.unitPricePence * l.quantity, 0);
 
   const placeOrder = async () => {
     if (cart.length === 0 || isPlacingOrder) return;
@@ -254,7 +254,7 @@ export default function CustomerOrderUI({ token }: { token: string }) {
           menuItemId: l.item.id,
           quantity: l.quantity,
           notes: l.notes?.trim() || undefined,
-          modifiers: l.selectedModifiers?.map((m) => ({ id: m.id, name: m.name, pricePaise: m.pricePaise, price: m.pricePaise / 100 })),
+          modifiers: l.selectedModifiers?.map((m) => ({ id: m.id, name: m.name, pricePence: m.pricePence, price: m.pricePence / 100 })),
         })),
         customerName: guestName.trim() || undefined,
         customerPhone: guestPhone.trim() || undefined,
@@ -490,7 +490,7 @@ export default function CustomerOrderUI({ token }: { token: string }) {
                     <span className="block text-[13px] text-white/85">
                       {itemCount} item{itemCount === 1 ? "" : "s"}
                     </span>
-                    <span className="block text-base font-semibold tabular-nums">{formatPounds(itemTotalPaise, { exact: true })}</span>
+                    <span className="block text-base font-semibold tabular-nums">{formatPounds(itemTotalPence, { exact: true })}</span>
                   </span>
                   <span className="flex items-center gap-1 text-[15px] font-semibold">
                     View order <ChevronRight className="h-5 w-5" aria-hidden="true" />
@@ -506,7 +506,7 @@ export default function CustomerOrderUI({ token }: { token: string }) {
                     <span className="h-2.5 w-2.5 shrink-0 rounded-full bg-[#15803D] motion-safe:animate-pulse" aria-hidden="true" />
                     <span className="min-w-0 leading-tight">
                       <span className="block truncate text-[15px] font-semibold">
-                        Your bill · <span className="tabular-nums">{formatPounds(billStatus.duePaise || billStatus.totalPaise, { exact: true })}</span>
+                        Your bill · <span className="tabular-nums">{formatPounds(billStatus.duePence || billStatus.totalPence, { exact: true })}</span>
                       </span>
                       <span className="block truncate text-[13px] text-(--muted)">
                         {billStatus.request && !billStatus.requestOutdated ? "Bill requested · collect it at the counter" : ORDER_STEPS[Math.max(0, step)].label}
@@ -542,7 +542,7 @@ export default function CustomerOrderUI({ token }: { token: string }) {
           open={isCartOpen}
           onClose={() => setIsCartOpen(false)}
           lines={cart}
-          itemTotalPaise={itemTotalPaise}
+          itemTotalPence={itemTotalPence}
           addingToBill={orderInProgress}
           onChangeQuantity={changeQuantity}
           onChangeNote={changeNote}
@@ -567,7 +567,7 @@ export default function CustomerOrderUI({ token }: { token: string }) {
           key={payKey}
           open={isPayOpen && !!activeOrder}
           onClose={() => setIsPayOpen(false)}
-          amountDuePaise={billStatus.duePaise}
+          amountDuePence={billStatus.duePence}
           tableNumber={tableNumber}
           orderNumber={activeOrder?.orderNumber}
           onRequestBill={requestBill}
@@ -610,7 +610,7 @@ function DishDetailSheet({
           <span>{dish?.name}</span>
         </span>
       }
-      description={dish ? <span className="font-semibold tabular-nums text-(--espresso)">{formatPounds(dish.pricePaise)}</span> : null}
+      description={dish ? <span className="font-semibold tabular-nums text-(--espresso)">{formatPounds(dish.pricePence)}</span> : null}
       media={
         photo ? (
           <div className="mx-4 mt-3 aspect-[4/3] overflow-hidden rounded-2xl bg-zinc-100 sm:mx-6 sm:mt-6">

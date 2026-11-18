@@ -19,42 +19,42 @@ export interface ThermalReceiptProps {
     source?: string;
     status?: string;
     createdAt: string;
-    subtotalPaise?: number;
+    subtotalPence?: number;
     subtotal?: number;
-    vatPaise?: number;
+    vatPence?: number;
     vatRate?: number | string | null;
     vatRegistered?: boolean;
-    serviceTaxPaise?: number;
-    taxPaise?: number;
+    serviceTaxPence?: number;
+    taxPence?: number;
     taxAmount?: number;
-    totalPaise?: number;
+    totalPence?: number;
     totalAmount?: number;
     discountAmount?: number;
-    discountPaise?: number;
+    discountPence?: number;
     vatAmount?: number;
     serviceTaxAmount?: number;
     placedByName?: string;
     customerName?: string;
     customerPhone?: string;
     paymentMethod?: string;
-    payments?: Array<{ amountPaise: number; method: string; status: string; reference?: string | null }>;
-    paymentSplits?: Array<{ amountPaise: number; method: string; reference?: string | null }>;
+    payments?: Array<{ amountPence: number; method: string; status: string; reference?: string | null }>;
+    paymentSplits?: Array<{ amountPence: number; method: string; reference?: string | null }>;
     items?: Array<{
       id?: string;
       quantity: number;
-      unitPricePaise?: number;
-      subtotalPaise?: number;
+      unitPricePence?: number;
+      subtotalPence?: number;
       notes?: string;
-      menuItem?: { name: string; price?: number; pricePaise?: number };
+      menuItem?: { name: string; price?: number; pricePence?: number };
       menuItemName?: string;
     }>;
     orderItems?: Array<{
       id?: string;
       quantity: number;
-      unitPricePaise?: number;
-      subtotalPaise?: number;
+      unitPricePence?: number;
+      subtotalPence?: number;
       notes?: string;
-      menuItem?: { name: string; price?: number; pricePaise?: number };
+      menuItem?: { name: string; price?: number; pricePence?: number };
     }>;
     outlet?: {
       name?: string;
@@ -147,20 +147,20 @@ export default function ThermalReceipt({ order, onClose, autoPrint = false }: Th
   const customerPhone = actualOrder.customerPhone || "";
 
   // Financial math (in Pounds)
-  const subtotalPounds = actualOrder.subtotalPaise !== undefined
-    ? actualOrder.subtotalPaise / 100
+  const subtotalPounds = actualOrder.subtotalPence !== undefined
+    ? actualOrder.subtotalPence / 100
     : actualOrder.subtotal !== undefined
       ? Number(actualOrder.subtotal)
       : 0;
 
-  const discountPounds = actualOrder.discountPaise !== undefined
-    ? actualOrder.discountPaise / 100
+  const discountPounds = actualOrder.discountPence !== undefined
+    ? actualOrder.discountPence / 100
     : actualOrder.discountAmount !== undefined
       ? Number(actualOrder.discountAmount)
       : 0;
 
-  const grandTotalPounds = actualOrder.totalPaise !== undefined
-    ? actualOrder.totalPaise / 100
+  const grandTotalPounds = actualOrder.totalPence !== undefined
+    ? actualOrder.totalPence / 100
     : actualOrder.totalAmount !== undefined
       ? Number(actualOrder.totalAmount)
       : 0;
@@ -169,8 +169,8 @@ export default function ThermalReceipt({ order, onClose, autoPrint = false }: Th
     ? Number(actualOrder.serviceChargeAmount)
     : actualOrder.serviceTaxAmount !== undefined
       ? Number(actualOrder.serviceTaxAmount)
-      : actualOrder.serviceTaxPaise !== undefined
-        ? actualOrder.serviceTaxPaise / 100
+      : actualOrder.serviceTaxPence !== undefined
+        ? actualOrder.serviceTaxPence / 100
         : 0;
 
   // UK: menu prices include VAT, so VAT is shown as the part of the total it already contains
@@ -190,16 +190,16 @@ export default function ThermalReceipt({ order, onClose, autoPrint = false }: Th
 
   const vatPounds = !vatRegistered
     ? 0
-    : actualOrder.vatPaise !== undefined
-      ? actualOrder.vatPaise / 100
+    : actualOrder.vatPence !== undefined
+      ? actualOrder.vatPence / 100
       : actualOrder.vatAmount !== undefined
         ? Number(actualOrder.vatAmount)
         : Math.round(((Math.max(0, subtotalPounds - discountPounds) * vatRate) / (100 + vatRate)) * 100) / 100;
 
   const roundOffPounds = actualOrder.roundOffAmount !== undefined
     ? Number(actualOrder.roundOffAmount)
-    : actualOrder.roundOffPaise !== undefined
-      ? actualOrder.roundOffPaise / 100
+    : actualOrder.roundOffPence !== undefined
+      ? actualOrder.roundOffPence / 100
       : 0;
 
   const invoiceTitle = vatRegistered ? "VAT RECEIPT" : "RECEIPT";
@@ -207,11 +207,11 @@ export default function ThermalReceipt({ order, onClose, autoPrint = false }: Th
   const totalQty = itemsList.reduce((acc: number, i: any) => acc + (i.quantity || 1), 0);
 
   // Paid = settled, or confirmed payments already cover the whole bill (a part payment is not "paid")
-  const confirmedPaidPaise = (actualOrder.payments || [])
+  const confirmedPaidPence = (actualOrder.payments || [])
     .filter((p: { status: string }) => p.status === "CONFIRMED")
-    .reduce((sum: number, p: { amountPaise?: number }) => sum + (p.amountPaise || 0), 0);
-  const amountDuePaise = Math.max(0, Math.round(grandTotalPounds * 100) - confirmedPaidPaise);
-  const isPaid = actualOrder.status === "COMPLETED" || amountDuePaise === 0;
+    .reduce((sum: number, p: { amountPence?: number }) => sum + (p.amountPence || 0), 0);
+  const amountDuePence = Math.max(0, Math.round(grandTotalPounds * 100) - confirmedPaidPence);
+  const isPaid = actualOrder.status === "COMPLETED" || amountDuePence === 0;
   // A split bill prints each part under the PAID stamp
   const paymentLines = getPaymentLines(actualOrder);
   const isSplitPayment = paymentLines.length > 1;
@@ -532,7 +532,7 @@ export default function ThermalReceipt({ order, onClose, autoPrint = false }: Th
                             {line.label}
                             {line.reference ? <span className="text-[10px]"> (Ref {line.reference})</span> : null}
                           </span>
-                          <span className="font-bold">£{(line.amountPaise / 100).toFixed(2)}</span>
+                          <span className="font-bold">£{(line.amountPence / 100).toFixed(2)}</span>
                         </div>
                       ))}
                     </div>

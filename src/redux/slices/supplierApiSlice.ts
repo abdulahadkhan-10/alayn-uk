@@ -7,7 +7,7 @@ export interface SupplierItemApi {
   sku?: string | null;
   category: string;
   unit: string;
-  pricePaise: number;
+  pricePence: number;
   minOrderQty: number;
   inStock: boolean;
   leadTimeHours: number;
@@ -43,9 +43,9 @@ export interface MarketplaceSupplierRow {
   totalItems: number;
   fastestLeadTimeHours: number;
   /** Cheapest item among those matching the search/category */
-  minPricePaise: number;
+  minPricePence: number;
   /** Cheapest products whose name matches the search (up to 3) */
-  matchedItems: Pick<SupplierItemApi, "id" | "supplierId" | "name" | "unit" | "pricePaise" | "inStock">[];
+  matchedItems: Pick<SupplierItemApi, "id" | "supplierId" | "name" | "unit" | "pricePence" | "inStock">[];
   matchedCount: number;
 }
 
@@ -67,8 +67,8 @@ export interface MarketplaceArgs {
 }
 
 export interface ComparisonOption extends SupplierItemApi {
-  priceRupees: number;
-  savingsPaise: number;
+  pricePounds: number;
+  savingsPence: number;
   savingsPercent: number;
   isCheaper: boolean;
   qualityScore?: number;
@@ -83,8 +83,8 @@ export interface ComparisonOption extends SupplierItemApi {
 export interface SupplierComparisonResult {
   summary: {
     totalSuppliersFound: number;
-    lowestPricePaise: number;
-    lowestPriceRupees: number;
+    lowestPricePence: number;
+    lowestPricePounds: number;
     highestSavingsPercent: number;
     fastestDeliveryHours: number;
   };
@@ -130,12 +130,12 @@ export const supplierApi = baseApi.injectEndpoints({
       transformResponse: (response: { data: SupplierItemApi[] }) => response.data ?? [],
     }),
 
-    compareSuppliers: builder.query<SupplierComparisonResult, { itemName?: string; category?: string; currentUnitCostPaise?: number; unit?: string }>({
+    compareSuppliers: builder.query<SupplierComparisonResult, { itemName?: string; category?: string; currentUnitCostPence?: number; unit?: string }>({
       query: (params) => {
         const queryParams = new URLSearchParams();
         if (params.itemName) queryParams.set("itemName", params.itemName);
         if (params.category && params.category !== "All") queryParams.set("category", params.category);
-        if (params.currentUnitCostPaise !== undefined) queryParams.set("currentUnitCostPaise", String(params.currentUnitCostPaise));
+        if (params.currentUnitCostPence !== undefined) queryParams.set("currentUnitCostPence", String(params.currentUnitCostPence));
         if (params.unit) queryParams.set("unit", params.unit);
         return `/suppliers/compare?${queryParams.toString()}`;
       },

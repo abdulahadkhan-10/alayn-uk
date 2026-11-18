@@ -4,23 +4,23 @@
 export interface CostInputLine {
   quantity: number;
   wastagePercent: number;
-  unitCostPaise: number;
+  unitCostPence: number;
 }
 
-export const lineCostPaise = (l: CostInputLine) =>
-  Math.round(l.quantity * (1 + l.wastagePercent / 100) * l.unitCostPaise);
+export const lineCostPence = (l: CostInputLine) =>
+  Math.round(l.quantity * (1 + l.wastagePercent / 100) * l.unitCostPence);
 
-export function summarizeCost(lines: CostInputLine[], pricePaise: number) {
-  const costPerPortionPaise = lines.reduce((sum, l) => sum + lineCostPaise(l), 0);
+export function summarizeCost(lines: CostInputLine[], pricePence: number) {
+  const costPerPortionPence = lines.reduce((sum, l) => sum + lineCostPence(l), 0);
   return {
-    costPerPortionPaise,
-    marginPaise: pricePaise - costPerPortionPaise,
-    foodCostPercent: pricePaise > 0 ? Math.round((costPerPortionPaise / pricePaise) * 1000) / 10 : null,
+    costPerPortionPence,
+    marginPence: pricePence - costPerPortionPence,
+    foodCostPercent: pricePence > 0 ? Math.round((costPerPortionPence / pricePence) * 1000) / 10 : null,
   };
 }
 
-export const pounds = (paise: number) =>
-  `${paise < 0 ? "-" : ""}£${(Math.abs(paise) / 100).toFixed(2)}`;
+export const pounds = (pence: number) =>
+  `${pence < 0 ? "-" : ""}£${(Math.abs(pence) / 100).toFixed(2)}`;
 
 /** Colour for a food-cost %: under 30% healthy, 30-40% watch, over 40% high. */
 export function foodCostTone(percent: number | null): "good" | "watch" | "high" | "none" {

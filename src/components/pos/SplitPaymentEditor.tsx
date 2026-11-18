@@ -7,10 +7,10 @@ import {
   PAYMENT_METHODS,
   PaymentMethodCode,
   SplitLine,
-  formatPaise,
+  formatPence,
   isOnlineMethod,
   newSplitLine,
-  paiseToInput,
+  penceToInput,
   rebalanceAutoLine,
   poundsToPence,
   summarizeSplit,
@@ -22,30 +22,30 @@ const METHOD_META: Record<PaymentMethodCode, { label: string; icon: React.Elemen
 };
 
 interface SplitPaymentEditorProps {
-  /** Amount the payments must add up to, in paise */
-  duePaise: number;
+  /** Amount the payments must add up to, in pence */
+  duePence: number;
   lines: SplitLine[];
   onChange: (lines: SplitLine[]) => void;
 }
 
 /** Start a split: the cashier types the first part, the second follows the remaining balance */
-export function initialSplitLines(duePaise: number, firstMethod: PaymentMethodCode = "CASH"): SplitLine[] {
+export function initialSplitLines(duePence: number, firstMethod: PaymentMethodCode = "CASH"): SplitLine[] {
   const second: PaymentMethodCode = firstMethod === "CARD" ? "CASH" : "CARD";
-  return [newSplitLine(firstMethod), newSplitLine(second, duePaise, true)];
+  return [newSplitLine(firstMethod), newSplitLine(second, duePence, true)];
 }
 
-export default function SplitPaymentEditor({ duePaise, lines, onChange }: SplitPaymentEditorProps) {
-  const summary = summarizeSplit(lines, duePaise);
+export default function SplitPaymentEditor({ duePence, lines, onChange }: SplitPaymentEditorProps) {
+  const summary = summarizeSplit(lines, duePence);
 
   // The bill can change while the modal is open (coupon, service charge) — keep the auto part in step
   useEffect(() => {
-    const rebalanced = rebalanceAutoLine(lines, duePaise);
+    const rebalanced = rebalanceAutoLine(lines, duePence);
     if (rebalanced !== lines) onChange(rebalanced);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [duePaise]);
+  }, [duePence]);
 
   const update = (key: string, patch: Partial<SplitLine>) => {
-    onChange(rebalanceAutoLine(lines.map((l) => (l.key === key ? { ...l, ...patch } : l)), duePaise));
+    onChange(rebalanceAutoLine(lines.map((l) => (l.key === key ? { ...l, ...patch } : l)), duePence));
   };
 
   const addLine = () => {
@@ -54,24 +54,24 @@ export default function SplitPaymentEditor({ duePaise, lines, onChange }: SplitP
     const method = PAYMENT_METHODS.find((m) => !used.has(m)) || "CASH";
     // The new part takes over covering the remainder; parts already shown keep their amounts
     const fixed = lines.map((l) => ({ ...l, auto: false }));
-    onChange(rebalanceAutoLine([...fixed, newSplitLine(method, undefined, true)], duePaise));
+    onChange(rebalanceAutoLine([...fixed, newSplitLine(method, undefined, true)], duePence));
   };
 
   const removeLine = (key: string) => {
-    onChange(rebalanceAutoLine(lines.filter((l) => l.key !== key), duePaise));
+    onChange(rebalanceAutoLine(lines.filter((l) => l.key !== key), duePence));
   };
 
-  const allocatedPct = duePaise > 0 ? Math.min(100, Math.round((summary.allocatedPaise / duePaise) * 100)) : 0;
+  const allocatedPct = duePence > 0 ? Math.min(100, Math.round((summary.allocatedPence / duePence) * 100)) : 0;
   const remainingTone =
-    summary.remainingPaise === 0 ? "text-emerald-700" : summary.remainingPaise > 0 ? "text-rose-600" : "text-amber-700";
+    summary.remainingPence === 0 ? "text-emerald-700" : summary.remainingPence > 0 ? "text-rose-600" : "text-amber-700";
 
   return (
     <div className="space-y-2.5">
       {lines.map((line, index) => {
-        const amountPaise = poundsToPence(line.amountText);
-        const amountInvalid = line.amountText !== "" && (amountPaise === null || amountPaise <= 0);
+        const amountPence = poundsToPence(line.amountText);
+        const amountInvalid = line.amountText !== "" && (amountPence === null || amountPence <= 0);
         const online = isOnlineMethod(line.method);
-        const canFill = summary.remainingPaise > 0 && !line.auto;
+        const canFill = summary.remainingPence > 0 && !line.auto;
 
         return (
           <div key={line.key} className="rounded-xl border border-slate-200 bg-white p-2.5 space-y-2">
@@ -109,7 +109,7 @@ export default function SplitPaymentEditor({ duePaise, lines, onChange }: SplitP
                   onChange={(e) => update(line.key, { amountText: e.target.value, auto: false, verified: false })}
                   onBlur={() => {
                     // Show what will be charged: "185" → "185.00"
-                    if (amountPaise !== null && amountPaise > 0) update(line.key, { amountText: paiseToInput(amountPaise) });
+                    if (amountPence !== null && amountPence > 0) update(line.key, { amountText: penceToInput(amountPence) });
                   }}
                   className={`w-full pl-6 pr-2 py-2 text-sm font-bold tabular-nums text-right bg-white border rounded-lg text-slate-900 focus:outline-none transition ${
                     amountInvalid ? "border-rose-400 focus:border-rose-500" : "border-slate-200 focus:border-slate-800"
@@ -138,13 +138,13 @@ export default function SplitPaymentEditor({ duePaise, lines, onChange }: SplitP
                     type="button"
                     onClick={() =>
                       update(line.key, {
-                        amountText: paiseToInput((amountPaise || 0) + summary.remainingPaise),
+                        amountText: penceToInput((amountPence || 0) + summary.remainingPence),
                         verified: false,
                       })
                     }
                     className="text-[11px] font-semibold text-slate-700 underline decoration-dotted underline-offset-2 hover:text-slate-950 cursor-pointer"
                   >
-                    Add remaining {formatPaise(summary.remainingPaise)}
+                    Add remaining {formatPence(summary.remainingPence)}
                   </button>
                 )}
               </div>
@@ -165,7 +165,7 @@ export default function SplitPaymentEditor({ duePaise, lines, onChange }: SplitP
                 <button
                   type="button"
                   aria-pressed={line.verified}
-                  disabled={amountPaise === null || amountPaise <= 0}
+                  disabled={amountPence === null || amountPence <= 0}
                   onClick={() => update(line.key, { verified: !line.verified })}
                   className={`shrink-0 px-2.5 py-1.5 rounded-lg border text-[11px] font-bold flex items-center gap-1 transition cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed ${
                     line.verified
@@ -174,7 +174,7 @@ export default function SplitPaymentEditor({ duePaise, lines, onChange }: SplitP
                   }`}
                 >
                   {line.verified ? <Check className="w-3.5 h-3.5" /> : null}
-                  {line.verified ? "Received" : `Mark ${amountPaise ? formatPaise(amountPaise) : ""} received`}
+                  {line.verified ? "Received" : `Mark ${amountPence ? formatPence(amountPence) : ""} received`}
                 </button>
               </div>
             )}
@@ -198,25 +198,25 @@ export default function SplitPaymentEditor({ duePaise, lines, onChange }: SplitP
       <div className="rounded-xl bg-slate-50 border border-slate-200 p-3 space-y-2" aria-live="polite">
         <div className="h-1.5 rounded-full bg-slate-200 overflow-hidden">
           <div
-            className={`h-full rounded-full transition-all ${summary.remainingPaise < 0 ? "bg-amber-500" : summary.remainingPaise === 0 ? "bg-emerald-500" : "bg-slate-800"}`}
-            style={{ width: `${summary.remainingPaise < 0 ? 100 : allocatedPct}%` }}
+            className={`h-full rounded-full transition-all ${summary.remainingPence < 0 ? "bg-amber-500" : summary.remainingPence === 0 ? "bg-emerald-500" : "bg-slate-800"}`}
+            style={{ width: `${summary.remainingPence < 0 ? 100 : allocatedPct}%` }}
           />
         </div>
         <div className="grid grid-cols-3 gap-2 text-center">
           <div>
             <span className="block text-[10px] font-semibold uppercase tracking-wider text-slate-500">Payable</span>
-            <span className="text-xs font-bold tabular-nums text-slate-900">{formatPaise(duePaise)}</span>
+            <span className="text-xs font-bold tabular-nums text-slate-900">{formatPence(duePence)}</span>
           </div>
           <div>
             <span className="block text-[10px] font-semibold uppercase tracking-wider text-slate-500">Allocated</span>
-            <span className="text-xs font-bold tabular-nums text-slate-900">{formatPaise(summary.allocatedPaise)}</span>
+            <span className="text-xs font-bold tabular-nums text-slate-900">{formatPence(summary.allocatedPence)}</span>
           </div>
           <div>
             <span className="block text-[10px] font-semibold uppercase tracking-wider text-slate-500">
-              {summary.remainingPaise < 0 ? "Over by" : "Remaining"}
+              {summary.remainingPence < 0 ? "Over by" : "Remaining"}
             </span>
             <span className={`text-xs font-bold tabular-nums ${remainingTone}`}>
-              {summary.remainingPaise === 0 ? "£0.00 ✓" : formatPaise(Math.abs(summary.remainingPaise))}
+              {summary.remainingPence === 0 ? "£0.00 ✓" : formatPence(Math.abs(summary.remainingPence))}
             </span>
           </div>
         </div>

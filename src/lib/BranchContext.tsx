@@ -10,7 +10,7 @@ export interface BranchSubscription {
   status: "ACTIVE" | "PENDING_PAYMENT" | "EXPIRED" | "CANCELED";
   planCode?: string;
   planName?: string;
-  monthlyFeePaise?: number;
+  monthlyFeePence?: number;
   currentPeriodStart?: string;
   currentPeriodEnd?: string;
 }

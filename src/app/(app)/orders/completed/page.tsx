@@ -39,7 +39,7 @@ import Skeleton, { SkeletonTheme } from "react-loading-skeleton";
 import "react-loading-skeleton/dist/skeleton.css";
 import ThermalKOT from "@/components/pos/ThermalKOT";
 import { getKitchenModeCapabilities } from "@/lib/kitchenMode";
-import { PAYMENT_METHOD_LABELS, describePaymentLines, formatPaise, getPaymentLines } from "@/lib/splitPayment";
+import { PAYMENT_METHOD_LABELS, describePaymentLines, formatPence, getPaymentLines } from "@/lib/splitPayment";
 
 export default function CompletedOrdersPage() {
   const user = useAppSelector((state) => state.auth.user);
@@ -221,9 +221,9 @@ export default function CompletedOrdersPage() {
 
   // Money collected per method: each part of a split bill counts under its own method
   const collectionsByMethod = useMemo(() => {
-    const totals: Record<string, { paise: number; bills: number }> = {
-      CASH: { paise: 0, bills: 0 },
-      CARD: { paise: 0, bills: 0 },
+    const totals: Record<string, { pence: number; bills: number }> = {
+      CASH: { pence: 0, bills: 0 },
+      CARD: { pence: 0, bills: 0 },
     };
     let splitBills = 0;
     for (const order of filteredCompletedOrders) {
@@ -231,12 +231,12 @@ export default function CompletedOrdersPage() {
       // Bills settled before payment parts were returned: the whole total in its one method
       const parts = lines.length > 0
         ? lines
-        : [{ method: order.paymentMethod || "CASH", amountPaise: Math.round((order.totalAmount || 0) * 100) }];
+        : [{ method: order.paymentMethod || "CASH", amountPence: Math.round((order.totalAmount || 0) * 100) }];
       if (parts.length > 1) splitBills += 1;
       const seen = new Set<string>();
       for (const part of parts) {
-        if (!totals[part.method]) totals[part.method] = { paise: 0, bills: 0 };
-        totals[part.method].paise += part.amountPaise;
+        if (!totals[part.method]) totals[part.method] = { pence: 0, bills: 0 };
+        totals[part.method].pence += part.amountPence;
         if (!seen.has(part.method)) totals[part.method].bills += 1;
         seen.add(part.method);
       }
@@ -274,8 +274,8 @@ export default function CompletedOrdersPage() {
   ]);
 
   const getItemPrice = (item: any) =>
-    ((item.unitPricePaise !== undefined
-      ? item.unitPricePaise
+    ((item.unitPricePence !== undefined
+      ? item.unitPricePence
       : item.menuItem?.price
         ? item.menuItem.price * 100
         : 0) / 100) * item.quantity;
@@ -398,7 +398,7 @@ export default function CompletedOrdersPage() {
               return (
                 <div key={method} className="rounded-xl bg-gray-50 border border-gray-200 px-3 py-2.5">
                   <span className="block text-[11px] font-bold text-gray-500">{PAYMENT_METHOD_LABELS[method]}</span>
-                  <span className="block text-lg font-bold text-[#1B2A4A] tabular-nums">{formatPaise(entry?.paise || 0)}</span>
+                  <span className="block text-lg font-bold text-[#1B2A4A] tabular-nums">{formatPence(entry?.pence || 0)}</span>
                   <span className="block text-[10px] text-gray-400 font-medium">
                     {entry?.bills || 0} bill{(entry?.bills || 0) === 1 ? "" : "s"}
                   </span>
@@ -666,7 +666,7 @@ export default function CompletedOrdersPage() {
                             <div className="mt-1 space-y-0.5 text-[10px] text-gray-500 font-medium tabular-nums">
                               {getPaymentLines(order).map((line, idx) => (
                                 <div key={idx}>
-                                  {line.label} {formatPaise(line.amountPaise)}
+                                  {line.label} {formatPence(line.amountPence)}
                                 </div>
                               ))}
                             </div>

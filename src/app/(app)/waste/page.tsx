@@ -105,14 +105,14 @@ export default function WasteManagementPage() {
   const [endDate, setEndDate] = useState<string>(todayStr);
 
   const [searchTerm, setSearchTerm] = useState("");
-  const [sortField, setSortField] = useState<"createdAt" | "costAtLoggingPaise" | "quantity">("createdAt");
+  const [sortField, setSortField] = useState<"createdAt" | "costAtLoggingPence" | "quantity">("createdAt");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
   const [filterReason, setFilterReason] = useState<string>("ALL");
   const [wasteOutletFilter, setWasteOutletFilter] = useState<string>("ALL");
   const [wastePage, setWastePage] = useState(1);
   const [wastePageSize, setWastePageSize] = useState(10);
 
-  const toggleSort = (field: "createdAt" | "costAtLoggingPaise" | "quantity") => {
+  const toggleSort = (field: "createdAt" | "costAtLoggingPence" | "quantity") => {
     if (sortField === field) {
       setSortOrder(sortOrder === "asc" ? "desc" : "asc");
     } else {
@@ -124,7 +124,7 @@ export default function WasteManagementPage() {
   const selectedItem = items.find((i) => i.id === selectedItemId);
   const numQty = Number(quantity) || 0;
   const calculatedCostPounds =
-    selectedItem && numQty ? (numQty * (selectedItem.unitCostPaise / 100)).toFixed(2) : "0.00";
+    selectedItem && numQty ? (numQty * (selectedItem.unitCostPence / 100)).toFixed(2) : "0.00";
   const remainingStock = selectedItem ? selectedItem.currentStock - numQty : 0;
 
   const isPageLoading = branchLoading || isLoadingLogs || isLoadingSummary;
@@ -183,15 +183,15 @@ export default function WasteManagementPage() {
 
   // Analytics Metrics
   const periodTotalLossPounds = useMemo(() => {
-    const paise = periodFilteredLogs.reduce((acc, log) => acc + (log.costAtLoggingPaise || 0), 0);
-    return paise / 100;
+    const pence = periodFilteredLogs.reduce((acc, log) => acc + (log.costAtLoggingPence || 0), 0);
+    return pence / 100;
   }, [periodFilteredLogs]);
 
   const yearToDateLossPounds = useMemo(() => {
-    const paise = logs
+    const pence = logs
       .filter((l) => new Date(l.createdAt).getFullYear() === currentYear)
-      .reduce((acc, l) => acc + (l.costAtLoggingPaise || 0), 0);
-    return paise / 100;
+      .reduce((acc, l) => acc + (l.costAtLoggingPence || 0), 0);
+    return pence / 100;
   }, [logs, currentYear]);
 
   // Daily Trend Chart Data for Selected Period
@@ -203,7 +203,7 @@ export default function WasteManagementPage() {
       if (!map[dateKey]) {
         map[dateKey] = { date: dateKey, loss: 0, count: 0 };
       }
-      map[dateKey].loss += (log.costAtLoggingPaise || 0) / 100;
+      map[dateKey].loss += (log.costAtLoggingPence || 0) / 100;
       map[dateKey].count += 1;
     });
 
@@ -213,38 +213,38 @@ export default function WasteManagementPage() {
 
   // Top Wasted Ingredient in Selected Period
   const topWastedIngredient = useMemo(() => {
-    const costMap: Record<string, { name: string; unit: string; totalCostPaise: number; count: number }> = {};
+    const costMap: Record<string, { name: string; unit: string; totalCostPence: number; count: number }> = {};
     periodFilteredLogs.forEach((log) => {
       const name = log.item?.name || "Unknown Item";
       const unit = log.item?.unit || "units";
       if (!costMap[name]) {
-        costMap[name] = { name, unit, totalCostPaise: 0, count: 0 };
+        costMap[name] = { name, unit, totalCostPence: 0, count: 0 };
       }
-      costMap[name].totalCostPaise += log.costAtLoggingPaise || 0;
+      costMap[name].totalCostPence += log.costAtLoggingPence || 0;
       costMap[name].count += 1;
     });
 
-    const sorted = Object.values(costMap).sort((a, b) => b.totalCostPaise - a.totalCostPaise);
+    const sorted = Object.values(costMap).sort((a, b) => b.totalCostPence - a.totalCostPence);
     return sorted[0] || null;
   }, [periodFilteredLogs]);
 
   // Reason Breakdown Stats for Selected Period
   const reasonBreakdown = useMemo(() => {
-    const map: Record<string, { count: number; totalCostPaise: number }> = {
-      SPOILAGE: { count: 0, totalCostPaise: 0 },
-      OVER_PREP: { count: 0, totalCostPaise: 0 },
-      ERROR: { count: 0, totalCostPaise: 0 },
-      RETURN: { count: 0, totalCostPaise: 0 },
+    const map: Record<string, { count: number; totalCostPence: number }> = {
+      SPOILAGE: { count: 0, totalCostPence: 0 },
+      OVER_PREP: { count: 0, totalCostPence: 0 },
+      ERROR: { count: 0, totalCostPence: 0 },
+      RETURN: { count: 0, totalCostPence: 0 },
     };
 
     periodFilteredLogs.forEach((log) => {
       if (map[log.reason]) {
         map[log.reason].count += 1;
-        map[log.reason].totalCostPaise += log.costAtLoggingPaise || 0;
+        map[log.reason].totalCostPence += log.costAtLoggingPence || 0;
       }
     });
 
-    const totalPaise = periodTotalLossPounds * 100;
+    const totalPence = periodTotalLossPounds * 100;
 
     return [
       { key: "SPOILAGE", label: "Spoiled / Expired", color: "bg-[#D3232A]", textCls: "text-red-700" },
@@ -252,12 +252,12 @@ export default function WasteManagementPage() {
       { key: "ERROR", label: "Kitchen Error / Spillage", color: "bg-orange-500", textCls: "text-orange-700" },
       { key: "RETURN", label: "Customer Return", color: "bg-blue-500", textCls: "text-blue-700" },
     ].map((item) => {
-      const stat = map[item.key] || { count: 0, totalCostPaise: 0 };
-      const percentage = totalPaise > 0 ? ((stat.totalCostPaise / totalPaise) * 100).toFixed(1) : "0.0";
+      const stat = map[item.key] || { count: 0, totalCostPence: 0 };
+      const percentage = totalPence > 0 ? ((stat.totalCostPence / totalPence) * 100).toFixed(1) : "0.0";
       return {
         ...item,
         count: stat.count,
-        costPounds: (stat.totalCostPaise / 100).toFixed(2),
+        costPounds: (stat.totalCostPence / 100).toFixed(2),
         percentage: Number(percentage),
       };
     });
@@ -374,8 +374,8 @@ export default function WasteManagementPage() {
       `"${(log.item?.category || '').replace(/"/g, '""')}"`,
       log.quantity,
       log.item?.unit || "",
-      (((log.unitCostAtLoggingPaise ?? log.item?.unitCostPaise) || 0) / 100).toFixed(2),
-      (log.costAtLoggingPaise / 100).toFixed(2),
+      (((log.unitCostAtLoggingPence ?? log.item?.unitCostPence) || 0) / 100).toFixed(2),
+      (log.costAtLoggingPence / 100).toFixed(2),
       log.reason,
       `"${(log.notes || '').replace(/"/g, '""')}"`,
     ]);
@@ -545,7 +545,7 @@ export default function WasteManagementPage() {
                     {topWastedIngredient.name}
                   </h3>
                   <p className="text-xs font-bold text-red-600 mt-0.5">
-                    £{(topWastedIngredient.totalCostPaise / 100).toFixed(2)} total loss
+                    £{(topWastedIngredient.totalCostPence / 100).toFixed(2)} total loss
                   </p>
                 </>
               ) : (
@@ -821,7 +821,7 @@ export default function WasteManagementPage() {
                         </th>
                         <th
                           className="px-4 py-3.5 text-right cursor-pointer select-none hover:text-zinc-900"
-                          onClick={() => toggleSort("costAtLoggingPaise")}
+                          onClick={() => toggleSort("costAtLoggingPence")}
                         >
                           Loss Value (£)
                         </th>
@@ -838,7 +838,7 @@ export default function WasteManagementPage() {
                         };
 
                         const refId = `#WST-${String(startWasteIdx + idx + 1).padStart(3, "0")}`;
-                        const unitRatePaise = log.unitCostAtLoggingPaise ?? (log.item?.unitCostPaise || 0);
+                        const unitRatePence = log.unitCostAtLoggingPence ?? (log.item?.unitCostPence || 0);
 
                         return (
                           <tr key={log.id} className="hover:bg-zinc-50/80 transition-colors">
@@ -880,12 +880,12 @@ export default function WasteManagementPage() {
                             </td>
 
                             <td className="px-4 py-4 text-right font-medium text-zinc-600 whitespace-nowrap text-xs">
-                              £{(unitRatePaise / 100).toFixed(2)}
+                              £{(unitRatePence / 100).toFixed(2)}
                               <span className="text-[10px] text-zinc-400 block font-normal">/{log.item?.unit || "unit"}</span>
                             </td>
 
                             <td className="px-4 py-4 text-right font-black text-red-600 tabular-nums text-sm whitespace-nowrap">
-                              £{(log.costAtLoggingPaise / 100).toFixed(2)}
+                              £{(log.costAtLoggingPence / 100).toFixed(2)}
                             </td>
 
                             <td className="px-4 py-4 text-center whitespace-nowrap">
@@ -989,7 +989,7 @@ export default function WasteManagementPage() {
                         <div className="mt-1.5 flex items-center justify-between text-[11px] bg-zinc-50 border border-zinc-200/80 rounded-lg px-3 py-1.5 text-zinc-600">
                           <span className="font-medium">Live Moving Weighted Avg Rate:</span>
                           <span className="font-extrabold text-zinc-900">
-                            £{(selectedItem.unitCostPaise / 100).toFixed(2)} / {selectedItem.unit}
+                            £{(selectedItem.unitCostPence / 100).toFixed(2)} / {selectedItem.unit}
                           </span>
                         </div>
                       )}
@@ -1052,7 +1052,7 @@ export default function WasteManagementPage() {
                           <strong className="text-red-700 text-sm font-black">£{calculatedCostPounds}</strong>
                         </div>
                         <p className="text-[11px] text-zinc-600 font-medium">
-                          {numQty} {selectedItem.unit} × £{(selectedItem.unitCostPaise / 100).toFixed(2)} / {selectedItem.unit}
+                          {numQty} {selectedItem.unit} × £{(selectedItem.unitCostPence / 100).toFixed(2)} / {selectedItem.unit}
                         </p>
                         <div className="grid grid-cols-2 gap-2 pt-1 border-t border-red-200/60 text-center">
                           <div className="bg-white p-1.5 rounded-lg border border-red-100">
@@ -1065,7 +1065,7 @@ export default function WasteManagementPage() {
                               {Number(remainingStock.toFixed(2))} {selectedItem.unit}
                             </strong>
                             <span className="block text-[10px] text-zinc-500 font-medium">
-                              Val: £{((Math.max(0, remainingStock) * selectedItem.unitCostPaise) / 100).toFixed(2)}
+                              Val: £{((Math.max(0, remainingStock) * selectedItem.unitCostPence) / 100).toFixed(2)}
                             </span>
                           </div>
                         </div>

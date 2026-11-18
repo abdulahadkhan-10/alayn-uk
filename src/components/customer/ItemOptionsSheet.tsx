@@ -12,14 +12,14 @@ import { dietaryTypeOf, formatPounds } from "./menuFormat";
 export interface CartModifierItem {
   id?: string;
   name: string;
-  pricePaise: number;
+  pricePence: number;
   isVariant?: boolean;
 }
 
 /* eslint-disable @typescript-eslint/no-explicit-any -- modifier groups and options come untyped from the menu API */
 type ModifierGroup = any;
 
-const priceOf = (mod: any): number => mod.pricePaise ?? Math.round((Number(mod.price) || 0) * 100);
+const priceOf = (mod: any): number => mod.pricePence ?? Math.round((Number(mod.price) || 0) * 100);
 const isSingleChoice = (group: ModifierGroup) => group.minSelection === 1 && group.maxSelection === 1;
 // A single-choice group with priced options sets the dish's price (a size) instead of adding to it
 const isSizeGroup = (group: ModifierGroup) => isSingleChoice(group) && (group.modifiers || []).some((m: any) => priceOf(m) > 0);
@@ -32,7 +32,7 @@ function initialSelection(item: CustomerMenuItem): Record<string, CartModifierIt
     const first = group.modifiers?.[0];
     selected[group.id] =
       isSingleChoice(group) && first
-        ? [{ id: first.id, name: first.name, pricePaise: priceOf(first), isVariant: isSizeGroup(group) }]
+        ? [{ id: first.id, name: first.name, pricePence: priceOf(first), isVariant: isSizeGroup(group) }]
         : [];
   }
   return selected;
@@ -41,7 +41,7 @@ function initialSelection(item: CustomerMenuItem): Record<string, CartModifierIt
 interface ItemOptionsSheetProps {
   item: CustomerMenuItem | null;
   onClose: () => void;
-  onAdd: (item: CustomerMenuItem, modifiers: CartModifierItem[], quantity: number, unitPricePaise: number) => void;
+  onAdd: (item: CustomerMenuItem, modifiers: CartModifierItem[], quantity: number, unitPricePence: number) => void;
 }
 
 /** Choose a size and add-ons for a customisable dish */
@@ -58,8 +58,8 @@ export default function ItemOptionsSheet({ item, onClose, onAdd }: ItemOptionsSh
   const quantity = shown?.quantity || 1;
 
   const chosen = Object.values(selected).flat();
-  const size = chosen.find((m) => m.isVariant && m.pricePaise > 0);
-  const unitPricePaise = (size ? size.pricePaise : dish?.pricePaise || 0) + chosen.filter((m) => !m.isVariant).reduce((sum, m) => sum + m.pricePaise, 0);
+  const size = chosen.find((m) => m.isVariant && m.pricePence > 0);
+  const unitPricePence = (size ? size.pricePence : dish?.pricePence || 0) + chosen.filter((m) => !m.isVariant).reduce((sum, m) => sum + m.pricePence, 0);
   const missing = groups.find((g) => (selected[g.id] || []).length < (g.minSelection || 0));
 
   const setSelected = (groupId: string, options: CartModifierItem[]) =>
@@ -67,7 +67,7 @@ export default function ItemOptionsSheet({ item, onClose, onAdd }: ItemOptionsSh
 
   const toggle = (group: ModifierGroup, mod: any) => {
     const current = selected[group.id] || [];
-    const option: CartModifierItem = { id: mod.id, name: mod.name, pricePaise: priceOf(mod), isVariant: isSizeGroup(group) };
+    const option: CartModifierItem = { id: mod.id, name: mod.name, pricePence: priceOf(mod), isVariant: isSizeGroup(group) };
     if (isSingleChoice(group)) setSelected(group.id, [option]);
     else if (current.some((m) => sameOption(m, mod))) setSelected(group.id, current.filter((m) => !sameOption(m, mod)));
     else if (!group.maxSelection || current.length < group.maxSelection) setSelected(group.id, [...current, { ...option, isVariant: false }]);
@@ -107,7 +107,7 @@ export default function ItemOptionsSheet({ item, onClose, onAdd }: ItemOptionsSh
               type="button"
               disabled={!!missing}
               onClick={() => {
-                onAdd(dish, chosen, quantity, unitPricePaise);
+                onAdd(dish, chosen, quantity, unitPricePence);
                 onClose();
               }}
               className={cn(
@@ -118,7 +118,7 @@ export default function ItemOptionsSheet({ item, onClose, onAdd }: ItemOptionsSh
               )}
             >
               <span className="truncate">{missing ? `Choose ${missing.name}` : "Add item"}</span>
-              <span className="shrink-0 tabular-nums">{formatPounds(unitPricePaise * quantity)}</span>
+              <span className="shrink-0 tabular-nums">{formatPounds(unitPricePence * quantity)}</span>
             </button>
           </div>
         )

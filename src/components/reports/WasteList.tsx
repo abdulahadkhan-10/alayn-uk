@@ -2,12 +2,12 @@
 
 import React from "react";
 import type { ReportBreakdownRow } from "@/redux/slices/reportsApiSlice";
-import { changeTone, formatChange, formatCount, formatPaise, type ReportParams } from "@/lib/reportQuery";
+import { changeTone, formatChange, formatCount, formatPence, type ReportParams } from "@/lib/reportQuery";
 import { CsvButton } from "./ExportMenu";
 
 /** Stock logged as waste, by reason. Hidden when nothing was wasted. For waste a fall is good. */
 export default function WasteList({ rows, params }: { rows: ReportBreakdownRow[]; params: ReportParams }) {
-  const wasted = rows.filter((r) => r.current.netSalesPaise > 0 || r.current.orders > 0);
+  const wasted = rows.filter((r) => r.current.netSalesPence > 0 || r.current.orders > 0);
   if (wasted.length === 0) return null;
 
   return (
@@ -25,7 +25,7 @@ export default function WasteList({ rows, params }: { rows: ReportBreakdownRow[]
             <span className="min-w-0 truncate font-medium text-slate-800" title={r.label}>{r.label}</span>
             <span className="flex shrink-0 items-baseline gap-3 whitespace-nowrap tabular-nums">
               <span className="text-slate-700">
-                {formatPaise(r.current.netSalesPaise)}
+                {formatPence(r.current.netSalesPence)}
                 <span className="ml-1 text-xs text-slate-500">
                   ({formatCount(r.current.orders)} {r.current.orders === 1 ? "entry" : "entries"})
                 </span>

@@ -1706,7 +1706,7 @@
                     "type": "number",
                     "example": 5
                   },
-                  "unitCostPaise": {
+                  "unitCostPence": {
                     "type": "integer",
                     "example": 6000
                   }
@@ -1717,7 +1717,7 @@
                   "category",
                   "unit",
                   "reorderThreshold",
-                  "unitCostPaise"
+                  "unitCostPence"
                 ]
               }
             }
@@ -2000,7 +2000,7 @@
                           "type": "number",
                           "example": 100
                         },
-                        "unitCostPaise": {
+                        "unitCostPence": {
                           "type": "integer",
                           "example": 5500
                         }
@@ -2008,7 +2008,7 @@
                       "required": [
                         "itemId",
                         "orderedQuantity",
-                        "unitCostPaise"
+                        "unitCostPence"
                       ]
                     }
                   }
@@ -2386,7 +2386,7 @@
                   "description": {
                     "type": "string"
                   },
-                  "pricePaise": {
+                  "pricePence": {
                     "type": "integer",
                     "example": 12000
                   },
@@ -2400,7 +2400,7 @@
                 },
                 "required": [
                   "name",
-                  "pricePaise",
+                  "pricePence",
                   "categoryId"
                 ]
               }
@@ -2706,7 +2706,7 @@
               "schema": {
                 "type": "object",
                 "properties": {
-                  "amountPaise": {
+                  "amountPence": {
                     "type": "integer",
                     "example": 10000
                   },
@@ -2728,7 +2728,7 @@
                   }
                 },
                 "required": [
-                  "amountPaise",
+                  "amountPence",
                   "method"
                 ]
               }

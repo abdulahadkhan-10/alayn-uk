@@ -539,32 +539,32 @@ export function buildReceiptHtml(order: any, paperWidth: "80mm" | "58mm" = "80mm
   );
 
   // Financial math (in Pounds)
-  const subtotalPounds = actualOrder.subtotalPaise !== undefined
-    ? actualOrder.subtotalPaise / 100
+  const subtotalPounds = actualOrder.subtotalPence !== undefined
+    ? actualOrder.subtotalPence / 100
     : actualOrder.subtotal !== undefined
     ? Number(actualOrder.subtotal)
     : 0;
 
-  const discountPounds = actualOrder.discountPaise !== undefined
-    ? actualOrder.discountPaise / 100
+  const discountPounds = actualOrder.discountPence !== undefined
+    ? actualOrder.discountPence / 100
     : actualOrder.discountAmount !== undefined
     ? Number(actualOrder.discountAmount)
     : 0;
 
-  const grandTotalPounds = actualOrder.totalPaise !== undefined
-    ? actualOrder.totalPaise / 100
+  const grandTotalPounds = actualOrder.totalPence !== undefined
+    ? actualOrder.totalPence / 100
     : actualOrder.totalAmount !== undefined
     ? Number(actualOrder.totalAmount)
     : 0;
 
-  const serviceTaxPounds = actualOrder.serviceTaxPaise !== undefined
-    ? actualOrder.serviceTaxPaise / 100
+  const serviceTaxPounds = actualOrder.serviceTaxPence !== undefined
+    ? actualOrder.serviceTaxPence / 100
     : actualOrder.serviceTaxAmount !== undefined
     ? Number(actualOrder.serviceTaxAmount)
     : 0;
 
-  const roundOffPounds = actualOrder.roundOffPaise !== undefined
-    ? actualOrder.roundOffPaise / 100
+  const roundOffPounds = actualOrder.roundOffPence !== undefined
+    ? actualOrder.roundOffPence / 100
     : actualOrder.roundOffAmount !== undefined
     ? Number(actualOrder.roundOffAmount)
     : 0;
@@ -577,7 +577,7 @@ export function buildReceiptHtml(order: any, paperWidth: "80mm" | "58mm" = "80mm
     : (actualOrder.paymentMethod || actualOrder.payments?.[0]?.method || "PAID").toUpperCase();
   const splitRows = paymentLines.length > 1
     ? paymentLines.map((line) =>
-        `<div class="summary-row"><span>${escapeHtml(line.label)}${line.reference ? ` (Ref ${escapeHtml(line.reference)})` : ""}</span><span>£${(line.amountPaise / 100).toFixed(2)}</span></div>`
+        `<div class="summary-row"><span>${escapeHtml(line.label)}${line.reference ? ` (Ref ${escapeHtml(line.reference)})` : ""}</span><span>£${(line.amountPence / 100).toFixed(2)}</span></div>`
       ).join("")
     : "";
 

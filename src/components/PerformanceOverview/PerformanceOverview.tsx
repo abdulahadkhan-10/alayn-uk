@@ -12,8 +12,8 @@ interface PerformanceOverviewProps {
 }
 
 export default function PerformanceOverview({ locations, loading, error }: PerformanceOverviewProps) {
-  const totalSalesPaise = locations.reduce((sum, l) => sum + l.totalSalesPaise, 0);
-  const rows = [...locations].sort((a, b) => b.totalSalesPaise - a.totalSalesPaise);
+  const totalSalesPence = locations.reduce((sum, l) => sum + l.totalSalesPence, 0);
+  const rows = [...locations].sort((a, b) => b.totalSalesPence - a.totalSalesPence);
 
   return (
     <div className="rounded-xl border border-gray-200 bg-white shadow-sm overflow-hidden flex flex-col mt-6 w-full">
@@ -49,11 +49,11 @@ export default function PerformanceOverview({ locations, loading, error }: Perfo
               </thead>
               <tbody className="divide-y divide-gray-200">
                 {rows.map((loc) => {
-                  const share = totalSalesPaise > 0 ? (loc.totalSalesPaise / totalSalesPaise) * 100 : 0;
+                  const share = totalSalesPence > 0 ? (loc.totalSalesPence / totalSalesPence) * 100 : 0;
                   return (
                     <tr key={loc.outletId} className="hover:bg-gray-50/50 transition-colors">
                       <td className="px-6 py-4 font-bold text-gray-900 text-sm">{loc.outletName}</td>
-                      <td className="px-6 py-4 text-sm text-gray-900 font-medium tabular-nums">{gbp(loc.totalSalesPaise)}</td>
+                      <td className="px-6 py-4 text-sm text-gray-900 font-medium tabular-nums">{gbp(loc.totalSalesPence)}</td>
                       <td className="px-6 py-4 text-sm font-semibold text-gray-600 tabular-nums">
                         {loc.totalCompletedOrders.toLocaleString("en-GB")}
                       </td>

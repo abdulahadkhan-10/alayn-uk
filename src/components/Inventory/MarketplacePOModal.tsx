@@ -69,8 +69,8 @@ export default function MarketplacePOModal({
   const removeLine = (catalogItemId: string) =>
     setLines((prev) => prev.filter((l) => l.catalogItem.id !== catalogItemId));
 
-  const totalPaise = useMemo(
-    () => lines.reduce((sum, l) => sum + Math.round(l.quantity * l.catalogItem.pricePaise), 0),
+  const totalPence = useMemo(
+    () => lines.reduce((sum, l) => sum + Math.round(l.quantity * l.catalogItem.pricePence), 0),
     [lines]
   );
 
@@ -85,7 +85,7 @@ export default function MarketplacePOModal({
         category: catalogItem.category,
         unit: catalogItem.unit,
         reorderThreshold: 0,
-        unitCostPaise: catalogItem.pricePaise,
+        unitCostPence: catalogItem.pricePence,
         outletId,
       }).unwrap();
       updateLine(catalogItem.id, { inventoryItemId: res.id });
@@ -127,7 +127,7 @@ export default function MarketplacePOModal({
         items: lines.map((l) => ({
           itemId: l.inventoryItemId,
           orderedQuantity: l.quantity,
-          unitCostPaise: l.catalogItem.pricePaise,
+          unitCostPence: l.catalogItem.pricePence,
         })),
       };
       await createPO({ ...payload, clientRequestId: keyFor(payload) }).unwrap();
@@ -207,7 +207,7 @@ export default function MarketplacePOModal({
                       <td className="py-3.5 pr-3">
                         <p className="font-medium text-zinc-900 text-sm leading-snug">{catalogItem.name}</p>
                         <p className="text-[11px] text-zinc-400">
-                          £{(catalogItem.pricePaise / 100).toFixed(2)} / {catalogItem.unit} · Min {min} {catalogItem.unit}
+                          £{(catalogItem.pricePence / 100).toFixed(2)} / {catalogItem.unit} · Min {min} {catalogItem.unit}
                         </p>
                       </td>
                       <td className="py-3.5 pr-3">
@@ -263,7 +263,7 @@ export default function MarketplacePOModal({
                       </td>
                       <td className="py-3.5 pl-3 text-right font-semibold text-zinc-900 tabular-nums">
                         £
-                        {((line.quantity * catalogItem.pricePaise) / 100).toLocaleString("en-GB", {
+                        {((line.quantity * catalogItem.pricePence) / 100).toLocaleString("en-GB", {
                           minimumFractionDigits: 2,
                         })}
                       </td>
@@ -291,7 +291,7 @@ export default function MarketplacePOModal({
             <span className="text-[11px] font-semibold uppercase tracking-wider text-zinc-400 block">Total Amount</span>
             <span className="text-xl font-bold text-zinc-900 flex items-center gap-0.5 mt-0.5">
               <PoundSterling className="h-4 w-4 text-zinc-500" />
-              {(totalPaise / 100).toLocaleString("en-GB", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              {(totalPence / 100).toLocaleString("en-GB", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </span>
           </div>
 

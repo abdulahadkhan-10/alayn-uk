@@ -2,25 +2,25 @@ import { baseApi } from "../store/baseApi";
 import { paramsToSearch, type ReportParams } from "@/lib/reportQuery";
 
 // Shapes copied from alayn-backend src/modules/reports/aggregate.ts and report.service.ts.
-// Money is integer paise throughout; format it only when showing it.
+// Money is integer pence throughout; format it only when showing it.
 
 export type ReportChannel = "TABLE" | "QR" | "COUNTER" | "DELIVERY";
 
 export interface ReportTotals {
-  netSalesPaise: number;
+  netSalesPence: number;
   orders: number;
-  avgOrderPaise: number;
-  discountPaise: number;
-  taxPaise: number;
-  serviceChargePaise: number;
+  avgOrderPence: number;
+  discountPence: number;
+  taxPence: number;
+  serviceChargePence: number;
   cancelledOrders: number;
-  cancelledPaise: number;
-  wastePaise: number;
+  cancelledPence: number;
+  wastePence: number;
   itemsSold: number;
 }
 
 export interface ReportFigures {
-  netSalesPaise: number;
+  netSalesPence: number;
   orders: number;
 }
 
@@ -39,18 +39,18 @@ export interface ReportItemRow {
   name: string;
   category: string;
   qty: number;
-  salesPaise: number;
+  salesPence: number;
   prevQty: number | null;
-  prevSalesPaise: number | null;
+  prevSalesPence: number | null;
   changePct: number | null;
 }
 
 export interface ReportTrendBucket {
   label: string;
   start: string;
-  netSalesPaise: number;
+  netSalesPence: number;
   orders: number;
-  wastePaise: number;
+  wastePence: number;
 }
 
 export interface ReportData {
@@ -68,7 +68,7 @@ export interface ReportData {
   outlets: ReportBreakdownRow[];
   hours: ReportBreakdownRow[];
   weekdays: ReportBreakdownRow[];
-  /** netSalesPaise holds the waste cost and orders the number of entries */
+  /** netSalesPence holds the waste cost and orders the number of entries */
   waste: ReportBreakdownRow[];
   items: ReportItemRow[];
   highlights: string[];
@@ -102,13 +102,13 @@ export interface ReportSchedule {
 export interface RemovalTotals {
   removals: number;
   quantity: number;
-  amountPaise: number;
+  amountPence: number;
 }
 
 export interface RemovedItemsReport {
   period: { label: string };
   /** afterServed: the food went to the table and was then taken off the bill */
-  totals: RemovalTotals & { afterServedRemovals: number; afterServedPaise: number };
+  totals: RemovalTotals & { afterServedRemovals: number; afterServedPence: number };
   byPerson: (RemovalTotals & { key: string; name: string; role: string })[];
   byReason: (RemovalTotals & { reason: string })[];
   rows: {
@@ -119,7 +119,7 @@ export interface RemovedItemsReport {
     outletName: string;
     itemName: string;
     quantity: number;
-    amountPaise: number;
+    amountPence: number;
     reason: string;
     itemStage: string;
     removedByName: string;

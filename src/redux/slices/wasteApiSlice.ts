@@ -5,8 +5,8 @@ export interface WasteLogApi {
   id: string;
   itemId: string;
   quantity: number;
-  unitCostAtLoggingPaise?: number;
-  costAtLoggingPaise: number;
+  unitCostAtLoggingPence?: number;
+  costAtLoggingPence: number;
   reason: "SPOILAGE" | "OVER_PREP" | "RETURN" | "ERROR";
   notes?: string | null;
   loggedById: string;
@@ -17,12 +17,12 @@ export interface WasteLogApi {
 }
 
 export interface WasteSummaryApi {
-  currentMonthWastePaise: number;
+  currentMonthWastePence: number;
   byReason: {
     reason: "SPOILAGE" | "OVER_PREP" | "RETURN" | "ERROR";
     count: number;
     totalQuantity: number;
-    totalCostPaise: number;
+    totalCostPence: number;
   }[];
 }
 

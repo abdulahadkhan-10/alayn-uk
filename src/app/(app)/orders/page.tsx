@@ -60,7 +60,7 @@ import { estimateBill } from "@/lib/billing";
 import {
   SplitLine,
   describePaymentLines,
-  formatPaise,
+  formatPence,
   getCustomerPaymentClaims,
   getPaymentLines,
   isOnlineMethod,
@@ -78,13 +78,13 @@ const PLATFORM_META = {
 } as const;
 
 /**
- * The bill the settle modal shows and collects, in paise — same formula as the server's final
+ * The bill the settle modal shows and collects, in pence — same formula as the server's final
  * recalculation (lib/billing.ts), with a coupon applied at the counter taken into account.
  */
 function settlementBill(order: Order, appliedCoupon: ValidateCouponResponse | null) {
-  const subtotalPaise =
-    (order as any).subtotalPaise !== undefined ? (order as any).subtotalPaise : Math.round((order.subtotal || 0) * 100);
-  const subtotalVal = subtotalPaise / 100;
+  const subtotalPence =
+    (order as any).subtotalPence !== undefined ? (order as any).subtotalPence : Math.round((order.subtotal || 0) * 100);
+  const subtotalVal = subtotalPence / 100;
   const discountVal = appliedCoupon ? appliedCoupon.discountAmount : (order.discountAmount || 0);
   const isDineIn = order.isDineIn ?? (order.orderSource === "TABLE" || order.orderSource === "QR");
   const scRate = order.serviceChargeRate !== undefined && order.serviceChargeRate !== null
@@ -101,12 +101,12 @@ function settlementBill(order: Order, appliedCoupon: ValidateCouponResponse | nu
     vatRegistered: order.vatRegistered ?? true,
   });
 
-  const totalPaise = Math.round(bill.total * 100);
+  const totalPence = Math.round(bill.total * 100);
   // Already confirmed on the bill — only the rest is collected now. A QR diner's "I will pay by card" is PENDING
   // until the cashier checks it, so it is still part of the amount due here
-  const paidPaise = (order.payments || [])
+  const paidPence = (order.payments || [])
     .filter((p) => p.status === "CONFIRMED")
-    .reduce((sum, p) => sum + p.amountPaise, 0);
+    .reduce((sum, p) => sum + p.amountPence, 0);
 
   return {
     isDineIn,
@@ -118,9 +118,9 @@ function settlementBill(order: Order, appliedCoupon: ValidateCouponResponse | nu
     vatRate: bill.appliedRates.vatRate,
     roundOffVal: bill.roundOff,
     totalVal: bill.total,
-    totalPaise,
-    paidPaise,
-    balanceDuePaise: Math.max(0, totalPaise - paidPaise),
+    totalPence,
+    paidPence,
+    balanceDuePence: Math.max(0, totalPence - paidPence),
   };
 }
 
@@ -307,7 +307,7 @@ export default function LiveOrdersPage() {
   const [duplicateReference, setDuplicateReference] = useState(false);
   // Single card payment the cashier confirmed arrived. It only counts for the same bill, method and
   // amount, so switching method or a coupon / service-charge change afterwards needs a fresh confirmation
-  const [receivedConfirmation, setReceivedConfirmation] = useState<{ orderId: string; method: string; paise: number } | null>(null);
+  const [receivedConfirmation, setReceivedConfirmation] = useState<{ orderId: string; method: string; pence: number } | null>(null);
   // Approval code the cashier typed for that bill and method
   const [referenceDraft, setReferenceDraft] = useState<{ orderId: string; method: string; text: string } | null>(null);
   // The coupon and bill breakdown stay folded until the cashier needs them
@@ -476,10 +476,10 @@ export default function LiveOrdersPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [settlingOrder?.id]);
 
-  const isReceivedConfirmed = (order: Order, balanceDuePaise: number) =>
+  const isReceivedConfirmed = (order: Order, balanceDuePence: number) =>
     receivedConfirmation?.orderId === order.id &&
     receivedConfirmation.method === paymentMethod &&
-    receivedConfirmation.paise === balanceDuePaise;
+    receivedConfirmation.pence === balanceDuePence;
 
   const paymentReferenceFor = (order: Order) =>
     referenceDraft?.orderId === order.id && referenceDraft.method === paymentMethod ? referenceDraft.text : "";
@@ -528,7 +528,7 @@ export default function LiveOrdersPage() {
       couponCode?: string;
       couponId?: string;
       discountAmount?: number;
-      discountPaise?: number;
+      discountPence?: number;
     },
     settlement?: {
       payments?: SplitPaymentPart[];
@@ -553,7 +553,7 @@ export default function LiveOrdersPage() {
         couponCode: couponPayload?.couponCode,
         couponId: couponPayload?.couponId,
         discountAmount: couponPayload?.discountAmount,
-        discountPaise: couponPayload?.discountPaise,
+        discountPence: couponPayload?.discountPence,
         payments: settlement?.payments,
         idempotencyKey: settlement?.idempotencyKey,
         allowDuplicateReference: settlement?.allowDuplicateReference,
@@ -579,11 +579,11 @@ export default function LiveOrdersPage() {
   const settleBill = async (settlingOrder: Order, allowDuplicateReference = false) => {
     // Ignore a second tap while the first settle request is still in flight
     if (settleInFlightRef.current) return;
-    const { balanceDuePaise } = settlementBill(settlingOrder, appliedCoupon);
-    const isSplit = paymentMode === "SPLIT" && balanceDuePaise > 0;
-    if (isSplit && !summarizeSplit(splitLines, balanceDuePaise).canSettle) return;
-    const isOnlineSingle = !isSplit && balanceDuePaise > 0 && isOnlineMethod(paymentMethod);
-    if (isOnlineSingle && !isReceivedConfirmed(settlingOrder, balanceDuePaise)) return;
+    const { balanceDuePence } = settlementBill(settlingOrder, appliedCoupon);
+    const isSplit = paymentMode === "SPLIT" && balanceDuePence > 0;
+    if (isSplit && !summarizeSplit(splitLines, balanceDuePence).canSettle) return;
+    const isOnlineSingle = !isSplit && balanceDuePence > 0 && isOnlineMethod(paymentMethod);
+    if (isOnlineSingle && !isReceivedConfirmed(settlingOrder, balanceDuePence)) return;
     settleInFlightRef.current = true;
     setSettleError(null);
     setDuplicateReference(false);
@@ -604,14 +604,14 @@ export default function LiveOrdersPage() {
             couponCode: appliedCoupon.code,
             couponId: appliedCoupon.couponId,
             discountAmount: appliedCoupon.discountAmount,
-            discountPaise: appliedCoupon.discountPaise,
+            discountPence: appliedCoupon.discountPence,
           }
         : undefined,
       {
         payments: isSplit
           ? toPaymentPayload(splitLines)
           : isOnlineSingle
-            ? [{ method: paymentMethod, amountPaise: balanceDuePaise, reference: paymentReferenceFor(settlingOrder).trim() || undefined, verified: true }]
+            ? [{ method: paymentMethod, amountPence: balanceDuePence, reference: paymentReferenceFor(settlingOrder).trim() || undefined, verified: true }]
             : undefined,
         idempotencyKey: settlementKeyRef.current,
         allowDuplicateReference,
@@ -774,8 +774,8 @@ export default function LiveOrdersPage() {
   };
 
   const getItemPrice = (item: any) =>
-    ((item.unitPricePaise !== undefined
-      ? item.unitPricePaise
+    ((item.unitPricePence !== undefined
+      ? item.unitPricePence
       : item.menuItem?.price
         ? item.menuItem.price * 100
         : 0) /
@@ -1009,8 +1009,8 @@ export default function LiveOrdersPage() {
               const totalAmt =
                 order.totalAmount !== undefined
                   ? order.totalAmount
-                  : (order as any).totalPaise !== undefined
-                    ? (order as any).totalPaise / 100
+                  : (order as any).totalPence !== undefined
+                    ? (order as any).totalPence / 100
                     : 0;
 
               return (
@@ -1350,7 +1350,7 @@ export default function LiveOrdersPage() {
                                     <div className="flex flex-wrap gap-1 mt-1">
                                       {itemMods.map((m: any, mIdx: number) => {
                                         const isVar = Boolean(m.isVariant);
-                                        const priceVal = m.price !== undefined ? Number(m.price) : (m.pricePaise ? Number(m.pricePaise) / 100 : 0);
+                                        const priceVal = m.price !== undefined ? Number(m.price) : (m.pricePence ? Number(m.pricePence) / 100 : 0);
                                         if (isVar) {
                                           return (
                                             <span
@@ -1432,22 +1432,22 @@ export default function LiveOrdersPage() {
                   const subtotalVal =
                     selectedOrder.subtotal !== undefined
                       ? selectedOrder.subtotal
-                      : (selectedOrder as any).subtotalPaise !== undefined
-                        ? (selectedOrder as any).subtotalPaise / 100
+                      : (selectedOrder as any).subtotalPence !== undefined
+                        ? (selectedOrder as any).subtotalPence / 100
                         : 0;
 
                   const totalVal =
                     selectedOrder.totalAmount !== undefined
                       ? selectedOrder.totalAmount
-                      : (selectedOrder as any).totalPaise !== undefined
-                        ? (selectedOrder as any).totalPaise / 100
+                      : (selectedOrder as any).totalPence !== undefined
+                        ? (selectedOrder as any).totalPence / 100
                         : 0;
 
                   const discountVal =
                     selectedOrder.discountAmount !== undefined
                       ? selectedOrder.discountAmount
-                      : (selectedOrder as any).discountPaise !== undefined
-                        ? (selectedOrder as any).discountPaise / 100
+                      : (selectedOrder as any).discountPence !== undefined
+                        ? (selectedOrder as any).discountPence / 100
                         : 0;
 
                   const serviceChargeVal =
@@ -1455,23 +1455,23 @@ export default function LiveOrdersPage() {
                       ? selectedOrder.serviceChargeAmount
                       : (selectedOrder as any).serviceTaxAmount !== undefined
                         ? (selectedOrder as any).serviceTaxAmount
-                        : (selectedOrder as any).serviceTaxPaise !== undefined
-                          ? (selectedOrder as any).serviceTaxPaise / 100
+                        : (selectedOrder as any).serviceTaxPence !== undefined
+                          ? (selectedOrder as any).serviceTaxPence / 100
                           : 0;
 
                   // VAT is already inside the prices; shown as "includes VAT"
                   const vatVal =
                     selectedOrder.vatAmount !== undefined
                       ? selectedOrder.vatAmount
-                      : (selectedOrder as any).vatPaise !== undefined
-                        ? (selectedOrder as any).vatPaise / 100
+                      : (selectedOrder as any).vatPence !== undefined
+                        ? (selectedOrder as any).vatPence / 100
                         : 0;
 
                   const roundOffVal =
                     selectedOrder.roundOffAmount !== undefined
                       ? selectedOrder.roundOffAmount
-                      : (selectedOrder as any).roundOffPaise !== undefined
-                        ? (selectedOrder as any).roundOffPaise / 100
+                      : (selectedOrder as any).roundOffPence !== undefined
+                        ? (selectedOrder as any).roundOffPence / 100
                         : 0;
 
                   // Use snapshotted rates if available, else derive
@@ -1690,7 +1690,7 @@ export default function LiveOrdersPage() {
                 {(() => {
                   const {
                     subtotalVal, discountVal, isDineIn, scRate, serviceChargeVal,
-                    vatVal, vatRate, roundOffVal, totalVal, paidPaise, balanceDuePaise,
+                    vatVal, vatRate, roundOffVal, totalVal, paidPence, balanceDuePence,
                   } = settlementBill(settlingOrder, appliedCoupon);
                   const fmt = (n: number) => `£${n.toLocaleString("en-GB", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
                   const summaryParts = [
@@ -1705,14 +1705,14 @@ export default function LiveOrdersPage() {
                       <div className="flex items-start justify-between gap-3">
                         <div className="min-w-0">
                           <span className="text-[11px] font-medium text-slate-500 block">
-                            {paidPaise > 0 ? "To collect" : "Amount due"}
+                            {paidPence > 0 ? "To collect" : "Amount due"}
                           </span>
                           <span className="text-[28px] leading-tight font-semibold text-slate-900 tracking-tight tabular-nums">
-                            {paidPaise > 0 ? formatPaise(balanceDuePaise) : fmt(totalVal)}
+                            {paidPence > 0 ? formatPence(balanceDuePence) : fmt(totalVal)}
                           </span>
-                          {paidPaise > 0 && (
+                          {paidPence > 0 && (
                             <span className="block text-[11px] text-amber-700 font-medium">
-                              {formatPaise(paidPaise)} of {fmt(totalVal)} already paid
+                              {formatPence(paidPence)} of {fmt(totalVal)} already paid
                             </span>
                           )}
                         </div>
@@ -1851,14 +1851,14 @@ export default function LiveOrdersPage() {
                                 const unitPrice =
                                   item.unitPrice !== undefined
                                     ? Number(item.unitPrice)
-                                    : item.unitPricePaise !== undefined
-                                      ? item.unitPricePaise / 100
+                                    : item.unitPricePence !== undefined
+                                      ? item.unitPricePence / 100
                                       : 0;
                                 const subtotal =
                                   item.subtotal !== undefined
                                     ? Number(item.subtotal)
-                                    : item.subtotalPaise !== undefined
-                                      ? item.subtotalPaise / 100
+                                    : item.subtotalPence !== undefined
+                                      ? item.subtotalPence / 100
                                       : unitPrice * (item.quantity || 1);
 
                                 return (
@@ -2081,8 +2081,8 @@ export default function LiveOrdersPage() {
 
                 {/* Payment: one method, or split across several */}
                 {(() => {
-                  const { balanceDuePaise } = settlementBill(settlingOrder, appliedCoupon);
-                  if (balanceDuePaise === 0) {
+                  const { balanceDuePence } = settlementBill(settlingOrder, appliedCoupon);
+                  if (balanceDuePence === 0) {
                     return (
                       <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-3 flex items-center gap-2 text-xs text-emerald-900">
                         <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
@@ -2104,7 +2104,7 @@ export default function LiveOrdersPage() {
                                 setSettleError(null);
                                 setPaymentMode(mode);
                                 if (mode === "SPLIT" && splitLines.length === 0) {
-                                  setSplitLines(initialSplitLines(balanceDuePaise, paymentMethod === "CASH" ? "CARD" : "CASH"));
+                                  setSplitLines(initialSplitLines(balanceDuePence, paymentMethod === "CASH" ? "CARD" : "CASH"));
                                 }
                               }}
                               className={`px-2.5 py-1 rounded-md text-[11px] font-semibold transition cursor-pointer ${
@@ -2166,7 +2166,7 @@ export default function LiveOrdersPage() {
                         </div>
                         {/* Deliveroo / Uber Eats / Just Eat: overall bill settlement */}
                         {isPlatformMethod(paymentMethod) && (() => {
-                          const confirmed = isReceivedConfirmed(settlingOrder, balanceDuePaise);
+                          const confirmed = isReceivedConfirmed(settlingOrder, balanceDuePence);
                           const app = PLATFORM_META[paymentMethod].label;
                           return (
                             <div
@@ -2179,7 +2179,7 @@ export default function LiveOrdersPage() {
                                   <span aria-hidden className={`w-2.5 h-2.5 rounded-full ${PLATFORM_META[paymentMethod].dot}`} />
                                   Delivery bill via {app}
                                 </span>
-                                <span className="text-slate-900 font-bold tabular-nums text-sm">{formatPaise(balanceDuePaise)}</span>
+                                <span className="text-slate-900 font-bold tabular-nums text-sm">{formatPence(balanceDuePence)}</span>
                               </div>
                               <label className="flex items-start gap-2 cursor-pointer select-none">
                                 <input
@@ -2188,7 +2188,7 @@ export default function LiveOrdersPage() {
                                   onChange={(e) => {
                                     setSettleError(null);
                                     setReceivedConfirmation(
-                                      e.target.checked ? { orderId: settlingOrder.id, method: paymentMethod, paise: balanceDuePaise } : null
+                                      e.target.checked ? { orderId: settlingOrder.id, method: paymentMethod, pence: balanceDuePence } : null
                                     );
                                   }}
                                   className="mt-0.5 w-4 h-4 accent-emerald-600 cursor-pointer shrink-0"
@@ -2211,7 +2211,7 @@ export default function LiveOrdersPage() {
                         })()}
                         {/* Card money lands outside the till: the cashier confirms it arrived before settling */}
                         {isOnlineMethod(paymentMethod) && !isPlatformMethod(paymentMethod) && (() => {
-                          const confirmed = isReceivedConfirmed(settlingOrder, balanceDuePaise);
+                          const confirmed = isReceivedConfirmed(settlingOrder, balanceDuePence);
                           return (
                             <div
                               className={`rounded-xl border p-2.5 space-y-2 transition-colors ${
@@ -2225,13 +2225,13 @@ export default function LiveOrdersPage() {
                                   onChange={(e) => {
                                     setSettleError(null);
                                     setReceivedConfirmation(
-                                      e.target.checked ? { orderId: settlingOrder.id, method: paymentMethod, paise: balanceDuePaise } : null
+                                      e.target.checked ? { orderId: settlingOrder.id, method: paymentMethod, pence: balanceDuePence } : null
                                     );
                                   }}
                                   className="mt-0.5 w-4 h-4 accent-emerald-600 cursor-pointer shrink-0"
                                 />
                                 <span className={`text-[11px] font-semibold leading-snug ${confirmed ? "text-emerald-900" : "text-amber-900"}`}>
-                                  I&apos;ve checked {formatPaise(balanceDuePaise)} was approved on the card machine
+                                  I&apos;ve checked {formatPence(balanceDuePence)} was approved on the card machine
                                 </span>
                               </label>
                               <input
@@ -2249,7 +2249,7 @@ export default function LiveOrdersPage() {
                         </div>
                       ) : (
                         <SplitPaymentEditor
-                          duePaise={balanceDuePaise}
+                          duePence={balanceDuePence}
                           lines={splitLines}
                           onChange={(next) => {
                             setSettleError(null);
@@ -2301,18 +2301,18 @@ export default function LiveOrdersPage() {
                       customerPhone: customerPhone.trim() || settlingOrder.customerPhone,
                       paymentMethod,
                       discountAmount: discountVal,
-                      discountPaise: Math.round(discountVal * 100),
+                      discountPence: Math.round(discountVal * 100),
                       couponCode: appliedCoupon?.code || settlingOrder.couponCode,
                       couponId: appliedCoupon?.couponId || settlingOrder.couponId,
                       vatAmount: vatVal,
-                      vatPaise: Math.round(vatVal * 100),
+                      vatPence: Math.round(vatVal * 100),
                       serviceChargeAmount: serviceChargeVal,
                       serviceTaxAmount: serviceChargeVal,
-                      serviceTaxPaise: Math.round(serviceChargeVal * 100),
+                      serviceTaxPence: Math.round(serviceChargeVal * 100),
                       roundOffAmount: roundOffVal,
-                      roundOffPaise: Math.round(roundOffVal * 100),
+                      roundOffPence: Math.round(roundOffVal * 100),
                       totalAmount: totalVal,
-                      totalPaise: Math.round(totalVal * 100),
+                      totalPence: Math.round(totalVal * 100),
                       outlet: branches.find((b) => b.id === settlingOrder.outletId) || activeBranch,
                     });
                   }}
@@ -2326,21 +2326,21 @@ export default function LiveOrdersPage() {
                   onClick={() => settleBill(settlingOrder)}
                   disabled={(() => {
                     if (isUpdating) return true;
-                    const { balanceDuePaise } = settlementBill(settlingOrder, appliedCoupon);
-                    if (balanceDuePaise === 0) return false;
-                    if (paymentMode === "SPLIT") return !summarizeSplit(splitLines, balanceDuePaise).canSettle;
-                    return isOnlineMethod(paymentMethod) && !isReceivedConfirmed(settlingOrder, balanceDuePaise);
+                    const { balanceDuePence } = settlementBill(settlingOrder, appliedCoupon);
+                    if (balanceDuePence === 0) return false;
+                    if (paymentMode === "SPLIT") return !summarizeSplit(splitLines, balanceDuePence).canSettle;
+                    return isOnlineMethod(paymentMethod) && !isReceivedConfirmed(settlingOrder, balanceDuePence);
                   })()}
                   className="flex-1 inline-flex items-center justify-center gap-1.5 bg-slate-900 hover:bg-slate-800 text-white font-semibold py-2.5 px-4 text-xs rounded-xl transition disabled:opacity-50 cursor-pointer shadow-xs active:scale-98"
                 >
                   <Printer className="w-3.5 h-3.5 text-emerald-400" />
                   {(() => {
                     if (isUpdating) return "Settling…";
-                    const { balanceDuePaise } = settlementBill(settlingOrder, appliedCoupon);
-                    if (paymentMode === "SPLIT" && balanceDuePaise > 0) {
-                      return summarizeSplit(splitLines, balanceDuePaise).blocker || "Settle & Print Receipt";
+                    const { balanceDuePence } = settlementBill(settlingOrder, appliedCoupon);
+                    if (paymentMode === "SPLIT" && balanceDuePence > 0) {
+                      return summarizeSplit(splitLines, balanceDuePence).blocker || "Settle & Print Receipt";
                     }
-                    if (balanceDuePaise > 0 && isOnlineMethod(paymentMethod) && !isReceivedConfirmed(settlingOrder, balanceDuePaise)) {
+                    if (balanceDuePence > 0 && isOnlineMethod(paymentMethod) && !isReceivedConfirmed(settlingOrder, balanceDuePence)) {
                       if (isPlatformMethod(paymentMethod)) return `Confirm ${PLATFORM_META[paymentMethod].label} payment`;
                       return "Confirm card payment";
                     }
@@ -2668,14 +2668,14 @@ export default function LiveOrdersPage() {
                 const unitPrice =
                   item.unitPrice !== undefined
                     ? Number(item.unitPrice)
-                    : item.unitPricePaise !== undefined
-                      ? item.unitPricePaise / 100
+                    : item.unitPricePence !== undefined
+                      ? item.unitPricePence / 100
                       : 0;
                 const subtotal =
                   item.subtotal !== undefined
                     ? Number(item.subtotal)
-                    : item.subtotalPaise !== undefined
-                      ? item.subtotalPaise / 100
+                    : item.subtotalPence !== undefined
+                      ? item.subtotalPence / 100
                       : unitPrice * (item.quantity || 1);
                 const maxQty = item.quantity || 1;
 

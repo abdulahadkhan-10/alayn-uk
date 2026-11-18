@@ -61,9 +61,9 @@ export function calculateSubscriptionPricing(
     baseTotal,
     vatTotal,
     grandTotal,
-    baseTotalPaise: Math.round(baseTotal * 100),
-    vatTotalPaise: Math.round(vatTotal * 100),
-    grandTotalPaise: Math.round(grandTotal * 100),
+    baseTotalPence: Math.round(baseTotal * 100),
+    vatTotalPence: Math.round(vatTotal * 100),
+    grandTotalPence: Math.round(grandTotal * 100),
   };
 }
 

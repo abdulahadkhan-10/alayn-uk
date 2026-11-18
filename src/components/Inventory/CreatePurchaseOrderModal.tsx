@@ -68,7 +68,7 @@ export default function CreatePurchaseOrderModal({
     const foundItem = allItems.find((i) => i.id === selectedItemIdToAdd);
     if (!foundItem) return;
 
-    const pounds = (foundItem.unitCostPaise || 0) / 100;
+    const pounds = (foundItem.unitCostPence || 0) / 100;
 
     setLines((prev) => [
       ...prev,
@@ -102,7 +102,7 @@ export default function CreatePurchaseOrderModal({
     setLines((prev) => prev.filter((l) => l.itemId !== itemId));
   };
 
-  const totalPaise = useMemo(() => {
+  const totalPence = useMemo(() => {
     return lines.reduce((sum, line) => sum + Math.round(line.quantity * line.unitCostPounds * 100), 0);
   }, [lines]);
 
@@ -124,7 +124,7 @@ export default function CreatePurchaseOrderModal({
       const payloadItems = lines.map((l) => ({
         itemId: l.itemId,
         orderedQuantity: l.quantity,
-        unitCostPaise: Math.round(l.unitCostPounds * 100),
+        unitCostPence: Math.round(l.unitCostPounds * 100),
       }));
 
       const payload = { supplierId: selectedSupplierId, items: payloadItems };
@@ -345,7 +345,7 @@ export default function CreatePurchaseOrderModal({
             <span className="text-[11px] font-semibold uppercase tracking-wider text-zinc-400 block">Total Amount</span>
             <span className="text-xl font-bold text-zinc-900 flex items-center gap-0.5 mt-0.5">
               <PoundSterling className="h-4 w-4 text-zinc-500" />
-              {(totalPaise / 100).toLocaleString("en-GB", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              {(totalPence / 100).toLocaleString("en-GB", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </span>
           </div>
 

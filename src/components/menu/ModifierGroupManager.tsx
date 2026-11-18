@@ -109,7 +109,7 @@ export default function ModifierGroupManager() {
       (group.modifiers || []).map((m) => ({
         id: m.id,
         name: m.name,
-        price: String(m.price ?? (m.pricePaise ? m.pricePaise / 100 : 0)),
+        price: String(m.price ?? (m.pricePence ? m.pricePence / 100 : 0)),
         isVeg: m.isVeg ?? true,
         dietaryType: m.dietaryType || "VEG",
       }))
@@ -188,7 +188,7 @@ export default function ModifierGroupManager() {
         id: o.id,
         name: o.name.trim(),
         price: Number(o.price) || 0,
-        pricePaise: Math.round((Number(o.price) || 0) * 100),
+        pricePence: Math.round((Number(o.price) || 0) * 100),
         isVeg: o.isVeg,
         dietaryType: o.dietaryType,
         sortOrder: idx,

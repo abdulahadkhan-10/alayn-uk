@@ -135,10 +135,10 @@ export function paramsToSearch(p: ReportParams): string {
 
 // ---------- formatting ----------
 
-/** Integer pence/paise as "£12,345" (en-GB grouping, no decimals). */
-export function formatPaise(paise: number): string {
-  const sign = paise < 0 ? "-" : "";
-  return `${sign}£${Math.round(Math.abs(paise) / 100).toLocaleString("en-GB")}`;
+/** Integer pence as "£12,345" (en-GB grouping, no decimals). */
+export function formatPence(pence: number): string {
+  const sign = pence < 0 ? "-" : "";
+  return `${sign}£${Math.round(Math.abs(pence) / 100).toLocaleString("en-GB")}`;
 }
 
 export const formatCount = (n: number) => n.toLocaleString("en-GB");

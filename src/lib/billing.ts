@@ -102,11 +102,11 @@ export function receiptVat(order: any): { registered: boolean; rate: number; vat
 
   let vatPounds = 0;
   if (registered) {
-    if (order?.vatPaise !== undefined) vatPounds = order.vatPaise / 100;
+    if (order?.vatPence !== undefined) vatPounds = order.vatPence / 100;
     else if (order?.vatAmount !== undefined) vatPounds = Number(order.vatAmount);
     else {
-      const subtotal = order?.subtotalPaise !== undefined ? order.subtotalPaise / 100 : Number(order?.subtotal || 0);
-      const discount = order?.discountPaise !== undefined ? order.discountPaise / 100 : Number(order?.discountAmount || 0);
+      const subtotal = order?.subtotalPence !== undefined ? order.subtotalPence / 100 : Number(order?.subtotal || 0);
+      const discount = order?.discountPence !== undefined ? order.discountPence / 100 : Number(order?.discountAmount || 0);
       vatPounds = Math.round(((Math.max(0, subtotal - discount) * rate) / (100 + rate)) * 100) / 100;
     }
   }

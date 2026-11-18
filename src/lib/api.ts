@@ -134,7 +134,7 @@ export interface InventoryItem {
   category: string;
   unit: string;
   reorderThreshold: number;
-  unitCostPaise: number;
+  unitCostPence: number;
   currentStock: number;
   createdAt?: string;
 }
@@ -150,13 +150,13 @@ export interface InventoryListResult {
 // ── Fallback / mock data ──────────────────────────────────────────────────────
 
 const FALLBACK_INVENTORY: InventoryItem[] = [
-  { id: "1", name: "Premium Espresso Beans", sku: "COF-ESP-001", category: "Beverages", unit: "kg", reorderThreshold: 10, unitCostPaise: 120000, currentStock: 24 },
-  { id: "2", name: "Whole Milk", sku: "MILK-WHL-002", category: "Dairy", unit: "L", reorderThreshold: 15, unitCostPaise: 8000, currentStock: 8 },
-  { id: "3", name: "Oat Milk (Barista Edition)", sku: "MILK-OAT-003", category: "Dairy", unit: "L", reorderThreshold: 10, unitCostPaise: 18000, currentStock: 18 },
-  { id: "4", name: "Caramel Syrup", sku: "SYR-CAR-004", category: "Syrups", unit: "Bottle", reorderThreshold: 5, unitCostPaise: 45000, currentStock: 3 },
-  { id: "5", name: "Paper Cups 12oz", sku: "PKG-CUP-12OZ", category: "Packaging", unit: "pack", reorderThreshold: 8, unitCostPaise: 65000, currentStock: 12 },
-  { id: "6", name: "Chocolate Chips", sku: "BAK-CHP-006", category: "Bakery", unit: "kg", reorderThreshold: 4, unitCostPaise: 50000, currentStock: 5 },
-  { id: "7", name: "Butter Croissant (Frozen)", sku: "BAK-CRO-007", category: "Bakery", unit: "pcs", reorderThreshold: 50, unitCostPaise: 4500, currentStock: 120 },
+  { id: "1", name: "Premium Espresso Beans", sku: "COF-ESP-001", category: "Beverages", unit: "kg", reorderThreshold: 10, unitCostPence: 120000, currentStock: 24 },
+  { id: "2", name: "Whole Milk", sku: "MILK-WHL-002", category: "Dairy", unit: "L", reorderThreshold: 15, unitCostPence: 8000, currentStock: 8 },
+  { id: "3", name: "Oat Milk (Barista Edition)", sku: "MILK-OAT-003", category: "Dairy", unit: "L", reorderThreshold: 10, unitCostPence: 18000, currentStock: 18 },
+  { id: "4", name: "Caramel Syrup", sku: "SYR-CAR-004", category: "Syrups", unit: "Bottle", reorderThreshold: 5, unitCostPence: 45000, currentStock: 3 },
+  { id: "5", name: "Paper Cups 12oz", sku: "PKG-CUP-12OZ", category: "Packaging", unit: "pack", reorderThreshold: 8, unitCostPence: 65000, currentStock: 12 },
+  { id: "6", name: "Chocolate Chips", sku: "BAK-CHP-006", category: "Bakery", unit: "kg", reorderThreshold: 4, unitCostPence: 50000, currentStock: 5 },
+  { id: "7", name: "Butter Croissant (Frozen)", sku: "BAK-CRO-007", category: "Bakery", unit: "pcs", reorderThreshold: 50, unitCostPence: 4500, currentStock: 120 },
 ];
 
 // ── Branches API ──────────────────────────────────────────────────────────────
@@ -350,7 +350,7 @@ export interface CustomerMenuItem {
   name: string;
   description: string;
   imageUrl: string | null;
-  pricePaise: number;
+  pricePence: number;
   isVeg: boolean;
   dietaryType?: 'VEG' | 'NON_VEG' | 'VEGAN';
   isActive: boolean;
@@ -390,7 +390,7 @@ export interface QROrderItemInput {
     id?: string;
     name: string;
     price?: number;
-    pricePaise?: number;
+    pricePence?: number;
   }[];
 }
 

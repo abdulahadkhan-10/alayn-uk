@@ -7,9 +7,9 @@ export function dietaryTypeOf(item: Pick<CustomerMenuItem, "dietaryType" | "isVe
 }
 
 /** £2.50 on the menu, £2.50 when there are pence; `exact` always shows pence (bill lines) */
-export function formatPounds(paise: number, { exact = false }: { exact?: boolean } = {}): string {
-  const pounds = paise / 100;
-  const showPence = exact || Math.round(paise) % 100 !== 0;
+export function formatPounds(pence: number, { exact = false }: { exact?: boolean } = {}): string {
+  const pounds = pence / 100;
+  const showPence = exact || Math.round(pence) % 100 !== 0;
   return `£${pounds.toLocaleString("en-GB", {
     minimumFractionDigits: showPence ? 2 : 0,
     maximumFractionDigits: 2,
@@ -52,30 +52,30 @@ export type BillPaymentMethod = "CARD" | "CASH";
 interface PaymentLike {
   method: string;
   status: string;
-  amountPaise: number;
+  amountPence: number;
   reference?: string | null;
 }
 
 /** What is paid and still due on the table's running bill, and how the diner said they'd pay */
-export function tableBillStatus(order: { totalPaise?: number; payments?: PaymentLike[] } | null | undefined) {
+export function tableBillStatus(order: { totalPence?: number; payments?: PaymentLike[] } | null | undefined) {
   const payments = order?.payments || [];
-  const totalPaise = order?.totalPaise || 0;
-  const paidPaise = payments.filter((p) => p.status === "CONFIRMED").reduce((sum, p) => sum + p.amountPaise, 0);
-  const duePaise = Math.max(0, totalPaise - paidPaise);
+  const totalPence = order?.totalPence || 0;
+  const paidPence = payments.filter((p) => p.status === "CONFIRMED").reduce((sum, p) => sum + p.amountPence, 0);
+  const duePence = Math.max(0, totalPence - paidPence);
   const pending = payments.filter((p) => p.status === "PENDING");
   const request = pending.length > 0
     ? {
         method: pending[pending.length - 1].method as BillPaymentMethod,
-        amountPaise: pending.reduce((sum, p) => sum + p.amountPaise, 0),
+        amountPence: pending.reduce((sum, p) => sum + p.amountPence, 0),
         references: pending.map((p) => p.reference).filter((r): r is string => !!r),
       }
     : null;
   return {
-    totalPaise,
-    paidPaise,
-    duePaise,
+    totalPence,
+    paidPence,
+    duePence,
     request,
     /** They asked for the bill, then ordered more: the amount they chose to pay no longer covers it */
-    requestOutdated: !!request && request.amountPaise < duePaise,
+    requestOutdated: !!request && request.amountPence < duePence,
   };
 }

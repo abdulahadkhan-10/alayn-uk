@@ -425,7 +425,7 @@ export default function PosTerminalComponent() {
       item.modifierGroups.forEach((mg) => {
         if (mg.minSelection === 1 && mg.maxSelection === 1 && mg.modifiers && mg.modifiers.length > 0) {
           const firstMod = mg.modifiers[0];
-          const isVariant = mg.modifiers.some((m: any) => Number(m.price || m.pricePaise) > 0);
+          const isVariant = mg.modifiers.some((m: any) => Number(m.price || m.pricePence) > 0);
           initialSelected[mg.id] = [
             {
               id: firstMod.id,
@@ -550,7 +550,7 @@ export default function PosTerminalComponent() {
           id: m.id,
           name: m.name,
           price: m.price,
-          pricePaise: Math.round(m.price * 100),
+          pricePence: Math.round(m.price * 100),
           isVariant: m.isVariant,
         })),
       })),
@@ -624,7 +624,7 @@ export default function PosTerminalComponent() {
           id: m.id,
           name: m.name,
           price: m.price,
-          pricePaise: Math.round(m.price * 100),
+          pricePence: Math.round(m.price * 100),
           isVariant: m.isVariant,
         })),
       })),
@@ -676,7 +676,7 @@ export default function PosTerminalComponent() {
 
     // Identify variant groups (Mandatory Single Choice where options have standalone prices)
     const variantGroups = (customizingItem.modifierGroups || []).filter(
-      (g) => g.minSelection === 1 && g.maxSelection === 1 && (g.modifiers || []).some((m) => Number(m.price || (m as any).pricePaise) > 0)
+      (g) => g.minSelection === 1 && g.maxSelection === 1 && (g.modifiers || []).some((m) => Number(m.price || (m as any).pricePence) > 0)
     );
 
     let selectedVariantPrice: number | null = null;
@@ -2000,7 +2000,7 @@ export default function PosTerminalComponent() {
               <div className="flex-1 overflow-y-auto px-5 py-4 space-y-5">
                 {(customizingItem.modifierGroups || []).map((group) => {
                   const isSingleSelect = group.minSelection === 1 && group.maxSelection === 1;
-                  const isVariantGroup = isSingleSelect && (group.modifiers || []).some((m) => Number(m.price || (m as any).pricePaise) > 0);
+                  const isVariantGroup = isSingleSelect && (group.modifiers || []).some((m) => Number(m.price || (m as any).pricePence) > 0);
                   const currentSelected = selectedModifiersState[group.id] || [];
                   const isSatisfied = currentSelected.length >= group.minSelection;
                   const isRequired = group.minSelection > 0;

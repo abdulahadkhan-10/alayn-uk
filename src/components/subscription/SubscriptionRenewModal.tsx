@@ -38,7 +38,7 @@ interface SubscriptionRenewModalProps {
     subscription?: {
       status?: string;
       currentPeriodEnd?: string;
-      monthlyFeePaise?: number;
+      monthlyFeePence?: number;
     };
   } | null;
   onSuccess?: () => void;

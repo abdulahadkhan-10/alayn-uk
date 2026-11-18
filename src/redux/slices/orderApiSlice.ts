@@ -4,7 +4,7 @@ export interface OrderItemModifier {
   id?: string;
   name: string;
   price?: number;
-  pricePaise?: number;
+  pricePence?: number;
   isVariant?: boolean;
 }
 
@@ -23,10 +23,10 @@ export interface OrderItem {
   };
 }
 
-/** One part of a payment or split payment. Amounts are whole paise. */
+/** One part of a payment or split payment. Amounts are whole pence. */
 export interface SplitPaymentPart {
   method: "CASH" | "CARD" | "DELIVEROO" | "UBER_EATS" | "JUST_EAT";
-  amountPaise: number;
+  amountPence: number;
   /** Card approval code / partner order ref */
   reference?: string;
   /** Cashier confirmed an online payment was received (required for card / partner at settlement) */
@@ -85,11 +85,11 @@ export interface Order {
   paymentStatus: "PENDING" | "CONFIRMED" | "FAILED";
   isSplitPayment?: boolean;
   /** Confirmed payments on the bill, one per part of a split */
-  paymentSplits?: { method: string; amountPaise: number; amount: number; reference: string | null }[];
-  payments?: { id: string; method: string; amountPaise: number; status: "PENDING" | "CONFIRMED" | "FAILED" | "VOID"; reference?: string | null }[];
+  paymentSplits?: { method: string; amountPence: number; amount: number; reference: string | null }[];
+  payments?: { id: string; method: string; amountPence: number; status: "PENDING" | "CONFIRMED" | "FAILED" | "VOID"; reference?: string | null }[];
   paidAmount?: number;
   balanceDue?: number;
-  balanceDuePaise?: number;
+  balanceDuePence?: number;
   placedByName?: string;
   placedByRole?: string;
   customerName?: string;
@@ -170,7 +170,7 @@ export const orderApi = baseApi.injectEndpoints({
         couponCode?: string;
         couponId?: string;
         discountAmount?: number;
-        discountPaise?: number;
+        discountPence?: number;
       }
     >({
       query: ({
@@ -186,7 +186,7 @@ export const orderApi = baseApi.injectEndpoints({
         couponCode,
         couponId,
         discountAmount,
-        discountPaise,
+        discountPence,
       }) => ({
         url: `/orders/${id}/status`,
         method: "PATCH",
@@ -202,7 +202,7 @@ export const orderApi = baseApi.injectEndpoints({
           couponCode,
           couponId,
           discountAmount,
-          discountPaise,
+          discountPence,
         },
       }),
       transformResponse: (response: any) => response?.data || response,

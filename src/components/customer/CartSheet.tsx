@@ -15,7 +15,7 @@ export interface CartLine {
   quantity: number;
   notes?: string;
   selectedModifiers?: CartModifierItem[];
-  unitPricePaise: number;
+  unitPricePence: number;
 }
 
 interface CartSheetProps {
@@ -23,7 +23,7 @@ interface CartSheetProps {
   onClose: () => void;
   lines: CartLine[];
   /** Price of the dishes in this round, before taxes */
-  itemTotalPaise: number;
+  itemTotalPence: number;
   /** The table already has a running bill this round is added to */
   addingToBill: boolean;
   onChangeQuantity: (cartItemId: string, delta: number) => void;
@@ -38,7 +38,7 @@ interface CartSheetProps {
 }
 
 export default function CartSheet(props: CartSheetProps) {
-  const { open, onClose, lines, itemTotalPaise, addingToBill, placing, onPlaceOrder, tableNumber } = props;
+  const { open, onClose, lines, itemTotalPence, addingToBill, placing, onPlaceOrder, tableNumber } = props;
   const itemCount = lines.reduce((sum, l) => sum + l.quantity, 0);
 
   return (
@@ -65,7 +65,7 @@ export default function CartSheet(props: CartSheetProps) {
               {placing && <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />}
               {placing ? "Sending to kitchen…" : addingToBill ? "Add to my order" : "Place order"}
             </span>
-            <span className="tabular-nums">{formatPounds(itemTotalPaise, { exact: true })}</span>
+            <span className="tabular-nums">{formatPounds(itemTotalPence, { exact: true })}</span>
           </button>
         ) : null
       }
@@ -89,7 +89,7 @@ export default function CartSheet(props: CartSheetProps) {
         <div className="mt-3 space-y-7">
           <OrderLines {...props} />
           {!addingToBill && <GuestDetails {...props} />}
-          <RoundSummary itemTotalPaise={itemTotalPaise} addingToBill={addingToBill} />
+          <RoundSummary itemTotalPence={itemTotalPence} addingToBill={addingToBill} />
         </div>
       )}
     </BottomSheet>
@@ -117,7 +117,7 @@ function OrderLines({ lines, onChangeQuantity, onChangeNote }: CartSheetProps) {
                   </p>
                 )}
                 <p className="mt-1 text-sm font-medium tabular-nums text-(--espresso)">
-                  {formatPounds(line.unitPricePaise * line.quantity)}
+                  {formatPounds(line.unitPricePence * line.quantity)}
                 </p>
               </div>
               <QuantityStepper
@@ -200,12 +200,12 @@ function GuestDetails({ guestName, guestPhone, onGuestNameChange, onGuestPhoneCh
 }
 
 /** No taxes or payment here: they're worked out once, on the table's whole bill, when the diner is done */
-function RoundSummary({ itemTotalPaise, addingToBill }: { itemTotalPaise: number; addingToBill: boolean }) {
+function RoundSummary({ itemTotalPence, addingToBill }: { itemTotalPence: number; addingToBill: boolean }) {
   return (
     <section className="space-y-3">
       <div className="flex justify-between gap-4 text-base font-semibold text-(--espresso)">
         <span>Item total</span>
-        <span className="tabular-nums">{formatPounds(itemTotalPaise, { exact: true })}</span>
+        <span className="tabular-nums">{formatPounds(itemTotalPence, { exact: true })}</span>
       </div>
       <p className="flex gap-3 rounded-2xl bg-[#F4F5F8] px-4 py-3 text-[13px] leading-relaxed text-(--muted)">
         <ReceiptText className="mt-0.5 h-4 w-4 shrink-0 text-(--espresso)" aria-hidden="true" />

@@ -125,7 +125,7 @@ export interface OutletComparisonRow {
   outletId: string;
   outletName: string;
   totalCompletedOrders: number;
-  totalSalesPaise: number;
+  totalSalesPence: number;
 }
 
 export interface TopSellingItemPoint {

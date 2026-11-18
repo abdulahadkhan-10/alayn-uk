@@ -2,7 +2,7 @@
 
 import React from "react";
 import type { ReportData } from "@/redux/slices/reportsApiSlice";
-import { changeTone, formatChange, formatCount, formatPaise } from "@/lib/reportQuery";
+import { changeTone, formatChange, formatCount, formatPence } from "@/lib/reportQuery";
 
 // Same rule as the backend's pctChange: no percentage when there was nothing before
 const pct = (now: number, before: number) => (before > 0 ? Math.round(((now - before) / before) * 1000) / 10 : null);
@@ -30,16 +30,16 @@ export default function TrendTable({ report }: { report: ReportData }) {
         <tbody className="divide-y divide-slate-100">
           {current.map((b, i) => {
             const p = previous[i];
-            const change = p ? pct(b.netSalesPaise, p.netSalesPaise) : null;
+            const change = p ? pct(b.netSalesPence, p.netSalesPence) : null;
             return (
               <tr key={b.start} className="text-slate-700">
                 <td className="px-3 py-2 font-medium text-slate-800 whitespace-nowrap">{b.label}</td>
-                <td className="px-3 py-2 text-right tabular-nums">{formatPaise(b.netSalesPaise)}</td>
+                <td className="px-3 py-2 text-right tabular-nums">{formatPence(b.netSalesPence)}</td>
                 <td className="px-3 py-2 text-right tabular-nums">{formatCount(b.orders)}</td>
-                <td className="px-3 py-2 text-right tabular-nums">{formatPaise(b.wastePaise)}</td>
+                <td className="px-3 py-2 text-right tabular-nums">{formatPence(b.wastePence)}</td>
                 {hasPrev && (
                   <td className="px-3 py-2 text-right tabular-nums text-slate-500 whitespace-nowrap">
-                    {p ? `${formatPaise(p.netSalesPaise)} (${p.label})` : "—"}
+                    {p ? `${formatPence(p.netSalesPence)} (${p.label})` : "—"}
                   </td>
                 )}
                 {hasPrev && (
