@@ -108,7 +108,7 @@ const FAQS = [
       "Alayn AI is a unified restaurant billing software and operating system built for UK restaurants, cafés, QSRs, bakeries, and cloud kitchens. It combines VAT POS billing, KOT printing, live kitchen display (KDS), FEFO batch inventory, waste tracking, and staff scheduling in one plan at £79 per outlet per month (£600 per outlet per year if billed yearly) + 20% VAT.",
   },
   {
-    question: "Does Alayn AI billing software support GST invoicing and thermal KOT printing?",
+    question: "Does Alayn AI billing software support VAT invoicing and thermal KOT printing?",
     answer:
       "Yes. Alayn AI supports outlet-level VAT configuration, thermal receipt printing, and instant Kitchen Order Ticket (KOT) generation alongside a real-time digital Kitchen Display System (KDS).",
   },

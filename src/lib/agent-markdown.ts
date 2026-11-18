@@ -65,10 +65,10 @@ Alayn AI is an enterprise-grade, multi-tenant restaurant billing software and op
 
 > Everything a restaurant, café or cloud kitchen runs on during service, in one platform.
 
-Alayn AI is a restaurant billing software and operating system for restaurants, cafés, cloud kitchens and multi-outlet hospitality groups in India. Every feature below is included in one per-outlet subscription (see https://alaynai.com/pricing).
+Alayn AI is a restaurant billing software and operating system for restaurants, cafés, cloud kitchens and multi-outlet hospitality groups in the UK and internationally. Every feature below is included in one per-outlet subscription (see https://alaynai.com/pricing).
 
-## Point of Sale & GST Billing Software
-- Counter and table GST billing with card and cash.
+## Point of Sale & VAT Billing Software
+- Counter and table VAT billing with card and cash.
 - Printed KOTs and thermal receipts.
 - Table QR codes that open the menu on the guest's phone.
 - Unlimited POS terminals per outlet.
@@ -96,7 +96,7 @@ Alayn AI is a restaurant billing software and operating system for restaurants, 
 
 ## Multi-Outlet Management
 - Every outlet from one login, each with its own orders, stock and staff.
-- Outlet-level prices and GST (CGST/SGST) settings.
+- Outlet-level prices and VAT settings.
 
 ## Analytics and Ask Alayn AI
 - Sales dashboards, top and bottom sellers and outlet comparisons.

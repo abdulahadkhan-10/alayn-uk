@@ -7,7 +7,7 @@ import { SITE_URL, regionAlternates } from "@/lib/site-url";
 
 const siteUrl = SITE_URL;
 const title = "Features — Restaurant Billing Software, POS, KDS, Inventory & Workforce | Alayn AI";
-const description = "Everything in Alayn AI: GST counter and table POS billing software, kitchen display, batch inventory with expiry tracking, waste tracking, staff rosters and attendance, multi-outlet management and analytics.";
+const description = "Everything in Alayn AI: VAT counter and table POS billing software, kitchen display, batch inventory with expiry tracking, waste tracking, staff rosters and attendance, multi-outlet management and analytics.";
 
 export const metadata: Metadata = {
   title: "Features — Billing Software, POS, KDS & Inventory",
